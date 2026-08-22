@@ -357,6 +357,7 @@ textarea::placeholder{color:#3f4759;}
       <textarea id="input" spellcheck="false" placeholder="کپشن رو اینجا پیست کن…"></textarea>
 
       <div class="acts">
+        <button class="act" id="bPaste">پیست <small>Paste</small></button>
         <button class="act primary" id="bFix">اصلاح جهت <small>RTL</small></button>
         <button class="act" id="bSign">امضا</button>
         <button class="act" id="bClear">پاک</button>
@@ -436,6 +437,8 @@ function say(m,k){
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
 var MIDLATIN_DIGIT_RE=/([A-Za-z][A-Za-z0-9]*(?:[ '\-][A-Za-z0-9]+)+)((?:[»”’"']*)\s*)(\d)/g;
 var LABEL_RE=/^\s*(media|link|links|source|assets?)\s*:?\s*$/i;
+var LABELED_RE=/^\s*(media|link|links|source|assets?)\s*:/i;
+var ASSET_RE=/\.(jpe?g|png|gif|webp|avif|mp4|mov|webm|m4v)(\?|$)|pbs\.twimg\.com|video\.twimg\.com/i;
 var TWEET_RE=/https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[^\/\s]+\/status\/(\d+)/i;
 var IMG_EXT=/\.(jpe?g|png|gif|webp|avif)(\?|$)/i;
 var VID_EXT=/\.(mp4|mov|webm|m4v)(\?|$)/i;
@@ -455,11 +458,15 @@ function isHashtagLine(l){ return /^\s*\*{0,2}\s*#/.test(l.replace(new RegExp("[
 function isBlank(l){ return l.replace(new RegExp("[\\s"+ZWNJ+RLM+LRM+"]","g"),"")===""; }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function isMediaMetaLine(l){
-  if(LABEL_RE.test(l)) return true;
   var t=l.trim();
   if(!t) return false;
-  if(/\]\(/.test(t)) return false;
-  return t.replace(URL_RE,"").replace(LABEL_RE,"").trim()==="" && /https?:\/\//i.test(t);
+  if(/\]\(/.test(t)) return false;            // markdown link always stays
+  if(LABEL_RE.test(t)) return true;            // a bare "Media:" / "Link:" label line
+  if(LABELED_RE.test(t)) return true;          // labelled line → meant for the tool only
+  // an unlabelled line: drop it only when it is nothing but a real media file
+  if(t.replace(URL_RE,"").trim()!=="") return false;   // has other text → keep
+  if(!/https?:\/\//i.test(t)) return false;
+  return ASSET_RE.test(t);                     // plain links survive, asset links don't
 }
 
 function trimBlankEdges(text){
@@ -877,6 +884,20 @@ document.querySelectorAll(".tb").forEach(function(b){
     commit();
   });
 });
+document.getElementById("bPaste").onclick=async function(){
+  try{
+    var t=await navigator.clipboard.readText();
+    if(!t){ say("کلیپ‌بورد خالیه","warn"); return; }
+    var s=input.selectionStart, e=input.selectionEnd, v=input.value;
+    input.value=v.slice(0,s)+t+v.slice(e);
+    input.focus();
+    input.setSelectionRange(s+t.length, s+t.length);
+    commit(); render(); detectMedia();
+    say("پیست شد","ok");
+  }catch(err){
+    say("مرورگر اجازه نداد — دستی پیست کن","warn");
+  }
+};
 document.getElementById("bFix").onclick=function(){
   var p=input.selectionStart;
   input.value=fixDirection(input.value); commit(); render(); detectMedia();
