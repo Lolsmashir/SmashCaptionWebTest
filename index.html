@@ -732,36 +732,69 @@ async function resolveTweet(id){
   if(cache[id]) return cache[id];
   if(busyIds[id]) return [];
   busyIds[id]=true;
-  var got=[];
-  // fxtwitter first: it exposes the full variant list for videos
-  try{
-    var r=await fetch("https://api.fxtwitter.com/status/"+id);
-    if(r.ok){
-      var j=await r.json(), md=(j.tweet&&j.tweet.media)||{};
-      (md.photos||[]).forEach(function(ph){
-        got.push({url:bestImage(ph.url),kind:"image",label:"",variants:imageVariants(ph.url)});
+
+  var photos=[], videos=[];
+
+  function addVideo(vars, label){
+    if(!vars.length) return;
+    // merge into an existing entry when it is the same clip, else start a new one
+    var target=null;
+    for(var i=0;i<videos.length;i++){
+      var overlap=videos[i].variants.some(function(a){
+        return vars.some(function(b){ return a.url===b.url; });
       });
-      (md.videos||[]).forEach(function(v){
-        var vars=videoVariants(v);
-        got.push({url:(vars[0]||{}).url||v.url, kind:"video",
-                  label:v.height? v.width+"×"+v.height : "", variants:vars});
-      });
+      if(overlap){ target=videos[i]; break; }
     }
-  }catch(e){}
-  if(!got.length){
-    try{
-      var r2=await fetch("https://api.vxtwitter.com/Twitter/status/"+id);
-      if(r2.ok){
-        var j2=await r2.json();
-        (j2.media_extended||[]).forEach(function(m){
-          if(m.type==="image") got.push({url:bestImage(m.url),kind:"image",label:"",variants:imageVariants(m.url)});
-          else got.push({url:m.url,kind:"video",label:"",variants:videoVariants(m)});
-        });
-      }
-    }catch(e){}
+    if(!target){ target={kind:"video",label:label||"",variants:[]}; videos.push(target); }
+    vars.forEach(function(v){
+      if(!target.variants.some(function(x){ return x.url===v.url; })) target.variants.push(v);
+    });
   }
+
+  // query both services and merge — each can expose a different set of renditions
+  var results=await Promise.allSettled([
+    fetch("https://api.fxtwitter.com/status/"+id).then(function(r){ return r.ok? r.json():null; }),
+    fetch("https://api.vxtwitter.com/Twitter/status/"+id).then(function(r){ return r.ok? r.json():null; })
+  ]);
+
+  var fx=results[0].status==="fulfilled"? results[0].value : null;
+  var vx=results[1].status==="fulfilled"? results[1].value : null;
+
+  if(fx && fx.tweet && fx.tweet.media){
+    (fx.tweet.media.photos||[]).forEach(function(ph){
+      if(!photos.some(function(x){ return x.url===bestImage(ph.url); }))
+        photos.push({url:bestImage(ph.url),kind:"image",label:"",variants:imageVariants(ph.url)});
+    });
+    (fx.tweet.media.videos||[]).forEach(function(v){
+      addVideo(videoVariants(v), v.height? v.width+"×"+v.height : "");
+    });
+  }
+  if(vx){
+    (vx.media_extended||[]).forEach(function(m){
+      if(m.type==="image"){
+        if(!photos.some(function(x){ return x.url===bestImage(m.url); }))
+          photos.push({url:bestImage(m.url),kind:"image",label:"",variants:imageVariants(m.url)});
+      } else {
+        addVideo(videoVariants(m), "");
+      }
+    });
+  }
+
+  // sort each clip's renditions high -> low and set its display url
+  videos.forEach(function(v){
+    v.variants.sort(function(a,b){ return (b.h||b.bitrate)-(a.h||a.bitrate); });
+    v.url=(v.variants[0]||{}).url||"";
+  });
+
+  var got=photos.concat(videos);
   busyIds[id]=false; cache[id]=got;
-  say(got.length? got.length+" فایل از توییت پیدا شد" : "از توییت چیزی نگرفتم", got.length?"ok":"warn");
+
+  if(got.length){
+    var q=videos.reduce(function(s,v){ return s+v.variants.length; },0);
+    say(got.length+" فایل"+(q? " · "+q+" کیفیت":"")+" از توییت پیدا شد","ok");
+  } else {
+    say("از توییت چیزی نگرفتم","warn");
+  }
   return got;
 }
 
