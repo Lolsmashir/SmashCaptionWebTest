@@ -194,12 +194,13 @@ textarea::placeholder{color:#3f4759;}
 
 /* ---------- media ---------- */
 .mgrid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
   gap:9px;padding:11px;
 }
 .mcard{
   background:var(--panel-2);border:1px solid var(--border-soft);
   border-radius:11px;overflow:hidden;
+  min-width:0;                 /* let the card shrink inside its grid track */
   animation:pop .3s cubic-bezier(.2,1.1,.3,1) both;
 }
 .mthumb{position:relative;aspect-ratio:16/10;background:#0d1017;display:grid;place-items:center;overflow:hidden;}
@@ -213,13 +214,15 @@ textarea::placeholder{color:#3f4759;}
   background:rgba(10,12,17,.82);border-radius:6px;padding:2px 6px;
   font-size:10px;font-weight:500;color:#cfd6e6;
 }
-.mrow{display:flex;gap:5px;padding:7px 7px 0;}
+.mrow{display:flex;gap:5px;padding:7px 7px 0;min-width:0;}
 .mbig{
-  width:100%;min-height:40px;
+  width:100%;min-width:0;height:40px;line-height:40px;
   background:linear-gradient(135deg,var(--accent),#5b4ee0);
   border:none;border-radius:9px;color:#fff;
   font-family:inherit;font-size:12.5px;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  cursor:pointer;
+  display:block;text-align:center;padding:0 10px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   transition:transform .12s;
 }
 .mbig:active{transform:scale(.96);}
@@ -227,7 +230,7 @@ textarea::placeholder{color:#3f4759;}
 .mbig .sz{font-weight:400;opacity:.85;font-size:11px;}
 .qrow{
   display:flex;gap:5px;padding:6px 7px 8px;
-  overflow-x:auto;scrollbar-width:none;
+  overflow-x:auto;scrollbar-width:none;min-width:0;
 }
 .qrow::-webkit-scrollbar{display:none;}
 .qrow button{
@@ -735,19 +738,32 @@ async function resolveTweet(id){
 
   var photos=[], videos=[];
 
+  function baseUrl(u){ return (u||"").split("?")[0]; }
+
   function addVideo(vars, label){
     if(!vars.length) return;
     // merge into an existing entry when it is the same clip, else start a new one
     var target=null;
     for(var i=0;i<videos.length;i++){
       var overlap=videos[i].variants.some(function(a){
-        return vars.some(function(b){ return a.url===b.url; });
+        return vars.some(function(b){ return baseUrl(a.url)===baseUrl(b.url); });
       });
       if(overlap){ target=videos[i]; break; }
     }
+    if(!target){
+      // second chance: same tweet-video id means the same clip in a different rendition set
+      var idOf=function(u){ var m=(u||"").match(/\/(?:ext_tw_video|amplify_video)\/(\d+)\//); return m?m[1]:null; };
+      var myId=idOf(vars[0].url);
+      if(myId){
+        for(var j=0;j<videos.length;j++){
+          if(videos[j].variants.some(function(a){ return idOf(a.url)===myId; })){ target=videos[j]; break; }
+        }
+      }
+    }
     if(!target){ target={kind:"video",label:label||"",variants:[]}; videos.push(target); }
     vars.forEach(function(v){
-      if(!target.variants.some(function(x){ return x.url===v.url; })) target.variants.push(v);
+      if(!target.variants.some(function(x){ return baseUrl(x.url)===baseUrl(v.url); }))
+        target.variants.push(v);
     });
   }
 
