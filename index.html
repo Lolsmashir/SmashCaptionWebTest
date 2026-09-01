@@ -203,7 +203,7 @@ textarea::placeholder{color:#3f4759;}
   animation:pop .3s cubic-bezier(.2,1.1,.3,1) both;
 }
 .mthumb{
-  position:relative;height:104px;background:#0b0e14;
+  position:relative;height:170px;background:#0b0e14;
   display:grid;place-items:center;overflow:hidden;
 }
 .mthumb img,.mthumb video{width:100%;height:100%;object-fit:contain;display:block;}
@@ -324,9 +324,9 @@ textarea::placeholder{color:#3f4759;}
   .top{padding-bottom:2px;}
   .top h1{font-size:16px;}
   .tabs{display:none;}
-  main{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0;}
+  main{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) minmax(0,auto);gap:12px;min-height:0;}
   .pane{display:flex !important;}
-  #pMedia{grid-column:1 / -1;max-height:360px;min-height:0;}
+  #pMedia{grid-column:1 / -1;max-height:52vh;min-height:0;}
   #pMedia.hide{display:none !important;}
   .toast{bottom:24px;}
 }
@@ -848,7 +848,7 @@ function paint(found){
           +     (vi===rec?'<span class="qstar">پیشنهادی</span>':'')
           +   '</span>'
           +   '<button data-act="dl" data-i="'+i+'" data-v="'+vi+'">دانلود</button>'
-          +   '<button data-act="copy" data-i="'+i+'" data-v="'+vi+'">'+(m.kind==="image"?"کپی":"کپی لینک")+'</button>'
+          +   '<button data-act="copy" data-i="'+i+'" data-v="'+vi+'">کپی</button>'
           +   (canShare?'<button data-act="share" data-i="'+i+'" data-v="'+vi+'">ارسال</button>':'')
           + '</div>';
     });
@@ -867,16 +867,24 @@ function paint(found){
       if(act==="dl") downloadFile(v.url,b);
       else if(act==="share") shareFile({url:v.url,kind:m.kind},b);
       else if(m.kind==="image") copyImage(v.url,b);
+      else if(canShare) shareFile({url:v.url,kind:m.kind},b);  // phone: share sheet -> Save Video
       else copyLink(v.url,b);
     });
   });
 
   u.forEach(function(m,i){
     var vars=(m.variants&&m.variants.length)? m.variants : [];
-    vars.forEach(function(v,vi){
-      fileSize(v.url).then(function(sz){
+    Promise.all(vars.map(function(v){ return fileSize(v.url); })).then(function(sizes){
+      var seenSize={};
+      sizes.forEach(function(sz,vi){
         var el=mgrid.querySelector('[data-size="'+i+'-'+vi+'"]');
         if(el && sz) el.textContent="· "+fmtSize(sz);
+        if(!sz) return;
+        // twitter often serves one identical file for several named sizes —
+        // showing them as separate rows is just noise
+        var row=el&&el.closest? el.closest(".qitem") : null;
+        if(seenSize[sz] && row && !row.classList.contains("rec")) row.remove();
+        else seenSize[sz]=true;
       });
     });
   });
