@@ -213,7 +213,35 @@ textarea::placeholder{color:#3f4759;}
   background:rgba(10,12,17,.82);border-radius:6px;padding:2px 6px;
   font-size:10px;font-weight:500;color:#cfd6e6;
 }
-.mrow{display:flex;gap:5px;padding:7px;}
+.mrow{display:flex;gap:5px;padding:7px 7px 0;}
+.mbig{
+  width:100%;min-height:40px;
+  background:linear-gradient(135deg,var(--accent),#5b4ee0);
+  border:none;border-radius:9px;color:#fff;
+  font-family:inherit;font-size:12.5px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .12s;
+}
+.mbig:active{transform:scale(.96);}
+.mbig.done{background:linear-gradient(135deg,var(--ok),#10b981);color:#04291d;}
+.mbig .sz{font-weight:400;opacity:.85;font-size:11px;}
+.qrow{
+  display:flex;gap:5px;padding:6px 7px 8px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.qrow::-webkit-scrollbar{display:none;}
+.qrow button{
+  flex:0 0 auto;min-height:30px;padding:0 10px;
+  background:var(--panel-3);border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);font-family:inherit;font-size:11px;font-weight:500;
+  cursor:pointer;white-space:nowrap;transition:transform .12s,color .18s;
+}
+.qrow button:active{transform:scale(.92);}
+.qrow button.done{background:var(--ok);color:#04291d;border-color:transparent;}
+.qrow .lbl{
+  flex:0 0 auto;display:flex;align-items:center;
+  font-size:10.5px;color:var(--dim);padding-inline-end:2px;
+}
 .mrow button{
   flex:1;min-height:34px;background:var(--panel-3);border:1px solid var(--border);
   border-radius:8px;color:var(--text);font-family:inherit;font-size:11.5px;font-weight:500;
@@ -644,7 +672,8 @@ function collectDirect(text){
     if(k==="link") return;
     if(k==="image") u=bestImage(u);
     if(seen[u]) return; seen[u]=1;
-    out.push({url:u,kind:k,label:""});
+    out.push({url:u,kind:k,label:"",
+              variants: k==="image"? imageVariants(u) : videoVariants({url:u})});
   });
   return out;
 }
@@ -653,29 +682,80 @@ function tweetIds(text){
   while((m=re.exec(text))!==null) if(ids.indexOf(m[1])===-1) ids.push(m[1]);
   return ids;
 }
+function imageVariants(u){
+  if(!/pbs\.twimg\.com/i.test(u)) return [{label:"اصلی",url:u,h:0}];
+  var base=u.split("?")[0].replace(/:(orig|large|medium|small|thumb)$/,"");
+  var fmt=(u.match(/[?&]format=(\w+)/)||[])[1];
+  function mk(name){ return fmt? base+"?format="+fmt+"&name="+name : base+"?name="+name; }
+  return [
+    {label:"اصلی", url:mk("orig"),   h:4000},
+    {label:"بزرگ", url:mk("large"),  h:2048},
+    {label:"متوسط",url:mk("medium"), h:1200},
+    {label:"کوچک", url:mk("small"),  h:680}
+  ];
+}
+
+function videoVariants(v){
+  var out=[];
+  var list=v.variants||v.video_variants||null;
+  if(list && list.length){
+    list.forEach(function(x){
+      if(!x.url || (x.content_type && x.content_type.indexOf("mp4")===-1)) return;
+      var m=x.url.match(/\/(\d+)x(\d+)\//);
+      var hh=m? parseInt(m[2],10) : 0;
+      out.push({label: hh? hh+"p" : (x.bitrate? Math.round(x.bitrate/1000)+"k" : "MP4"),
+                url:x.url, h:hh, bitrate:x.bitrate||0});
+    });
+  }
+  if(!out.length && v.url){
+    var m2=v.url.match(/\/(\d+)x(\d+)\//);
+    var h2=m2? parseInt(m2[2],10) : 0;
+    out.push({label: h2? h2+"p" : "بالاترین کیفیت", url:v.url, h:h2, bitrate:0});
+  }
+  // de-dupe and sort high -> low
+  var seen={}, uniq=[];
+  out.forEach(function(x){ if(!seen[x.url]){ seen[x.url]=1; uniq.push(x); } });
+  uniq.sort(function(a,b){ return (b.h||b.bitrate) - (a.h||a.bitrate); });
+  return uniq;
+}
+
+// images: always original quality (small files, quality matters)
+// videos: best option at or below 720p, so long clips stay a sane size
+function pickRecommended(vars,kind){
+  if(!vars.length) return 0;
+  if(kind==="image") return 0;
+  for(var i=0;i<vars.length;i++){ if(vars[i].h && vars[i].h<=720) return i; }
+  return vars.length-1;
+}
+
 async function resolveTweet(id){
   if(cache[id]) return cache[id];
   if(busyIds[id]) return [];
   busyIds[id]=true;
   var got=[];
+  // fxtwitter first: it exposes the full variant list for videos
   try{
-    var r=await fetch("https://api.vxtwitter.com/Twitter/status/"+id);
+    var r=await fetch("https://api.fxtwitter.com/status/"+id);
     if(r.ok){
-      var j=await r.json();
-      (j.media_extended||[]).forEach(function(m){
-        if(m.type==="image") got.push({url:bestImage(m.url),kind:"image",label:""});
-        else got.push({url:m.url,kind:"video",label:"بالاترین کیفیت"});
+      var j=await r.json(), md=(j.tweet&&j.tweet.media)||{};
+      (md.photos||[]).forEach(function(ph){
+        got.push({url:bestImage(ph.url),kind:"image",label:"",variants:imageVariants(ph.url)});
+      });
+      (md.videos||[]).forEach(function(v){
+        var vars=videoVariants(v);
+        got.push({url:(vars[0]||{}).url||v.url, kind:"video",
+                  label:v.height? v.width+"×"+v.height : "", variants:vars});
       });
     }
   }catch(e){}
   if(!got.length){
     try{
-      var r2=await fetch("https://api.fxtwitter.com/status/"+id);
+      var r2=await fetch("https://api.vxtwitter.com/Twitter/status/"+id);
       if(r2.ok){
-        var j2=await r2.json(), md=(j2.tweet&&j2.tweet.media)||{};
-        (md.photos||[]).forEach(function(p){ got.push({url:bestImage(p.url),kind:"image",label:""}); });
-        (md.videos||[]).forEach(function(v){
-          got.push({url:v.url,kind:"video",label:v.height? v.width+"×"+v.height : "بالاترین کیفیت"});
+        var j2=await r2.json();
+        (j2.media_extended||[]).forEach(function(m){
+          if(m.type==="image") got.push({url:bestImage(m.url),kind:"image",label:"",variants:imageVariants(m.url)});
+          else got.push({url:m.url,kind:"video",label:"",variants:videoVariants(m)});
         });
       }
     }catch(e){}
@@ -684,6 +764,24 @@ async function resolveTweet(id){
   say(got.length? got.length+" فایل از توییت پیدا شد" : "از توییت چیزی نگرفتم", got.length?"ok":"warn");
   return got;
 }
+
+// file size lookup, cached; falls back to a bitrate estimate
+var sizeCache={};
+async function fileSize(url){
+  if(sizeCache[url]!==undefined) return sizeCache[url];
+  try{
+    var r=await fetch(url,{method:"HEAD",mode:"cors",referrerPolicy:"no-referrer"});
+    var len=r.headers.get("content-length");
+    sizeCache[url]= len? parseInt(len,10) : null;
+  }catch(e){ sizeCache[url]=null; }
+  return sizeCache[url];
+}
+function fmtSize(b){
+  if(!b) return "";
+  if(b>=1048576) return (b/1048576).toFixed(b>=10485760?0:1)+" MB";
+  return Math.round(b/1024)+" KB";
+}
+
 function detectMedia(){
   var text=input.value, list=collectDirect(text), ids=tweetIds(text);
   ids.forEach(function(id){ if(cache[id]) list=list.concat(cache[id]); });
@@ -709,36 +807,63 @@ function paint(found){
   var canShare=!!(navigator.canShare&&navigator.share);
   mgrid.innerHTML="";
   u.forEach(function(m,i){
+    var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url,h:0}];
+    var rec=pickRecommended(vars,m.kind);
+
     var c=document.createElement("div");
     c.className="mcard"; c.style.animationDelay=(i*.04)+"s";
+
     var th='<div class="mthumb"><span class="mnum">'+(i+1)+'</span>';
     if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
-    else th+='<video src="'+m.url+'" muted playsinline preload="metadata"></video><span class="mbadge">'+(m.label||"ویدیو")+'</span>';
+    else th+='<video src="'+m.url+'" muted playsinline preload="metadata"></video><span class="mbadge">'+(vars[0]?vars[0].label:"ویدیو")+'</span>';
     th+='</div>';
-    var b="";
-    if(m.kind==="image"){
-      b+='<button data-copy="'+i+'">کپی</button>';
-      b+= canShare? '<button class="share" data-share="'+i+'">ارسال</button>' : '<button data-open="'+i+'">باز</button>';
-    }else{
-      if(canShare) b+='<button class="share" data-share="'+i+'">ارسال</button>';
-      b+='<button data-dl="'+i+'">دانلود</button>';
-    }
-    c.innerHTML=th+'<div class="mrow">'+b+'</div>';
+
+    // primary action on the recommended quality
+    var mainLabel = (m.kind==="image" && canShare) ? "ارسال" : (m.kind==="image" ? "کپی" : (canShare?"ارسال":"دانلود"));
+    var big='<div class="mrow"><button class="mbig" data-i="'+i+'" data-v="'+rec+'">'
+          + mainLabel+' · '+vars[rec].label+' <span class="sz" data-size="'+i+'-'+rec+'"></span></button></div>';
+
+    // every other quality as a compact chip
+    var chips='<div class="qrow"><span class="lbl">کیفیت‌ها:</span>';
+    vars.forEach(function(v,vi){
+      if(vi===rec) return;
+      chips+='<button data-i="'+i+'" data-v="'+vi+'">'+v.label+' <span data-size="'+i+'-'+vi+'"></span></button>';
+    });
+    if(m.kind==="image") chips+='<button data-copy="'+i+'">کپی تصویر</button>';
+    chips+='</div>';
+
+    c.innerHTML=th+big+(vars.length>1||m.kind==="image"? chips : "");
     mgrid.appendChild(c);
   });
-  mgrid.querySelectorAll("[data-open]").forEach(function(b){
-    b.onclick=function(){ window.open(currentMedia[+b.dataset.open].url,"_blank","noopener"); };
+
+  // wire the quality buttons
+  mgrid.querySelectorAll("[data-v]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var m=currentMedia[+b.dataset.i];
+      var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
+      var v=vars[+b.dataset.v];
+      var item={url:v.url, kind:m.kind};
+      if(m.kind==="image" && !canShare) copyImage(v.url,b);
+      else if(canShare) shareFile(item,b);
+      else downloadFile(v.url,b);
+    });
   });
   mgrid.querySelectorAll("[data-copy]").forEach(function(b){
-    b.onclick=function(){ copyImage(currentMedia[+b.dataset.copy].url,b); };
+    b.addEventListener("click",function(){ copyImage(currentMedia[+b.dataset.copy].url,b); });
   });
-  mgrid.querySelectorAll("[data-dl]").forEach(function(b){
-    b.onclick=function(){ downloadFile(currentMedia[+b.dataset.dl].url,b); };
-  });
-  mgrid.querySelectorAll("[data-share]").forEach(function(b){
-    b.onclick=function(){ shareFile(currentMedia[+b.dataset.share],b); };
+
+  // fill in sizes without blocking the render
+  u.forEach(function(m,i){
+    var vars=(m.variants&&m.variants.length)? m.variants : [];
+    vars.forEach(function(v,vi){
+      fileSize(v.url).then(function(sz){
+        var el=mgrid.querySelector('[data-size="'+i+'-'+vi+'"]');
+        if(el && sz) el.textContent="· "+fmtSize(sz);
+      });
+    });
   });
 }
+
 async function copyImage(url,btn){
   var old=btn.textContent; btn.textContent="…";
   try{
