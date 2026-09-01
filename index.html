@@ -205,13 +205,22 @@ textarea::placeholder{color:#3f4759;}
   position:relative;height:170px;background:#0b0e14;
   display:grid;place-items:center;overflow:hidden;
 }
-.mthumb img,.mthumb video{width:100%;height:100%;object-fit:contain;display:block;}
+.mthumb img,.mthumb video{
+  position:relative;z-index:1;
+  width:100%;height:100%;object-fit:contain;display:block;
+}
+.mblur{
+  position:absolute;inset:0;z-index:0;
+  background-size:cover;background-position:center;
+  filter:blur(20px) saturate(1.25);
+  transform:scale(1.2);opacity:.4;
+}
 .mnum{
-  position:absolute;top:5px;inset-inline-start:5px;
+  position:absolute;z-index:2;top:5px;inset-inline-start:5px;
   background:rgba(10,12,17,.82);border-radius:6px;padding:1px 6px;font-size:10.5px;font-weight:700;
 }
 .mbadge{
-  position:absolute;bottom:5px;inset-inline-start:5px;
+  position:absolute;z-index:2;bottom:5px;inset-inline-start:5px;
   background:rgba(10,12,17,.82);border-radius:6px;padding:2px 6px;
   font-size:10px;font-weight:500;color:#cfd6e6;
 }
@@ -315,14 +324,10 @@ textarea::placeholder{color:#3f4759;}
 .pane{display:flex !important;}
 #pMedia.hide{display:none !important;}
 
-/* desktop: editor and preview side by side, media underneath */
-@media (min-width:900px){
+/* wide desktop */
+@media (min-width:1100px){
   html,body{overflow:hidden;}
-  .app{
-    height:100dvh;
-    max-width:1600px;margin:auto;padding:18px 20px;gap:12px;
-  }
-  .top{padding-bottom:2px;}
+  .app{height:100dvh;max-width:1600px;margin:auto;padding:18px 20px;gap:12px;}
   .top h1{font-size:17px;}
   .logo{width:32px;height:32px;flex:0 0 32px;font-size:14px;}
   main{
@@ -330,7 +335,6 @@ textarea::placeholder{color:#3f4759;}
     grid-template-rows:minmax(260px,1fr) minmax(0,auto);
     gap:14px;min-height:0;
   }
-  /* the toolbar wraps instead of scrolling, so every button is reachable */
   .toolbar{flex-wrap:wrap;padding:9px 10px;gap:6px;}
   .tb{min-width:38px;height:38px;font-size:15px;}
   textarea{font-size:15px;padding:14px 16px;}
@@ -342,57 +346,97 @@ textarea::placeholder{color:#3f4759;}
   .toast{bottom:26px;}
 }
 
-/* phone: one column, three stacked panes, each scrolls internally */
-@media (max-width:899px){
+/* narrow desktop and tablets: same two-column shape, just smaller */
+@media (min-width:620px) and (max-width:1099px){
+  html,body{overflow:hidden;}
+  .app{height:100dvh;max-width:100%;padding:12px 14px;gap:9px;}
+  .top h1{font-size:14.5px;}
+  .logo{width:26px;height:26px;flex:0 0 26px;font-size:12px;}
+  main{
+    display:grid;grid-template-columns:1fr 1fr;
+    grid-template-rows:minmax(180px,1fr) minmax(0,auto);
+    gap:10px;min-height:0;
+  }
+  .toolbar{flex-wrap:wrap;padding:6px 7px;gap:4px;}
+  .tb{min-width:32px;height:32px;font-size:13px;padding:0 6px;}
+  .phead{padding:7px 10px;}
+  .ptitle{font-size:11.5px;}
+  .ptitle span{display:none;}
+  textarea{font-size:16px;padding:10px 11px;line-height:1.7;}
+  .tgtext{font-size:14px;line-height:1.6;}
+  .acts{padding:7px 8px;gap:5px;}
+  .act{min-height:36px;font-size:12px;padding:0 11px;}
+  .act small{display:none;}
+  #pMedia{grid-column:1 / -1;max-height:34vh;min-height:0;}
+  .mgrid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;padding:8px;}
+  .mthumb{height:118px;}
+  .qitem{padding:4px 6px;gap:4px;}
+  .qitem button{min-height:28px;padding:0 8px;font-size:10.5px;}
+  .toast{bottom:20px;}
+}
+
+/* phones: same two-column shape, just scaled down */
+@media (max-width:619px){
   html,body{overflow:hidden;}
   body{padding:0;}
   .app{
     height:100dvh;
-    padding:calc(6px + env(safe-area-inset-top)) 8px calc(6px + env(safe-area-inset-bottom));
-    gap:6px;
+    padding:calc(5px + env(safe-area-inset-top)) 6px calc(5px + env(safe-area-inset-bottom));
+    gap:5px;
   }
-  .top{gap:7px;padding:0 2px;}
-  .logo{width:24px;height:24px;flex:0 0 24px;border-radius:8px;font-size:11px;}
-  .top h1{font-size:13px;}
-  .iconbtn{width:28px;height:28px;flex:0 0 28px;font-size:13px;}
+  .top{gap:6px;padding:0 2px;}
+  .logo{width:22px;height:22px;flex:0 0 22px;border-radius:7px;font-size:10px;}
+  .top h1{font-size:12px;}
+  .iconbtn{width:26px;height:26px;flex:0 0 26px;font-size:12px;}
 
-  main{display:flex;flex-direction:column;gap:6px;min-height:0;}
-  #pEdit{flex:1 1 0;min-height:0;}
-  #pView{flex:1 1 0;min-height:0;}
-  #pMedia{flex:0 0 auto;max-height:32vh;min-height:0;}
+  main{
+    display:grid;grid-template-columns:1fr 1fr;
+    grid-template-rows:minmax(0,1fr) minmax(0,auto);
+    gap:5px;min-height:0;
+  }
+  #pMedia{grid-column:1 / -1;max-height:30vh;min-height:0;}
 
-  .phead{padding:6px 10px;}
-  .ptitle{font-size:11.5px;}
+  .phead{padding:5px 7px;}
+  .ptitle{font-size:10px;}
   .ptitle span{display:none;}
-  .count{font-size:10px;}
+  .count{font-size:9px;}
 
-  .toolbar{padding:5px 6px;gap:4px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+  .toolbar{padding:4px 5px;gap:3px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
   .toolbar::-webkit-scrollbar{display:none;}
-  .tb{min-width:32px;height:32px;padding:0 7px;font-size:13px;border-radius:8px;}
-  .tb-sep{margin:5px 1px;}
+  .tb{min-width:28px;height:28px;padding:0 5px;font-size:12px;border-radius:7px;}
+  .tb-sep{margin:4px 1px;}
 
-  textarea{font-size:16px;line-height:1.7;padding:9px 10px;}
-  .tgwrap{padding:9px;}
-  .tgtext{font-size:14.5px;line-height:1.6;}
-  .bubble{padding:9px 10px 6px;}
+  textarea{font-size:16px;line-height:1.6;padding:7px 8px;}
+  .tgwrap{padding:7px;}
+  .tgtext{font-size:12.5px;line-height:1.55;}
+  .bubble{padding:7px 8px 5px;border-radius:11px 11px 11px 4px;}
+  .meta{font-size:9.5px;}
 
-  .acts{padding:6px 8px;gap:5px;}
-  .act{min-height:34px;padding:0 11px;font-size:12px;border-radius:9px;}
+  .acts{padding:5px 6px;gap:4px;}
+  .act{min-height:32px;padding:0 8px;font-size:11px;border-radius:8px;}
   .act small{display:none;}
+  .act.primary{flex:1;}
 
-  .mgrid{grid-template-columns:1fr;gap:7px;padding:7px;}
-  .mthumb{height:120px;}
-  .qlist{padding:6px;gap:4px;}
-  .qitem{padding:4px 6px;}
-  .qitem button{min-height:30px;padding:0 9px;font-size:11px;}
+  .mgrid{grid-template-columns:1fr;gap:6px;padding:6px;}
+  .mthumb{height:110px;}
+  .qlist{padding:5px;gap:4px;}
+  .qitem{padding:4px 5px;gap:3px;}
+  .qname{font-size:10px;}
+  .qitem button{min-height:28px;padding:0 7px;font-size:10px;}
 
-  .toast{bottom:calc(14px + env(safe-area-inset-bottom));font-size:12px;}
+  .toast{bottom:calc(12px + env(safe-area-inset-bottom));font-size:11.5px;}
 }
 
 /* short phones: give the editor and preview a little more room */
-@media (max-width:899px) and (max-height:700px){
-  #pMedia{max-height:26vh;}
-  .mthumb{height:96px;}
+@media (max-width:619px) and (max-height:700px){
+  #pMedia{max-height:24vh;}
+  .mthumb{height:92px;}
+}
+
+@media (max-width:400px){
+  .tgtext{font-size:11.5px;}
+  .act{padding:0 6px;font-size:10.5px;}
+  .tb{min-width:26px;height:26px;font-size:11px;}
 }
 </style>
 </head>
@@ -906,7 +950,10 @@ function paint(found){
     var c=document.createElement("div");
     c.className="mcard"; c.style.animationDelay=(i*.04)+"s";
 
-    var th='<div class="mthumb"><span class="mnum">'+(i+1)+'</span>';
+    var backdrop = m.kind==="image" ? m.url : (m.poster||"");
+    var th='<div class="mthumb">'
+         + (backdrop? '<div class="mblur" style="background-image:url(\''+backdrop+'\')"></div>' : '')
+         + '<span class="mnum">'+(i+1)+'</span>';
     if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
     else th+='<video src="'+m.url+'" muted playsinline preload="metadata"'+(m.poster?' poster="'+m.poster+'"':'')+'></video>'
             +'<span class="mbadge">'+(vars[0]?vars[0].label:"ویدیو")+'</span>';
