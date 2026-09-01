@@ -194,17 +194,19 @@ textarea::placeholder{color:#3f4759;}
 
 /* ---------- media ---------- */
 .mgrid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-  gap:9px;padding:11px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:10px;padding:11px;
 }
 .mcard{
   background:var(--panel-2);border:1px solid var(--border-soft);
-  border-radius:11px;overflow:hidden;
-  min-width:0;                 /* let the card shrink inside its grid track */
+  border-radius:11px;overflow:hidden;min-width:0;
   animation:pop .3s cubic-bezier(.2,1.1,.3,1) both;
 }
-.mthumb{position:relative;aspect-ratio:16/10;background:#0d1017;display:grid;place-items:center;overflow:hidden;}
-.mthumb img,.mthumb video{width:100%;height:100%;object-fit:cover;display:block;}
+.mthumb{
+  position:relative;height:104px;background:#0b0e14;
+  display:grid;place-items:center;overflow:hidden;
+}
+.mthumb img,.mthumb video{width:100%;height:100%;object-fit:contain;display:block;}
 .mnum{
   position:absolute;top:5px;inset-inline-start:5px;
   background:rgba(10,12,17,.82);border-radius:6px;padding:1px 6px;font-size:10.5px;font-weight:700;
@@ -214,45 +216,31 @@ textarea::placeholder{color:#3f4759;}
   background:rgba(10,12,17,.82);border-radius:6px;padding:2px 6px;
   font-size:10px;font-weight:500;color:#cfd6e6;
 }
-.mrow{display:flex;gap:5px;padding:7px 7px 0;min-width:0;}
-.mbig{
-  width:100%;min-width:0;height:40px;line-height:40px;
-  background:linear-gradient(135deg,var(--accent),#5b4ee0);
-  border:none;border-radius:9px;color:#fff;
-  font-family:inherit;font-size:12.5px;font-weight:700;
-  cursor:pointer;
-  display:block;text-align:center;padding:0 10px;
+.qlist{display:flex;flex-direction:column;gap:5px;padding:8px;}
+.qitem{
+  display:flex;align-items:center;gap:6px;min-width:0;
+  background:var(--panel-3);border:1px solid var(--border);
+  border-radius:9px;padding:5px 7px;
+}
+.qitem.rec{
+  border-color:var(--accent);
+  background:linear-gradient(135deg,rgba(124,108,255,.18),rgba(91,78,224,.10));
+}
+.qname{
+  flex:1;min-width:0;font-size:11.5px;color:var(--text);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:transform .12s;
 }
-.mbig:active{transform:scale(.96);}
-.mbig.done{background:linear-gradient(135deg,var(--ok),#10b981);color:#04291d;}
-.mbig .sz{font-weight:400;opacity:.85;font-size:11px;}
-.qrow{
-  display:flex;gap:5px;padding:6px 7px 8px;
-  overflow-x:auto;scrollbar-width:none;min-width:0;
-}
-.qrow::-webkit-scrollbar{display:none;}
-.qrow button{
+.qitem.rec .qname{font-weight:700;}
+.qstar{color:var(--accent-2);font-size:10px;font-weight:700;margin-inline-start:4px;}
+.qitem button{
   flex:0 0 auto;min-height:30px;padding:0 10px;
-  background:var(--panel-3);border:1px solid var(--border);border-radius:8px;
-  color:var(--muted);font-family:inherit;font-size:11px;font-weight:500;
-  cursor:pointer;white-space:nowrap;transition:transform .12s,color .18s;
+  background:var(--panel);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:inherit;font-size:11px;font-weight:500;
+  cursor:pointer;white-space:nowrap;transition:transform .12s;
 }
-.qrow button:active{transform:scale(.92);}
-.qrow button.done{background:var(--ok);color:#04291d;border-color:transparent;}
-.qrow .lbl{
-  flex:0 0 auto;display:flex;align-items:center;
-  font-size:10.5px;color:var(--dim);padding-inline-end:2px;
-}
-.mrow button{
-  flex:1;min-height:34px;background:var(--panel-3);border:1px solid var(--border);
-  border-radius:8px;color:var(--text);font-family:inherit;font-size:11.5px;font-weight:500;
-  cursor:pointer;transition:transform .12s;
-}
-.mrow button:active{transform:scale(.93);}
-.mrow button.done{background:var(--ok);color:#04291d;border-color:transparent;}
-.mrow button.share{background:linear-gradient(135deg,var(--accent),#5b4ee0);border-color:transparent;color:#fff;font-weight:700;}
+.qitem button:active{transform:scale(.92);}
+.qitem button.done{background:var(--ok);color:#04291d;border-color:transparent;}
+.qitem.rec button{border-color:#3b3570;}
 .empty{
   display:grid;place-items:center;height:100%;min-height:180px;
   color:var(--dim);font-size:13px;font-weight:300;text-align:center;padding:24px;line-height:2;
@@ -338,7 +326,7 @@ textarea::placeholder{color:#3f4759;}
   .tabs{display:none;}
   main{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) auto;gap:12px;min-height:0;}
   .pane{display:flex !important;}
-  #pMedia{grid-column:1 / -1;max-height:280px;min-height:0;}
+  #pMedia{grid-column:1 / -1;max-height:360px;min-height:0;}
   #pMedia.hide{display:none !important;}
   .toast{bottom:24px;}
 }
@@ -736,53 +724,21 @@ async function resolveTweet(id){
   if(busyIds[id]) return [];
   busyIds[id]=true;
 
-  var photos=[], videos=[];
-
-  function baseUrl(u){ return (u||"").split("?")[0]; }
-
-  function addVideo(vars, label){
-    if(!vars.length) return;
-    // merge into an existing entry when it is the same clip, else start a new one
-    var target=null;
-    for(var i=0;i<videos.length;i++){
-      var overlap=videos[i].variants.some(function(a){
-        return vars.some(function(b){ return baseUrl(a.url)===baseUrl(b.url); });
-      });
-      if(overlap){ target=videos[i]; break; }
-    }
-    if(!target){
-      // second chance: same tweet-video id means the same clip in a different rendition set
-      var idOf=function(u){ var m=(u||"").match(/\/(?:ext_tw_video|amplify_video)\/(\d+)\//); return m?m[1]:null; };
-      var myId=idOf(vars[0].url);
-      if(myId){
-        for(var j=0;j<videos.length;j++){
-          if(videos[j].variants.some(function(a){ return idOf(a.url)===myId; })){ target=videos[j]; break; }
-        }
-      }
-    }
-    if(!target){ target={kind:"video",label:label||"",variants:[]}; videos.push(target); }
-    vars.forEach(function(v){
-      if(!target.variants.some(function(x){ return baseUrl(x.url)===baseUrl(v.url); }))
-        target.variants.push(v);
-    });
-  }
-
-  // query both services and merge — each can expose a different set of renditions
   var results=await Promise.allSettled([
     fetch("https://api.fxtwitter.com/status/"+id).then(function(r){ return r.ok? r.json():null; }),
     fetch("https://api.vxtwitter.com/Twitter/status/"+id).then(function(r){ return r.ok? r.json():null; })
   ]);
-
   var fx=results[0].status==="fulfilled"? results[0].value : null;
   var vx=results[1].status==="fulfilled"? results[1].value : null;
 
+  var photos=[], fxVids=[], vxVids=[];
+
   if(fx && fx.tweet && fx.tweet.media){
     (fx.tweet.media.photos||[]).forEach(function(ph){
-      if(!photos.some(function(x){ return x.url===bestImage(ph.url); }))
-        photos.push({url:bestImage(ph.url),kind:"image",label:"",variants:imageVariants(ph.url)});
+      photos.push({url:bestImage(ph.url),kind:"image",label:"",variants:imageVariants(ph.url)});
     });
     (fx.tweet.media.videos||[]).forEach(function(v){
-      addVideo(videoVariants(v), v.height? v.width+"×"+v.height : "");
+      fxVids.push({kind:"video",label:"",poster:v.thumbnail_url||"",variants:videoVariants(v)});
     });
   }
   if(vx){
@@ -791,26 +747,36 @@ async function resolveTweet(id){
         if(!photos.some(function(x){ return x.url===bestImage(m.url); }))
           photos.push({url:bestImage(m.url),kind:"image",label:"",variants:imageVariants(m.url)});
       } else {
-        addVideo(videoVariants(m), "");
+        vxVids.push({kind:"video",label:"",poster:m.thumbnail_url||"",variants:videoVariants(m)});
       }
     });
   }
 
-  // sort each clip's renditions high -> low and set its display url
-  videos.forEach(function(v){
-    v.variants.sort(function(a,b){ return (b.h||b.bitrate)-(a.h||a.bitrate); });
-    v.url=(v.variants[0]||{}).url||"";
-  });
+  // both services list a tweet's media in the same order, so merge clip-by-clip
+  var videos=[], count=Math.max(fxVids.length, vxVids.length);
+  for(var i=0;i<count;i++){
+    var a=fxVids[i], b=vxVids[i];
+    var clip=a||b;
+    if(a&&b){
+      b.variants.forEach(function(v){
+        var dup=clip.variants.some(function(x){
+          return x.url.split("?")[0]===v.url.split("?")[0] || (x.h&&v.h&&x.h===v.h);
+        });
+        if(!dup) clip.variants.push(v);
+      });
+      if(!clip.poster) clip.poster=b.poster;
+    }
+    clip.variants.sort(function(x,y){ return (y.h||y.bitrate)-(x.h||x.bitrate); });
+    clip.url=(clip.variants[0]||{}).url||"";
+    videos.push(clip);
+  }
 
   var got=photos.concat(videos);
   busyIds[id]=false; cache[id]=got;
-
   if(got.length){
     var q=videos.reduce(function(s,v){ return s+v.variants.length; },0);
-    say(got.length+" فایل"+(q? " · "+q+" کیفیت":"")+" از توییت پیدا شد","ok");
-  } else {
-    say("از توییت چیزی نگرفتم","warn");
-  }
+    say(got.length+" فایل"+(q? " · "+q+" کیفیت":"")+" پیدا شد","ok");
+  } else say("از توییت چیزی نگرفتم","warn");
   return got;
 }
 
@@ -854,9 +820,9 @@ function paint(found){
     return;
   }
   var canShare=!!(navigator.canShare&&navigator.share);
-  // share sheet only makes sense on a phone; on desktop download is the useful action
   var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   var shareFirst=canShare&&isMobile;
+
   mgrid.innerHTML="";
   u.forEach(function(m,i){
     var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url,h:0}];
@@ -867,64 +833,44 @@ function paint(found){
 
     var th='<div class="mthumb"><span class="mnum">'+(i+1)+'</span>';
     if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
-    else th+='<video src="'+m.url+'" muted playsinline preload="metadata"></video><span class="mbadge">'+(vars[0]?vars[0].label:"ویدیو")+'</span>';
+    else th+='<video src="'+m.url+'" muted playsinline preload="metadata"'+(m.poster?' poster="'+m.poster+'"':'')+'></video>'
+            +'<span class="mbadge">'+(vars[0]?vars[0].label:"ویدیو")+'</span>';
     th+='</div>';
 
-    // primary action on the recommended quality
-    var mainLabel = shareFirst ? "ارسال" : (m.kind==="image" ? "کپی" : "دانلود");
-    var big='<div class="mrow"><button class="mbig" data-i="'+i+'" data-v="'+rec+'">'
-          + mainLabel+' · '+vars[rec].label+' <span class="sz" data-size="'+i+'-'+rec+'"></span></button></div>';
-
-    // every other quality as a compact chip
-    var chips='<div class="qrow"><span class="lbl">کیفیت‌ها:</span>';
-    vars.forEach(function(v,vi){
-      if(vi===rec) return;
-      chips+='<button data-i="'+i+'" data-v="'+vi+'">'+v.label+' <span data-size="'+i+'-'+vi+'"></span></button>';
+    // one row per quality, recommended first, every action on the same row
+    var order=[rec].concat(vars.map(function(_,k){return k;}).filter(function(k){return k!==rec;}));
+    var list='<div class="qlist">';
+    order.forEach(function(vi){
+      var v=vars[vi];
+      list+='<div class="qitem'+(vi===rec?' rec':'')+'">'
+          +   '<span class="qname">'+v.label
+          +     ' <span data-size="'+i+'-'+vi+'"></span>'
+          +     (vi===rec?'<span class="qstar">پیشنهادی</span>':'')
+          +   '</span>'
+          +   '<button data-act="dl" data-i="'+i+'" data-v="'+vi+'">دانلود</button>'
+          +   '<button data-act="copy" data-i="'+i+'" data-v="'+vi+'">'+(m.kind==="image"?"کپی":"کپی لینک")+'</button>'
+          +   (canShare?'<button data-act="share" data-i="'+i+'" data-v="'+vi+'">ارسال</button>':'')
+          + '</div>';
     });
-    chips+='<button data-dl="'+i+'" data-v2="'+rec+'">دانلود</button>';
-    if(m.kind==="image") chips+='<button data-copy="'+i+'">کپی تصویر</button>';
-    if(!shareFirst) chips+='<button data-share="'+i+'" data-v2="'+rec+'">ارسال</button>';
-    chips+='<button data-open="'+i+'" data-v2="'+rec+'">باز کردن</button>';
-    chips+='</div>';
+    list+='</div>';
 
-    c.innerHTML=th+big+chips;
+    c.innerHTML=th+list;
     mgrid.appendChild(c);
   });
 
-  // wire the quality buttons
-  mgrid.querySelectorAll("[data-v]").forEach(function(b){
+  mgrid.querySelectorAll("[data-act]").forEach(function(b){
     b.addEventListener("click",function(){
       var m=currentMedia[+b.dataset.i];
       var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
       var v=vars[+b.dataset.v];
-      var item={url:v.url, kind:m.kind};
-      if(shareFirst) shareFile(item,b);
+      var act=b.dataset.act;
+      if(act==="dl") downloadFile(v.url,b);
+      else if(act==="share") shareFile({url:v.url,kind:m.kind},b);
       else if(m.kind==="image") copyImage(v.url,b);
-      else downloadFile(v.url,b);
+      else copyLink(v.url,b);
     });
   });
-  mgrid.querySelectorAll("[data-copy]").forEach(function(b){
-    b.addEventListener("click",function(){ copyImage(currentMedia[+b.dataset.copy].url,b); });
-  });
-  function variantOf(b){
-    var idx=+(b.dataset.dl!==undefined ? b.dataset.dl
-             : b.dataset.share!==undefined ? b.dataset.share
-             : b.dataset.open);
-    var m=currentMedia[idx];
-    var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
-    return { m:m, v: vars[+b.dataset.v2] || vars[0] };
-  }
-  mgrid.querySelectorAll("[data-dl]").forEach(function(b){
-    b.addEventListener("click",function(){ var r=variantOf(b); downloadFile(r.v.url,b); });
-  });
-  mgrid.querySelectorAll("[data-share]").forEach(function(b){
-    b.addEventListener("click",function(){ var r=variantOf(b); shareFile({url:r.v.url,kind:r.m.kind},b); });
-  });
-  mgrid.querySelectorAll("[data-open]").forEach(function(b){
-    b.addEventListener("click",function(){ var r=variantOf(b); window.open(r.v.url,"_blank","noopener"); });
-  });
 
-  // fill in sizes without blocking the render
   u.forEach(function(m,i){
     var vars=(m.variants&&m.variants.length)? m.variants : [];
     vars.forEach(function(v,vi){
@@ -934,6 +880,15 @@ function paint(found){
       });
     });
   });
+}
+
+async function copyLink(url,btn){
+  var old=btn.textContent;
+  try{
+    await navigator.clipboard.writeText(url);
+    btn.textContent="✓"; btn.classList.add("done"); say("لینک کپی شد","ok");
+    setTimeout(function(){ btn.textContent=old; btn.classList.remove("done"); },1500);
+  }catch(e){ say("کپی نشد","warn"); }
 }
 
 async function copyImage(url,btn){
