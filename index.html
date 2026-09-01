@@ -107,10 +107,9 @@ main{flex:1;min-height:0;display:flex;}
 .pane.on{display:flex;}
 
 .toolbar{
-  flex:0 0 auto;display:flex;gap:5px;
+  flex:0 0 auto;display:flex;flex-wrap:wrap;gap:5px;
   padding:7px 8px;background:var(--panel-2);
   border-bottom:1px solid var(--border-soft);
-  overflow-x:auto;scrollbar-width:none;
 }
 .toolbar::-webkit-scrollbar{display:none;}
 .tb{
@@ -320,18 +319,27 @@ textarea::placeholder{color:#3f4759;}
 @media (min-width:900px){
   html,body{overflow:hidden;}
   .app{
-    height:min(100dvh, 940px);
-    max-width:1160px;margin:auto;padding:16px;gap:10px;
+    height:100dvh;
+    max-width:1600px;margin:auto;padding:18px 20px;gap:12px;
   }
   .top{padding-bottom:2px;}
-  .top h1{font-size:16px;}
+  .top h1{font-size:17px;}
+  .logo{width:32px;height:32px;flex:0 0 32px;font-size:14px;}
   main{
     display:grid;grid-template-columns:1fr 1fr;
-    grid-template-rows:minmax(0,1fr) minmax(0,auto);
-    gap:12px;min-height:0;
+    grid-template-rows:minmax(260px,1fr) minmax(0,auto);
+    gap:14px;min-height:0;
   }
-  #pMedia{grid-column:1 / -1;max-height:46vh;min-height:0;}
-  .toast{bottom:24px;}
+  /* the toolbar wraps instead of scrolling, so every button is reachable */
+  .toolbar{flex-wrap:wrap;padding:9px 10px;gap:6px;}
+  .tb{min-width:38px;height:38px;font-size:15px;}
+  textarea{font-size:15px;padding:14px 16px;}
+  .tgtext{font-size:16px;}
+  .act{min-height:42px;font-size:13.5px;}
+  #pMedia{grid-column:1 / -1;max-height:38vh;min-height:0;}
+  .mgrid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:12px;}
+  .mthumb{height:150px;}
+  .toast{bottom:26px;}
 }
 
 /* phone: one column, three stacked panes, each scrolls internally */
@@ -358,7 +366,8 @@ textarea::placeholder{color:#3f4759;}
   .ptitle span{display:none;}
   .count{font-size:10px;}
 
-  .toolbar{padding:5px 6px;gap:4px;}
+  .toolbar{padding:5px 6px;gap:4px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+  .toolbar::-webkit-scrollbar{display:none;}
   .tb{min-width:32px;height:32px;padding:0 7px;font-size:13px;border-radius:8px;}
   .tb-sep{margin:5px 1px;}
 
@@ -421,11 +430,22 @@ textarea::placeholder{color:#3f4759;}
         <button class="tb" data-block="code" title="Code block">▤</button>
         <button class="tb" data-b="[" data-a="](https://)" title="Link">🔗</button>
         <div class="tb-sep"></div>
-        <button class="tb" data-line="• " title="Bullet">•</button>
-        <button class="tb" data-ins="⟡ " title="Note">⟡</button>
-        <button class="tb" data-ins="✦ " title="Section">✦</button>
-        <button class="tb" data-ins=" ➥ " title="Change">➥</button>
-        <button class="tb" data-ins="⏱️ " title="Time">⏱️</button>
+        <button class="tb" data-line="• " title="آیتم اصلی">•</button>
+        <button class="tb" data-line="◦ " title="زیرمورد">◦</button>
+        <button class="tb" data-ins="⟡ " title="توضیح وابسته">⟡</button>
+        <button class="tb" data-ins="✦ " title="بخش مهم">✦</button>
+        <button class="tb" data-ins="✧ " title="زیربخش">✧</button>
+        <button class="tb" data-ins="▸ " title="حرکت به بخش بعد">▸</button>
+        <button class="tb" data-ins=" ➥ " title="تغییر قبل/بعد">➥</button>
+        <div class="tb-sep"></div>
+        <button class="tb" data-ins="⏱️ " title="مدت زمان">⏱️</button>
+        <button class="tb" data-ins="⏰ " title="ساعت">⏰</button>
+        <button class="tb" data-ins="🗓️ " title="تاریخ">🗓️</button>
+        <button class="tb" data-ins="🌐 " title="ریجن">🌐</button>
+        <button class="tb" data-ins="🎁 " title="جایزه">🎁</button>
+        <button class="tb" data-ins="🏅 " title="امتیازدهی">🏅</button>
+        <button class="tb" data-ins="#️⃣ " title="تعداد">#️⃣</button>
+        <button class="tb" data-ins="🎮 " title="گیم‌مود / پلتفرم">🎮</button>
       </div>
 
       <textarea id="input" spellcheck="false" placeholder="کپشن رو اینجا پیست کن…"></textarea>
