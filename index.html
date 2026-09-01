@@ -357,8 +357,8 @@ textarea::placeholder{color:#3f4759;}
       <textarea id="input" spellcheck="false" placeholder="کپشن رو اینجا پیست کن…"></textarea>
 
       <div class="acts">
-        <button class="act" id="bPaste">پیست <small>Paste</small></button>
-        <button class="act primary" id="bFix">اصلاح جهت <small>RTL</small></button>
+        <button class="act primary" id="bPaste">پیست <small>Paste</small></button>
+        <button class="act" id="bFix">اصلاح متن ادیتور <small>RTL</small></button>
         <button class="act" id="bSign">امضا</button>
         <button class="act" id="bClear">پاک</button>
       </div>
@@ -396,7 +396,7 @@ textarea::placeholder{color:#3f4759;}
   <div class="sheet-in">
     <h2>راهنما / Guide</h2>
     <p><b>کپی برای تلگرام:</b> هم‌زمان <span class="syn">text/html</span> و <span class="syn">text/plain</span> رو کپی می‌کنه؛ تلگرام نسخه‌ی HTML رو می‌خونه و فرمت‌ها رو می‌سازه.</p>
-    <p><b>اصلاح جهت:</b> خط انگلیسی‌شروع با ادامه‌ی فارسی <span class="syn">RLM</span> می‌گیره، خط تغییر عددی با <span class="syn">LRM</span> قفل میشه، خط خالی <span class="syn">ZWNJ</span> می‌گیره. خط هشتگ و خط کاملاً انگلیسی دست‌نخورده می‌مونن.</p>
+    <p><b>اصلاح جهت (خودکار):</b> لازم نیست دکمه‌ای بزنی — پیش‌نمایش و هر چیزی که کپی می‌کنی، خودکار اصلاح شده‌اند. دکمه‌ی «اصلاح متن ادیتور» فقط وقتی لازم است که بخواهی خودِ متن داخل باکس هم بازنویسی شود.</p><p><b>جزئیات:</b> خط انگلیسی‌شروع با ادامه‌ی فارسی <span class="syn">RLM</span> می‌گیره، خط تغییر عددی با <span class="syn">LRM</span> قفل میشه، خط خالی <span class="syn">ZWNJ</span> می‌گیره. خط هشتگ و خط کاملاً انگلیسی دست‌نخورده می‌مونن.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
     <p><b>فرمت‌ها:</b> <span class="syn">**bold**</span> <span class="syn">*italic*</span> <span class="syn">__under__</span> <span class="syn">~~strike~~</span> <span class="syn">||spoiler||</span> <span class="syn">`code`</span> <span class="syn">&gt; quote</span></p>
@@ -435,7 +435,7 @@ function say(m,k){
 
 /* ---------- text helpers ---------- */
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
-var MIDLATIN_DIGIT_RE=/([A-Za-z][A-Za-z0-9]*(?:[ '\-][A-Za-z0-9]+)+)((?:[»”’"']*)\s*)(\d)/g;
+var LATIN_RUN_RE=/[A-Za-z][A-Za-z0-9]*(?:[ \u00D7&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9]*)*/g;
 var LABEL_RE=/^\s*(media|link|links|source|assets?)\s*:?\s*$/i;
 var LABELED_RE=/^\s*(media|link|links|source|assets?)\s*:/i;
 var ASSET_RE=/\.(jpe?g|png|gif|webp|avif|mp4|mov|webm|m4v)(\?|$)|pbs\.twimg\.com|video\.twimg\.com/i;
@@ -477,7 +477,7 @@ function trimBlankEdges(text){
 }
 
 /* ---------- direction fix ---------- */
-function fixDirection(text){
+function applyDirection(text){
   var n=0, fence=false;
   var out=text.split("\n").map(function(raw){
     if(/^\s*```/.test(raw)){ fence=!fence; return raw; }
@@ -487,23 +487,25 @@ function fixDirection(text){
     if(isMediaMetaLine(line)) return line;
     if(isHashtagLine(line)) return line;
     var fa=PERSIAN.test(line);
-    if(!fa && line.indexOf("➥")!==-1){ n++; return LRM+line; }
-    var i=firstRealIdx(line);
-    if(i!==-1 && LATIN.test(line[i]) && fa){
-      line=line.slice(0,i)+RLM+line.slice(i);
-      n++;
-    }
+    if(!fa && line.indexOf("\u27A5")!==-1){ n++; return LRM+line; }
     if(fa){
-      line=line.replace(MIDLATIN_DIGIT_RE,function(mm,latin,gap,digit){
-        n++;
-        return RLM+latin+RLM+gap+digit;
-      });
+      var before=line;
+      line=line.replace(LATIN_RUN_RE,function(mm){ return RLM+mm+RLM; });
+      if(line!==before) n++;
     }
     return line;
   }).join("\n");
-  out=trimBlankEdges(out);
-  say(n? n+" خط اصلاح شد" : "همه درست بود", n?"ok":"warn");
-  return out;
+  return { text: trimBlankEdges(out), count: n };
+}
+
+// applied automatically to the preview and to everything copied
+function autoFix(text){ return applyDirection(text).text; }
+
+// manual button: also rewrites the editor itself and reports what changed
+function fixDirection(text){
+  var r=applyDirection(text);
+  say(r.count? r.count+" خط اصلاح شد" : "همه درست بود", r.count?"ok":"warn");
+  return r.text;
 }
 
 /* ---------- markdown ---------- */
@@ -575,7 +577,7 @@ function toPlain(b){
 
 /* ---------- render ---------- */
 function render(){
-  var blocks=parse(trimBlankEdges(input.value));
+  var blocks=parse(autoFix(input.value));
   preview.innerHTML="";
   blocks.forEach(function(b){
     var d=document.createElement("div");
@@ -833,7 +835,7 @@ function flash(btn,label){
   setTimeout(function(){ btn.innerHTML=old; btn.classList.remove("done"); },1600);
 }
 async function copyRich(btn){
-  var clean=trimBlankEdges(input.value);
+  var clean=autoFix(input.value);
   var b=parse(clean), html=toHtml(b), plain=toPlain(b);
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
@@ -913,7 +915,7 @@ document.getElementById("bClear").onclick=function(){
 document.getElementById("bCopy").onclick=function(){ copyRich(this); };
 document.getElementById("bPlain").onclick=async function(){
   var btn=this;
-  try{ await navigator.clipboard.writeText(toPlain(parse(trimBlankEdges(input.value)))); flash(btn,"✓"); say("متن ساده کپی شد","ok"); }
+  try{ await navigator.clipboard.writeText(toPlain(parse(autoFix(input.value)))); flash(btn,"✓"); say("متن ساده کپی شد","ok"); }
   catch(e){ say("کپی نشد","warn"); }
 };
 document.getElementById("bStrip").onclick=stripLinks;
