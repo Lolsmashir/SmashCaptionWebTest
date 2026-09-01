@@ -834,7 +834,7 @@ function paint(found){
     });
     chips+='<button data-dl="'+i+'" data-v2="'+rec+'">دانلود</button>';
     if(m.kind==="image") chips+='<button data-copy="'+i+'">کپی تصویر</button>';
-    if(canShare && !shareFirst) chips+='<button data-share="'+i+'" data-v2="'+rec+'">ارسال</button>';
+    if(!shareFirst) chips+='<button data-share="'+i+'" data-v2="'+rec+'">ارسال</button>';
     chips+='<button data-open="'+i+'" data-v2="'+rec+'">باز کردن</button>';
     chips+='</div>';
 
@@ -917,7 +917,7 @@ async function shareFile(m,btn){
       await navigator.share({files:[f]});
       btn.textContent=old; say("تلگرام رو انتخاب کن","ok"); return;
     }
-    btn.textContent=old; say("این مرورگر پشتیبانی نمی‌کنه","warn");
+    btn.textContent=old; say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn");
   }catch(e){
     btn.textContent=old;
     if(e&&e.name==="AbortError") return;
