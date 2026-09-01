@@ -805,6 +805,9 @@ function paint(found){
     return;
   }
   var canShare=!!(navigator.canShare&&navigator.share);
+  // share sheet only makes sense on a phone; on desktop download is the useful action
+  var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  var shareFirst=canShare&&isMobile;
   mgrid.innerHTML="";
   u.forEach(function(m,i){
     var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url,h:0}];
@@ -819,7 +822,7 @@ function paint(found){
     th+='</div>';
 
     // primary action on the recommended quality
-    var mainLabel = (m.kind==="image" && canShare) ? "ارسال" : (m.kind==="image" ? "کپی" : (canShare?"ارسال":"دانلود"));
+    var mainLabel = shareFirst ? "ارسال" : (m.kind==="image" ? "کپی" : "دانلود");
     var big='<div class="mrow"><button class="mbig" data-i="'+i+'" data-v="'+rec+'">'
           + mainLabel+' · '+vars[rec].label+' <span class="sz" data-size="'+i+'-'+rec+'"></span></button></div>';
 
@@ -829,10 +832,13 @@ function paint(found){
       if(vi===rec) return;
       chips+='<button data-i="'+i+'" data-v="'+vi+'">'+v.label+' <span data-size="'+i+'-'+vi+'"></span></button>';
     });
+    chips+='<button data-dl="'+i+'" data-v2="'+rec+'">دانلود</button>';
     if(m.kind==="image") chips+='<button data-copy="'+i+'">کپی تصویر</button>';
+    if(canShare && !shareFirst) chips+='<button data-share="'+i+'" data-v2="'+rec+'">ارسال</button>';
+    chips+='<button data-open="'+i+'" data-v2="'+rec+'">باز کردن</button>';
     chips+='</div>';
 
-    c.innerHTML=th+big+(vars.length>1||m.kind==="image"? chips : "");
+    c.innerHTML=th+big+chips;
     mgrid.appendChild(c);
   });
 
@@ -843,13 +849,30 @@ function paint(found){
       var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
       var v=vars[+b.dataset.v];
       var item={url:v.url, kind:m.kind};
-      if(m.kind==="image" && !canShare) copyImage(v.url,b);
-      else if(canShare) shareFile(item,b);
+      if(shareFirst) shareFile(item,b);
+      else if(m.kind==="image") copyImage(v.url,b);
       else downloadFile(v.url,b);
     });
   });
   mgrid.querySelectorAll("[data-copy]").forEach(function(b){
     b.addEventListener("click",function(){ copyImage(currentMedia[+b.dataset.copy].url,b); });
+  });
+  function variantOf(b){
+    var idx=+(b.dataset.dl!==undefined ? b.dataset.dl
+             : b.dataset.share!==undefined ? b.dataset.share
+             : b.dataset.open);
+    var m=currentMedia[idx];
+    var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
+    return { m:m, v: vars[+b.dataset.v2] || vars[0] };
+  }
+  mgrid.querySelectorAll("[data-dl]").forEach(function(b){
+    b.addEventListener("click",function(){ var r=variantOf(b); downloadFile(r.v.url,b); });
+  });
+  mgrid.querySelectorAll("[data-share]").forEach(function(b){
+    b.addEventListener("click",function(){ var r=variantOf(b); shareFile({url:r.v.url,kind:r.m.kind},b); });
+  });
+  mgrid.querySelectorAll("[data-open]").forEach(function(b){
+    b.addEventListener("click",function(){ var r=variantOf(b); window.open(r.v.url,"_blank","noopener"); });
   });
 
   // fill in sizes without blocking the render
