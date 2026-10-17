@@ -336,8 +336,9 @@ body{padding:0;}
   height:100dvh;
   max-width:1600px;margin:auto;
   padding:calc(clamp(5px,1vw,18px) + env(safe-area-inset-top))
-          clamp(6px,1.1vw,20px)
-          calc(clamp(5px,1vw,18px) + env(safe-area-inset-bottom));
+          calc(clamp(6px,1.1vw,20px) + env(safe-area-inset-right))
+          calc(clamp(5px,1vw,18px) + env(safe-area-inset-bottom))
+          calc(clamp(6px,1.1vw,20px) + env(safe-area-inset-left));
   gap:clamp(5px,0.8vw,12px);
 }
 
@@ -412,16 +413,19 @@ textarea{
 .tgtext{font-size:clamp(10.5px,min(1.05vw,1.75vh),16px);line-height:1.55;}
 .meta{font-size:clamp(9.5px,0.75vw,11px);}
 
-.acts{padding:clamp(5px,0.6vw,10px) clamp(6px,0.7vw,12px);gap:clamp(4px,0.45vw,7px);}
+/* on a phone each pane is under half the screen wide, so the vw caps let the four
+   editor buttons shrink together instead of the last one being cut off */
+.acts{padding:clamp(5px,0.6vw,10px) min(clamp(6px,0.7vw,12px),1.05vw);gap:min(clamp(4px,0.45vw,7px),0.85vw);}
 .act{
   min-height:clamp(26px,min(2.9vw,4.6vh),42px);
-  padding:0 clamp(6px,0.9vw,14px);
-  font-size:clamp(9.5px,min(1vw,1.6vh),13.5px);
+  padding:0 min(clamp(6px,0.9vw,14px),1.15vw);
+  font-size:min(clamp(9.5px,min(1vw,1.6vh),13.5px),2.3vw);
   border-radius:clamp(8px,0.7vw,10px);
 }
 
+/* a card is never narrower than its label + three buttons need */
 .mgrid{
-  grid-template-columns:repeat(auto-fill,minmax(clamp(244px,27vw,380px),1fr));
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,clamp(290px,27vw,380px)),1fr));
   gap:clamp(6px,0.7vw,12px);padding:clamp(6px,0.7vw,12px);
   align-content:start;
 }
@@ -429,7 +433,8 @@ textarea{
 .mthumb{width:clamp(60px,6.5vw,92px);min-height:clamp(74px,10vh,132px);}
 .qlist{padding:clamp(4px,0.6vw,8px);gap:clamp(3px,0.4vw,5px);}
 .qitem{padding:clamp(2px,0.4vw,5px) clamp(4px,0.5vw,7px);gap:clamp(3px,0.35vw,5px);}
-.qname{font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);}
+/* labels are never cut to "…": if a card is ever too narrow the label wraps instead */
+.qname{font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);white-space:normal;overflow:visible;line-height:1.35;}
 .qitem button{
   min-height:clamp(21px,min(2.2vw,3.4vh),30px);
   padding:0 clamp(5px,0.7vw,9px);
@@ -437,6 +442,70 @@ textarea{
 }
 
 .toast{bottom:calc(clamp(12px,1.5vw,26px) + env(safe-area-inset-bottom));font-size:clamp(11px,1vw,13px);}
+/* sliding down alone left a sliver showing above the safe area; fade it out too */
+.toast{opacity:0;transition:transform .36s cubic-bezier(.2,1.2,.3,1),opacity .22s;}
+.toast.show{opacity:1;}
+.sheet-in{
+  padding-left:calc(16px + env(safe-area-inset-left));
+  padding-right:calc(16px + env(safe-area-inset-right));
+}
+
+/* ---------- states: hover, keyboard focus, pressed ---------- */
+.tb,.act,.iconbtn,.qitem button{
+  transition:transform .12s,background-color .18s,border-color .18s,color .18s,filter .18s,opacity .18s;
+}
+.pane{transition:border-color .2s;}
+.toolbar,.acts,.top,.qitem button{-webkit-user-select:none;user-select:none;}
+@media (hover:hover){
+  .tb:hover{background:#262d40;border-color:var(--border);}
+  .act:not(.primary):not(.done):hover{background:#232a3b;border-color:#323b55;}
+  .act.primary:hover,.act.done:hover{filter:brightness(1.1);}
+  .iconbtn:hover{color:var(--text);border-color:#323b55;}
+  .qitem button:hover{background:var(--panel-3);border-color:#3a4460;}
+  .qitem button.done:hover{background:var(--ok);}
+}
+.act:not(.primary):not(.done):active,.tb:active,.qitem button:not(.done):active{background:#2a3145;}
+.iconbtn:active{background:var(--panel-3);}
+.tb:focus-visible,.act:focus-visible,.iconbtn:focus-visible,.qitem button:focus-visible{
+  outline:2px solid var(--accent-2);outline-offset:1px;
+}
+/* inside the panning strip the ring is drawn inward so it can never be clipped */
+.tb:focus-visible{outline-offset:-2px;}
+#pEdit:focus-within{border-color:#3b3570;}
+.qitem button[aria-disabled="true"]{opacity:.5;}
+
+/* ---------- media: loading and "nothing found" cards ---------- */
+@keyframes shimmer{from{background-position:120% 0;}to{background-position:-120% 0;}}
+.shim,.mthumb.wait{
+  background:linear-gradient(100deg,var(--panel-3) 30%,#283046 50%,var(--panel-3) 70%) var(--panel-3);
+  background-size:220% 100%;
+  animation:shimmer 1.4s ease-in-out infinite;
+}
+.qskel{
+  height:calc(clamp(21px,min(2.2vw,3.4vh),30px) + 2*clamp(2px,0.4vw,5px) + 2px);
+  border-radius:9px;
+}
+.qsize.wait::after{
+  content:"";display:inline-block;width:2.2em;height:.8em;border-radius:3px;vertical-align:-1px;
+  background:linear-gradient(100deg,#2a3145 30%,#3a4460 50%,#2a3145 70%);background-size:220% 100%;
+  animation:shimmer 1.4s ease-in-out infinite;
+}
+.mmsg{
+  font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);line-height:1.75;color:var(--muted);
+  padding:0 2px;
+}
+.mmsg b{color:var(--text);font-weight:700;}
+.mfail .mthumb{background:#1a1420;}
+.mfail-ic{
+  width:clamp(22px,2.2vw,30px);height:clamp(22px,2.2vw,30px);border-radius:50%;
+  display:grid;place-items:center;font-weight:700;font-size:clamp(11px,1.1vw,15px);
+  color:var(--warn);border:1.5px solid currentColor;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .bubble,.mcard,.sheet.on,.sheet-in{animation:none;}
+  .shim,.mthumb.wait,.qsize.wait::after{animation:none;}
+}
 
 /* the only thing that actually changes: secondary labels are dropped when space is tight */
 @media (max-width:900px){
@@ -591,7 +660,9 @@ function say(m,k){
 
 /* ---------- text helpers ---------- */
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
-var LATIN_RUN_RE=/[A-Za-z][A-Za-z0-9]*(?:[ \u00D7&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9]*)*/g;
+// an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
+// otherwise the mark lands inside the name and Telegram stops linking it
+var LATIN_RUN_RE=/[@#]?[A-Za-z][A-Za-z0-9_]*(?:[ \u00D7&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9_]*)*/g;
 // a number at the very end of a latin run belongs to the persian sentence
 // ("The Final Reckoning 29 شهریور"), so it is left outside the isolation
 var TRAIL_NUM_RE=/^([\s\S]*?[A-Za-z][A-Za-z0-9]*)(\s+[\d][\d.,]*)$/;
@@ -613,7 +684,8 @@ function isSkippable(ch){
   return false;
 }
 function firstRealIdx(l){ for(var i=0;i<l.length;i++) if(!isSkippable(l[i])) return i; return -1; }
-function isHashtagLine(l){ return /^\s*\*{0,2}\s*#/.test(l.replace(new RegExp("["+RLM+LRM+"]","g"),"")); }
+// "#️⃣" (keycap emoji) starts a normal line, not a hashtag line
+function isHashtagLine(l){ return /^\s*\*{0,2}\s*#(?![\uFE0F\u20E3])/.test(l.replace(new RegExp("["+RLM+LRM+"]","g"),"")); }
 function isBlank(l){ return l.replace(new RegExp("[\\s"+ZWNJ+RLM+LRM+"]","g"),"")===""; }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function isMediaMetaLine(l){
@@ -649,16 +721,33 @@ function applyDirection(text){
     if(!fa && line.indexOf("\u27A5")!==-1){ n++; return LRM+line; }
     if(fa){
       var before=line;
-      line=line.replace(LATIN_RUN_RE,function(mm){
-        var t=TRAIL_NUM_RE.exec(mm);
-        if(t) return RLM+t[1]+RLM+t[2];
-        return RLM+mm+RLM;
-      });
+      line=isolateLatin(line);
       if(line!==before) n++;
     }
     return line;
   }).join("\n");
   return { text: trimBlankEdges(out), count: n };
+}
+
+function isolateLatin(line){
+  // URLs are held aside first so no mark ever lands inside one:
+  // a markdown link target stays untouched, a bare URL is isolated as one run
+  var held=[];
+  function hold(s){ held.push(s); return "\u0002"+(held.length-1)+"\u0003"; }
+  line=line.replace(/\]\([^)\s]+\)/g,hold).replace(URL_RE,function(u){
+    var tail=(u.match(/[).,;:!?»«]+$/)||[""])[0];
+    u=u.slice(0,u.length-tail.length);
+    return (u? hold(RLM+u+RLM) : "")+tail;
+  });
+  line=line.replace(LATIN_RUN_RE,function(mm){
+    // a trailing "__" is an underline marker, not part of the word
+    var end=(mm.match(/_+$/)||[""])[0];
+    mm=mm.slice(0,mm.length-end.length);
+    var t=TRAIL_NUM_RE.exec(mm);
+    if(t) return RLM+t[1]+RLM+t[2]+end;
+    return RLM+mm+RLM+end;
+  });
+  return line.replace(/\u0002(\d+)\u0003/g,function(m,i){ return held[i]; });
 }
 
 // applied automatically to the preview and to everything copied
@@ -713,7 +802,12 @@ function parse(text){
       while(i<lines.length && /^\s*>\s?/.test(lines[i])){ q.push(lines[i].replace(/^\s*>\s?/,"")); i++; }
       out.push({t:"quote",lines:q}); continue;
     }
-    if(isMediaMetaLine(l)){ i++; continue; }
+    if(isMediaMetaLine(l)){
+      i++;
+      // a removed line must not leave two blank lines touching
+      if(out.length && out[out.length-1].t==="blank") while(i<lines.length && isBlank(lines[i])) i++;
+      continue;
+    }
     out.push({t:isBlank(l)?"blank":"line",text:l}); i++;
   }
   // media/link lines are gone by now, so strip any blank blocks left at the edges
@@ -747,7 +841,7 @@ function render(){
     d.setAttribute("dir","auto");
     if(b.t==="blank") d.className="sp-blank";
     else if(b.t==="pre") d.innerHTML="<pre><code>"+esc(b.lines.join("\n"))+"</code></pre>";
-    else if(b.t==="quote") d.innerHTML="<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>";
+    else if(b.t==="quote") d.innerHTML=("<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>").replace(/tg-spoiler/g,"spoiler");
     else d.innerHTML=inline(b.text).replace(/tg-spoiler/g,"spoiler");
     preview.appendChild(d);
   });
@@ -830,21 +924,24 @@ function imageVariants(u){
   ];
 }
 
+// "720p" means the short side, so a 720x1280 portrait clip is 720p, not 1280p
+function shortSide(u){
+  var m=u.match(/\/(\d+)x(\d+)\//);
+  return m? Math.min(parseInt(m[1],10),parseInt(m[2],10)) : 0;
+}
 function videoVariants(v){
   var out=[];
   var list=v.variants||v.video_variants||null;
   if(list && list.length){
     list.forEach(function(x){
-      if(!x.url || (x.content_type && x.content_type.indexOf("mp4")===-1)) return;
-      var m=x.url.match(/\/(\d+)x(\d+)\//);
-      var hh=m? parseInt(m[2],10) : 0;
+      if(!x.url || /\.m3u8(\?|$)/i.test(x.url) || (x.content_type && x.content_type.indexOf("mp4")===-1)) return;
+      var hh=shortSide(x.url);
       out.push({label: hh? hh+"p" : (x.bitrate? Math.round(x.bitrate/1000)+"k" : "MP4"),
                 url:x.url, h:hh, bitrate:x.bitrate||0});
     });
   }
-  if(!out.length && v.url){
-    var m2=v.url.match(/\/(\d+)x(\d+)\//);
-    var h2=m2? parseInt(m2[2],10) : 0;
+  if(!out.length && v.url && !/\.m3u8(\?|$)/i.test(v.url)){
+    var h2=shortSide(v.url);
     out.push({label: h2? h2+"p" : "بالاترین کیفیت", url:v.url, h:h2, bitrate:0});
   }
   // de-dupe and sort high -> low
@@ -942,24 +1039,47 @@ function fmtSize(b){
 }
 
 function detectMedia(){
-  var text=input.value, list=collectDirect(text), ids=tweetIds(text);
-  ids.forEach(function(id){ if(cache[id]) list=list.concat(cache[id]); });
-  paint(list);
+  var text=input.value, list=collectDirect(text), ids=tweetIds(text), waiting=0, failed=0;
   ids.forEach(function(id){
-    if(cache[id]||busyIds[id]) return;
-    resolveTweet(id).then(detectMedia);
+    if(!cache[id]&&!busyIds[id]) resolveTweet(id).then(detectMedia,function(){
+      // an answer in a shape we don't understand: show the "nothing found" card, not a loader forever
+      busyIds[id]=false; cache[id]=[]; detectMedia();
+    });
+    if(busyIds[id]) waiting++;
+    else if(cache[id]&&cache[id].length) list=list.concat(cache[id]);
+    else if(cache[id]) failed++;
   });
+  paint(list,waiting,failed);
 }
-function paint(found){
+// placeholder cards: one per tweet still loading, one per tweet that gave nothing
+function stateCards(waiting,failed){
+  var h="";
+  for(var w=0;w<waiting;w++)
+    h+='<div class="mcard mskel" role="status"><div class="mthumb shim"></div><div class="qlist">'
+     + '<div class="mmsg">در حال گرفتن مدیای توییت…</div>'
+     + '<div class="qskel shim"></div><div class="qskel shim"></div><div class="qskel shim"></div></div></div>';
+  for(var f=0;f<failed;f++)
+    h+='<div class="mcard mfail" role="status"><div class="mthumb"><span class="mfail-ic">!</span></div><div class="qlist">'
+     + '<div class="mmsg"><b>مدیایی از این توییت پیدا نشد</b><br>شاید توییت فقط متن داره، یا سرویس‌ها الان در دسترس نیستن.</div></div></div>';
+  return h;
+}
+var paintedKey=null;
+function paint(found,waiting,failed){
+  waiting=waiting||0; failed=failed||0;
   var seen={},u=[];
   found.forEach(function(m){ if(!seen[m.url]){seen[m.url]=1;u.push(m);} });
   currentMedia=u;
 
   mBadge.textContent=u.length;
   mBadge.classList.toggle("show",u.length>0);
-  pMedia.classList.toggle("hide",u.length===0);
+  pMedia.classList.toggle("hide",u.length===0&&!waiting&&!failed);
 
-  if(!u.length){
+  // typing elsewhere in the caption must not rebuild (and flash) the same cards
+  var key=JSON.stringify([u.map(function(m){ return m.url+"|"+(m.variants||[]).length; }),waiting,failed]);
+  if(key===paintedKey) return;
+  paintedKey=key;
+
+  if(!u.length&&!waiting&&!failed){
     mgrid.innerHTML='<div class="empty">لینک عکس یا توییت رو تو متن بذار<br>تا فایل‌هاش اینجا بیان</div>';
     return;
   }
@@ -976,7 +1096,7 @@ function paint(found){
     c.className="mcard"; c.style.animationDelay=(i*.04)+"s";
 
     var backdrop = m.kind==="image" ? m.url : (m.poster||"");
-    var th='<div class="mthumb">'
+    var th='<div class="mthumb wait">'
          + (backdrop? '<div class="mblur" style="background-image:url(\''+backdrop+'\')"></div>' : '')
          + '<span class="mnum">'+(i+1)+'</span>';
     if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
@@ -991,19 +1111,30 @@ function paint(found){
       var v=vars[vi];
       list+='<div class="qitem'+(vi===rec?' rec':'')+'">'
           +   '<span class="qname">'+v.label
-          +     ' <span data-size="'+i+'-'+vi+'"></span>'
+          +     ' <span class="qsize wait" data-size="'+i+'-'+vi+'"></span>'
           +     (vi===rec?'<span class="qstar">★</span>':'')
           +   '</span>'
           +   '<button data-act="dl" data-i="'+i+'" data-v="'+vi+'">دانلود</button>'
           +   '<button data-act="copy" data-i="'+i+'" data-v="'+vi+'">کپی</button>'
-          +   (canShare?'<button data-act="share" data-i="'+i+'" data-v="'+vi+'">ارسال</button>':'')
+          +   '<button data-act="share" data-i="'+i+'" data-v="'+vi+'"'
+          +     (canShare?'':' aria-disabled="true" title="این مرورگر ارسال فایل نداره"')+'>ارسال</button>'
           + '</div>';
     });
     list+='</div>';
 
     c.innerHTML=th+list;
     mgrid.appendChild(c);
+
+    // the thumbnail shimmers until its picture (or the video poster) has loaded
+    var thumb=c.querySelector(".mthumb"), el=thumb.querySelector("img,video");
+    var ready=function(){ thumb.classList.remove("wait"); };
+    if(m.kind==="image"){ el.addEventListener("load",ready); el.addEventListener("error",ready); if(el.complete) ready(); }
+    else{
+      el.addEventListener("loadedmetadata",ready); el.addEventListener("error",ready);
+      if(m.poster){ var pi=new Image(); pi.onload=pi.onerror=ready; pi.referrerPolicy="no-referrer"; pi.src=m.poster; }
+    }
   });
+  mgrid.insertAdjacentHTML("beforeend",stateCards(waiting,failed));
 
   mgrid.querySelectorAll("[data-act]").forEach(function(b){
     b.addEventListener("click",function(){
@@ -1014,8 +1145,8 @@ function paint(found){
       if(act==="dl") downloadFile(v.url,b);
       else if(act==="share") shareFile({url:v.url,kind:m.kind},b);
       else if(m.kind==="image") copyImage(v.url,b);
-      else if(canShare) shareFile({url:v.url,kind:m.kind},b);  // phone: share sheet -> Save Video
-      else copyLink(v.url,b);
+      else if(shareFirst) shareFile({url:v.url,kind:m.kind},b);  // phone: share sheet -> Save Video
+      else copyLink(v.url,b);                                     // desktop: the link
     });
   });
 
@@ -1025,6 +1156,7 @@ function paint(found){
       var seenSize={};
       sizes.forEach(function(sz,vi){
         var el=mgrid.querySelector('[data-size="'+i+'-'+vi+'"]');
+        if(el) el.classList.remove("wait");
         if(el && sz) el.textContent="· "+fmtSize(sz);
         if(!sz) return;
         // twitter often serves one identical file for several named sizes —
@@ -1064,6 +1196,8 @@ async function copyImage(url,btn){
   }catch(e){ btn.textContent=old; say("کپی نشد — دستی ذخیره کن","warn"); }
 }
 async function shareFile(m,btn){
+  // no share sheet at all: say so right away instead of downloading the file first
+  if(!(navigator.canShare&&navigator.share)){ say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn"); return; }
   var old=btn.textContent; btn.textContent="…";
   try{
     var res=await fetch(m.url,{mode:"cors",referrerPolicy:"no-referrer"});
