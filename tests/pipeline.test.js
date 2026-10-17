@@ -362,3 +362,26 @@ test("round trip: preview formatting → editor text → the same formatting (20
     got.forEach((c, i) => assert.equal(norm(c), norm(want[i]), `format of "${c.ch}" (#${i}) in ${JSON.stringify(md)}`));
   }
 });
+
+/* ---------- embedded assets ---------- */
+
+test("the five IRANSans fonts are byte-for-byte the originals; the icon is a 180×180 PNG", () => {
+  const fs = require("fs"), crypto = require("crypto");
+  const html = fs.readFileSync(require("./load-app").INDEX, "utf8");
+  const fonts = html.split("\n").filter((l) => l.startsWith("@font-face"))
+    .map((l) => crypto.createHash("sha256").update(l).digest("hex"));
+  assert.deepEqual(fonts, [
+    "c3ea798ec4ccdf215910499473792bbb1d0f742c56da7f34fab85cf5c5cb3c8d",
+    "1182043c7d19c4ca5873e7d26d5f0c3bd507cb7a5e5f74eeca1d211ab90f1f7c",
+    "c3b3a5738b6a1a120ad63e54e7ba2bc0a6842a985cc4f5a6a3e68dcf989c2f85",
+    "477f435ba3a98bb078e3ed725b4b5025935a186a0683b19edc038209c75a6c52",
+    "eb8783973da156410d806c99d5e19e65ada9d2a4e978f92fda2488dcef180581",
+  ]);
+  for (const rel of ["apple-touch-icon", "icon"]) {
+    const m = new RegExp(`<link rel="${rel}" href="data:image/png;base64,([^"]+)">`).exec(html);
+    assert.ok(m, rel + " link missing");
+    const png = Buffer.from(m[1], "base64");
+    assert.equal(png.subarray(1, 4).toString(), "PNG");
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [180, 180], rel + " size");
+  }
+});
