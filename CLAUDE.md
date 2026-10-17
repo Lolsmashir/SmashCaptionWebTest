@@ -63,8 +63,18 @@ Read this whole file before changing anything in this repo.
 - Leaving the preview redraws it (direction marks); undo/redo while in the preview keep the caret.
 - Don't redraw the preview while the user types in it (it breaks the iPhone keyboard); it redraws on the next animation frame when the editor changes.
 
+### Rich mode (approved)
+- A glass «معمولی / ریچ ✦» switch at the top of the preview chooses between a normal Telegram caption (classic) and a rich-text post for Telegram's rich text editor (Premium). The choice is saved. Classic behaviour must stay exactly as described above.
+- Rich mode understands, on top of every classic format: `#`/`##`/`###` headings, `- ` / `* ` lists (nested by 2 spaces), `1. ` numbered lists, `- [ ]` / `- [x]` checklists (shown as ☐/☑), GFM tables (`| a | b |` + `|---|---|`), `---` dividers and `![alt](url)` pictures between paragraphs. In classic mode the same text stays literal.
+- Rich-only toolbar buttons (heading, list, numbered, checklist, table, divider) appear only in rich mode; they work in the editor and in the preview. In classic mode the toolbar is exactly the 25 buttons above.
+- The media panel's pictures open the post (gallery at the top of the bubble); video posters show with ▶ but videos are not copied ("send the video separately"). A picture already placed with `![](url)` is not repeated.
+- «کپی برای تلگرام» in rich mode copies the post the way a browser copies a selected page (`execCommand("copy")` on a hidden rendered copy), falling back to `ClipboardItem`; the clipboard HTML has headings, lists, tables and `<img>` for the pictures, pictures first. «ساده» copies a readable plain version.
+- The counter in rich mode counts against Telegram's 32,768-character rich-post limit.
+- Editing tables, lists and headings inside the rich preview writes clean markdown back (table rows with their separator, `- ` / `1. ` prefixes, `#` levels).
+- A hashtag needs its word right after `#`; `# title` is a heading, not a hashtag line.
+
 ### Look
-- Near-black surfaces without outlines, volt accent (`--volt: #d5f53f`), light film grain. Editor + preview are one split card; the preview uses Telegram's dark-theme colours. One bright button per panel; the media bar's main button is tinted.
+- Liquid glass: soft colour fields behind (volt, blue, violet), three floating glass panes (tint + `backdrop-filter: blur saturate` + a light rim brightest at the top corner), a glass toolbar capsule, glass chips for secondary buttons, a glossy volt drop for the main button, glass toast / sheet / mode switch, springy presses. No flat outlines. The preview is a Telegram dark-theme screen set into its glass pane. One bright button per panel; the media bar's main button is tinted.
 - Logo: volt rounded square with a dark speech bubble and a volt lightning bolt (inline SVG in the header; the same design is the 180×180 PNG home-screen/tab icon).
 - The five IRANSans `@font-face` blocks are byte-for-byte the originals — never re-encode them (a test checks their hashes). No CDNs, no web fonts, everything inline, one file.
 
@@ -82,5 +92,6 @@ Do NOT add, remove, rename or move any feature or button on your own. I have bee
 ## Before you commit
 
 - `cd tests && npm install && npm test` — all tests must pass (Node text-pipeline tests + Playwright browser tests; the tweet APIs are mocked).
-- `node screens.js <out-dir>` — screenshots + layout audit at 390×844, 507×449, 800×600, 1440×900, 1920×1080 and more. Look at every screenshot yourself.
+- `node screens.js <out-dir>` — screenshots + layout audit at 390×844, 507×449, 800×600, 1440×900, 1920×1080 and more, each in classic AND rich mode. Look at every screenshot yourself.
+- Writing `\u200F`-style escapes through some tools turns them into the invisible characters themselves; keep RLM/LRM/ZWNJ/FE0F as `\u` escapes in code.
 - GitHub Pages deploys `main` (root) through Jekyll: keep test tooling inside `tests/`, never commit `node_modules`, and don't add root files that Jekyll would choke on.
