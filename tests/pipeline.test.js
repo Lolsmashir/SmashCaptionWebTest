@@ -385,3 +385,56 @@ test("the five IRANSans fonts are byte-for-byte the originals; the icon is a 180
     assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [180, 180], rel + " size");
   }
 });
+
+/* ---------- rich mode (Telegram's rich-text posts) ---------- */
+
+const RICH_SAMPLE = [
+  "# آپدیت v42.00",
+  "متن **پررنگ** با Fortnite",
+  "## آیتم‌ها",
+  "- اسکین Batman",
+  "  - بک‌بلینگ",
+  "1. اول",
+  "2. دوم",
+  "- [x] سرورها Online",
+  "- [ ] رفع باگ",
+  "",
+  "| آیتم | قیمت |",
+  "|---|---|",
+  "| Batman | 1,500 |",
+  "---",
+  "![عکس](https://pbs.twimg.com/media/A.jpg)",
+  "> نقل‌قول",
+].join("\n");
+
+test("rich parse: headings, lists (nested, numbered, tasks), table, divider, picture", () => {
+  const b = plainData(app.parse(app.autoFix(RICH_SAMPLE), true));
+  assert.deepEqual(b.map((x) => x.t), ["h", "line", "h", "list", "blank", "table", "hr", "img", "quote"]);
+  assert.equal(b[0].level, 1);
+  assert.equal(b[2].level, 2);
+  assert.deepEqual(b[3].items.map((i) => [i.level, i.ordered, i.task]),
+    [[0, false, null], [1, false, null], [0, true, null], [0, true, null], [0, false, true], [0, false, false]]);
+  assert.equal(b[3].items[4].text, `سرورها ${R}Online${R}`, "the item keeps its direction marks; [x] is read through them");
+  assert.deepEqual(b[5].rows.map((r) => r.length), [2, 2]);
+  assert.equal(b[7].url, "https://pbs.twimg.com/media/A.jpg");
+});
+
+test("rich HTML: real headings, nested lists, ☑/☐, table, divider, picture; classic stays literal", () => {
+  const html = app.toRichHtml(app.parse(app.autoFix(RICH_SAMPLE), true), ["https://pbs.twimg.com/media/TOP.jpg"]);
+  assert.ok(html.startsWith('<div dir="rtl"><p><img src="https://pbs.twimg.com/media/TOP.jpg"'), "media-panel pictures open the post");
+  for (const part of ['<h1 dir="auto">آپدیت', '<h2 dir="auto">', '<ul><li dir="auto">اسکین', "<ul><li", "</li></ul></li></ul><ol>",
+    "☑ سرورها", "☐ رفع باگ", "<table><thead><tr><th", "<td dir=\"auto\">1,500</td>", "<hr>",
+    '<img src="https://pbs.twimg.com/media/A.jpg" alt="عکس"', "<blockquote", "<b>پررنگ</b>"])
+    assert.ok(html.includes(part), part);
+  const plain = app.toRichPlain(app.parse(app.autoFix(RICH_SAMPLE), true));
+  assert.ok(plain.includes("• اسکین") && plain.includes("1. اول") && plain.includes("☑ سرورها") && plain.includes("———"));
+  // the same text in classic mode is an ordinary caption: nothing becomes a heading or a table
+  const classic = copyOf(RICH_SAMPLE).html;
+  assert.ok(!/<h1|<table|<ul|<hr|<img/.test(classic));
+  assert.ok(classic.includes("| آیتم | قیمت |"));
+});
+
+test("'# title' is not a hashtag line (it gets direction marks); '#Fortnite' still is", () => {
+  assert.equal(fix("# خبر Fortnite"), `# خبر ${R}Fortnite${R}`);
+  assert.equal(fix("#Fortnite #فورتنایت"), "#Fortnite #فورتنایت");
+});

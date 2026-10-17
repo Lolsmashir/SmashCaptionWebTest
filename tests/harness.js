@@ -30,6 +30,35 @@ const CAPTION = [
   `Link: https://x.com/FortniteGame/status/${TWEET_ID}`,
 ].join("\n");
 
+// a rich-text post: headings, lists, a table, a divider, two pictures and the tweet's video
+const RICH_CAPTION = [
+  "# آپدیت v42.00 فورتنایت",
+  "خلاصه‌ی تغییرات **Chapter 7 Season 1** امروز:",
+  "",
+  "## آیتم‌های جدید",
+  "- اسکین **Batman** با استایل تازه",
+  "  - بک‌بلینگ Bat-Signal",
+  "- گلایدر Batwing",
+  "1. اول آپدیت رو بگیرید",
+  "2. بعد وارد مود LEGO بشید",
+  "- [x] سرورها آنلاین شدن",
+  "- [ ] رفع باگ ||ماموریت مخفی||",
+  "",
+  "| آیتم | قیمت |",
+  "|---|---|",
+  "| اسکین Batman | 1,500 وی‌باکس |",
+  "| گلایدر Batwing | 800 وی‌باکس |",
+  "",
+  "---",
+  "> نسخه‌ی کامل یادداشت‌ها تو سایت Epic",
+  "",
+  "**#Fortnite | #فورتنایت**",
+  "",
+  "Media: https://pbs.twimg.com/media/PHOTO1.jpg",
+  "https://pbs.twimg.com/media/PHOTO2.jpg",
+  `Link: https://x.com/FortniteGame/status/${TWEET_ID}`,
+].join("\n");
+
 const vid = (wh, q = "?tag=16") => `https://video.twimg.com/amplify_video/18/vid/avc1/${wh}/clip.mp4${q}`;
 const POSTER = "https://pbs.twimg.com/amplify_video_thumb/18/img/poster.jpg";
 const SIZES = { "1920x1080": 25804800, "1280x720": 10276044, "640x360": 3250585, "480x270": 1258291 };
@@ -156,4 +185,4 @@ function launch() {
   return chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 }
 
-module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, TWEET_ID, SIZES, FX, VX };
+module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, RICH_CAPTION, TWEET_ID, SIZES, FX, VX };
