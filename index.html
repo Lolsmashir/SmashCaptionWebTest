@@ -394,19 +394,25 @@ textarea::placeholder{color:var(--dim);}
 .mretry{align-self:flex-start;margin-top:2px;color:var(--volt);background:var(--volt-soft);}
 
 /* ---------- toast ---------- */
+/* drops into the header band at the top: it never sits on a button or on the text you're
+   working with, and on a phone the keyboard can't hide it */
 .toast{
-  position:fixed;left:50%;bottom:calc(clamp(12px,1.5vw,26px) + env(safe-area-inset-bottom));
-  transform:translate(-50%,160%);opacity:0;
-  background:rgba(32,32,38,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
-  border:1px solid var(--hair-2);border-radius:14px;
-  padding:9px 16px;font-size:clamp(11px,1vw,13px);font-weight:500;line-height:1.7;
-  box-shadow:0 18px 40px -16px #000;z-index:80;pointer-events:none;
-  max-width:min(88vw,520px);text-align:center;
-  transition:transform .36s cubic-bezier(.2,1.2,.3,1),opacity .22s;
+  position:fixed;left:50%;top:calc(clamp(5px,1vw,18px) + env(safe-area-inset-top));
+  transform:translate(-50%,-150%);opacity:0;
+  display:flex;align-items:center;gap:9px;
+  width:max-content;max-width:min(92vw,760px);
+  min-height:clamp(26px,2.2vw,32px);
+  background:rgba(30,30,35,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border:1px solid var(--hair-2);border-radius:18px;
+  padding:4px 16px 4px 14px;
+  color:var(--text);font-size:clamp(11px,1vw,13px);font-weight:500;line-height:1.6;text-align:center;
+  box-shadow:0 14px 34px -14px #000;z-index:80;pointer-events:none;
+  transition:transform .34s cubic-bezier(.2,1.2,.3,1),opacity .2s;
 }
+.toast::before{content:"";flex:0 0 8px;height:8px;border-radius:50%;background:var(--muted);}
 .toast.show{transform:translate(-50%,0);opacity:1;}
-.toast.ok{color:var(--ok);}
-.toast.warn{color:var(--warn);}
+.toast.ok::before{background:var(--ok);box-shadow:0 0 0 3px rgba(74,222,128,.2);}
+.toast.warn::before{background:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.2);}
 
 /* ---------- help sheet ---------- */
 .sheet{
@@ -617,6 +623,7 @@ var input=document.getElementById("input"),
     mBadge=document.getElementById("mBadge"),
     pMedia=document.getElementById("pMedia");
 var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+var isTouch=!!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
 
 /* ---------- toast ---------- */
 var tt;
@@ -1647,13 +1654,18 @@ function stripLinks(){
 }
 
 /* ---------- editing ---------- */
+// on a touch screen a button never pulls the keyboard up: the caret only moves into the
+// editor when the keyboard is already open (or on a computer, where there is no keyboard to pop)
+function caretTo(a,b){
+  if(isTouch && document.activeElement!==input) return;
+  input.focus(); input.setSelectionRange(a,b);
+}
 function wrapSel(bf,af){
   af=af||"";
   var s=input.selectionStart,e=input.selectionEnd,v=input.value;
   var sel=v.slice(s,e);
   input.value=v.slice(0,s)+bf+sel+af+v.slice(e);
-  input.focus();
-  input.setSelectionRange(s+bf.length, s+bf.length+sel.length);
+  caretTo(s+bf.length, s+bf.length+sel.length);
   render();
 }
 function prefixLines(p){
@@ -1661,18 +1673,18 @@ function prefixLines(p){
   var a=v.lastIndexOf("\n",s-1)+1, b=v.indexOf("\n",e); if(b===-1)b=v.length;
   var seg=v.slice(a,b).split("\n").map(function(l){ return l.indexOf(p)===0?l:p+l; }).join("\n");
   input.value=v.slice(0,a)+seg+v.slice(b);
-  input.focus(); input.setSelectionRange(a,a+seg.length); render();
+  caretTo(a,a+seg.length); render();
 }
 function insertAt(t){
   var s=input.selectionStart,v=input.value;
   input.value=v.slice(0,s)+t+v.slice(s);
-  input.focus(); input.setSelectionRange(s+t.length,s+t.length); render();
+  caretTo(s+t.length,s+t.length); render();
 }
 function insertBlock(){
   var s=input.selectionStart,e=input.selectionEnd,v=input.value;
   var sel=v.slice(s,e)||"code", t="```\n"+sel+"\n```";
   input.value=v.slice(0,s)+t+v.slice(e);
-  input.focus(); input.setSelectionRange(s+4,s+4+sel.length); render();
+  caretTo(s+4,s+4+sel.length); render();
 }
 
 /* ---------- clipboard ---------- */
@@ -1721,6 +1733,10 @@ document.getElementById("tbUndo").onclick=undo;
 document.getElementById("tbRedo").onclick=redo;
 // pressing a toolbar button must not take the focus (or the selection) away from the text
 toolbar.addEventListener("mousedown",function(e){ if(e.target.closest(".tb")) e.preventDefault(); });
+// the action buttons leave the focus alone too: an open keyboard stays open, a closed one stays closed
+document.querySelectorAll(".acts").forEach(function(bar){
+  bar.addEventListener("mousedown",function(e){ if(e.target.closest(".act")) e.preventDefault(); });
+});
 document.querySelectorAll(".tb").forEach(function(b){
   b.addEventListener("click",function(){
     var d=b.dataset;
@@ -1740,7 +1756,7 @@ document.getElementById("bPaste").onclick=async function(){
   }catch(err){ t=null; }
   if(t===null){
     // the browser keeps the clipboard locked: the editor is ready for a normal paste instead
-    input.focus();
+    if(!isTouch) input.focus();
     say(isMobile? "مرورگر اجازه نداد — انگشتت رو روی ادیتور نگه دار و Paste رو بزن"
                 : "مرورگر اجازه نداد — Ctrl+V رو بزن. برای دکمه: آیکون قفل کنار آدرس ← Clipboard ← Allow","warn");
     return;
@@ -1748,22 +1764,21 @@ document.getElementById("bPaste").onclick=async function(){
   if(!t){ say("کلیپ‌بورد خالیه","warn"); return; }
   var s=input.selectionStart, e=input.selectionEnd, v=input.value;
   input.value=v.slice(0,s)+t+v.slice(e);
-  input.focus();
-  input.setSelectionRange(s+t.length, s+t.length);
+  caretTo(s+t.length, s+t.length);
   commit(); render(); detectMedia();
   say("پیست شد","ok");
 };
 document.getElementById("bFix").onclick=function(){
   var p=input.selectionStart;
   input.value=fixDirection(input.value); commit(); render(); detectMedia();
-  input.focus(); input.setSelectionRange(p,p);
+  caretTo(p,p);
 };
 document.getElementById("bSign").onclick=function(){
   var v=input.value.replace(/\s+$/,"");
   input.value=(v? v+"\n"+ZWNJ+"\n":"")+SIGNATURE; commit(); render(); say("امضا اضافه شد","ok");
 };
 document.getElementById("bClear").onclick=function(){
-  input.value=""; commit(); render(); detectMedia(); input.focus(); say("پاک شد");
+  input.value=""; commit(); render(); detectMedia(); caretTo(0,0); say("پاک شد");
 };
 document.getElementById("bCopy").onclick=function(){ copyRich(this); };
 document.getElementById("bPlain").onclick=async function(){
