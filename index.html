@@ -733,7 +733,12 @@ function parse(text){
       while(i<lines.length && /^\s*>\s?/.test(lines[i])){ q.push(lines[i].replace(/^\s*>\s?/,"")); i++; }
       out.push({t:"quote",lines:q}); continue;
     }
-    if(isMediaMetaLine(l)){ i++; continue; }
+    if(isMediaMetaLine(l)){
+      i++;
+      // a removed line must not leave two blank lines touching
+      if(out.length && out[out.length-1].t==="blank") while(i<lines.length && isBlank(lines[i])) i++;
+      continue;
+    }
     out.push({t:isBlank(l)?"blank":"line",text:l}); i++;
   }
   // media/link lines are gone by now, so strip any blank blocks left at the edges
@@ -767,7 +772,7 @@ function render(){
     d.setAttribute("dir","auto");
     if(b.t==="blank") d.className="sp-blank";
     else if(b.t==="pre") d.innerHTML="<pre><code>"+esc(b.lines.join("\n"))+"</code></pre>";
-    else if(b.t==="quote") d.innerHTML="<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>";
+    else if(b.t==="quote") d.innerHTML=("<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>").replace(/tg-spoiler/g,"spoiler");
     else d.innerHTML=inline(b.text).replace(/tg-spoiler/g,"spoiler");
     preview.appendChild(d);
   });
