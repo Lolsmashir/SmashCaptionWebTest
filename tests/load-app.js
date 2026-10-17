@@ -37,7 +37,8 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
     videoVariants:videoVariants, imageVariants:imageVariants, pickRecommended:pickRecommended,
     resolveTweet:resolveTweet, collectDirect:collectDirect, tweetIds:tweetIds,
     SIGNATURE:SIGNATURE, input:input, runsToMarkdown:runsToMarkdown, output:output,
-    fixLines:fixLines
+    fixLines:fixLines, toRichHtml:toRichHtml, toRichPlain:toRichPlain,
+    setModeForTest:function(m){ mode=m; }
   };};`;
   if (!/"use strict";/.test(src)) throw new Error('"use strict"; marker not found');
   src = src.replace('"use strict";', '"use strict";' + hook);

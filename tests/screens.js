@@ -4,7 +4,7 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
-const { startServer, openApp, typeCaption, waitForMedia, launch } = require("./harness");
+const { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, RICH_CAPTION } = require("./harness");
 
 const SIZES = [
   { w: 390, h: 844, mobile: true },
@@ -55,11 +55,14 @@ function audit() {
 
   // toolbar: one vertical column on the right edge of the editor
   const tb = document.querySelector(".toolbar"), edrow = document.querySelector(".edrow");
-  const tbs = [...tb.querySelectorAll(".tb")];
+  const tbs = [...tb.querySelectorAll(".tb")].filter(visible);
   const xs = new Set(tbs.map((b) => Math.round(r(b).left)));
   if (xs.size !== 1) problems.push("toolbar is not a single column");
-  if (Math.abs(r(tb).right - r(edrow).right) > 1) problems.push("toolbar is not on the right edge");
-  if (tbs.length !== 25) problems.push("toolbar has " + tbs.length + " buttons");
+  // a floating capsule may sit a few px in from the edge, but nothing may be to its right
+  const taBox = r(document.getElementById("input"));
+  if (r(edrow).right - r(tb).right > 10 || r(tb).left < taBox.right - 1) problems.push("toolbar is not on the right edge");
+  const expected = document.body.classList.contains("rich") ? 31 : 25;
+  if (tbs.length !== expected) problems.push("toolbar has " + tbs.length + " buttons, expected " + expected);
   if (getComputedStyle(tb).scrollbarWidth !== "none") problems.push("toolbar scrollbar visible");
 
   // everything stays inside its pane; things inside a scroller stay inside it horizontally
@@ -79,7 +82,7 @@ function audit() {
     });
   }
   // nothing truncated or hidden behind a sideways scroll
-  document.querySelectorAll(".act,.tb,.qname,.qitem button,.top h1,.mbadge,.mnum,.iconbtn").forEach((el) => {
+  document.querySelectorAll(".act,.tb,.qname,.qitem button,.top h1,.mbadge,.mnum,.iconbtn,.seg-b").forEach((el) => {
     if (!visible(el)) return;
     if (el.scrollWidth > el.clientWidth + 1) problems.push(`${name(el)} is truncated (${el.scrollWidth}>${el.clientWidth})`);
   });
@@ -117,20 +120,22 @@ function audit() {
   const browser = await launch();
   let failed = 0;
   try {
-    for (const s of SIZES) {
+    // every size twice: a classic caption, and a rich post (headings, lists, table, pictures)
+    for (const s of SIZES) for (const rich of [false, true]) {
       const { ctx, page, errors } = await openApp(browser, url, { viewport: { width: s.w, height: s.h }, mobile: !!s.mobile });
-      await typeCaption(page);
-      await waitForMedia(page, 4);
+      if (rich) { await page.click(".seg-b[data-mode='rich']"); await settle(page); }
+      await typeCaption(page, rich ? RICH_CAPTION : CAPTION);
+      await waitForMedia(page, rich ? 6 : 4);
       // let the "found" toast slide away so the screenshot shows the plain layout
-      await page.waitForFunction(() => !document.querySelector(".toast.show"), null, { timeout: 5000 });
+      await page.waitForFunction(() => !document.querySelector(".toast.show"), null, { timeout: 7000 });
       await page.waitForTimeout(450);
-      const file = path.join(outDir, `${s.w}x${s.h}.png`);
+      const file = path.join(outDir, `${s.w}x${s.h}${rich ? "-rich" : ""}.png`);
       await page.screenshot({ path: file });
       const problems = (await page.evaluate(audit)).concat(errors.map((e) => "JS error: " + e));
       // the toolbar must still reach its last button by dragging when it doesn't fit
       const tb = await page.$eval(".toolbar", (t) => ({ sh: t.scrollHeight, ch: t.clientHeight }));
       const extra = tb.sh > tb.ch ? ` (toolbar pans ${tb.sh - tb.ch}px)` : "";
-      console.log(`${s.w}x${s.h}${s.mobile ? " (iPhone)" : ""}: ${problems.length ? "PROBLEMS" : "ok"}${extra} -> ${file}`);
+      console.log(`${s.w}x${s.h}${s.mobile ? " (iPhone)" : ""}${rich ? " rich" : ""}: ${problems.length ? "PROBLEMS" : "ok"}${extra} -> ${file}`);
       [...new Set(problems)].forEach((p) => console.log("   - " + p));
       if (problems.length) failed++;
       await ctx.close();

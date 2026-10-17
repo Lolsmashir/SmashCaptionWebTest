@@ -44,6 +44,17 @@
   --bad:#f87171;
   --r:clamp(12px,1.25vw,22px);
   --ease:cubic-bezier(.2,.8,.2,1);
+  --spring:cubic-bezier(.3,1.45,.5,1);
+  /* liquid glass: a tinted pane that blurs and saturates what's behind it,
+     lit from the top edge, with a soft rim that catches the light */
+  --glass-tint:rgba(17,17,23,.56);
+  --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.018) 38%,rgba(255,255,255,0) 70%);
+  --glass-blur:blur(26px) saturate(170%);
+  --glass-edge:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(255,255,255,.035);
+  --glass-drop:0 30px 60px -32px rgba(0,0,0,.85);
+  --chip:rgba(255,255,255,.075);
+  --chip-hi:rgba(255,255,255,.13);
+  --chip-edge:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 1px rgba(255,255,255,.045);
 }
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -51,10 +62,13 @@
 html{touch-action:manipulation;}
 html,body{height:100%;overflow:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 body{
+  /* soft colour fields the glass panes pick up and blur */
   background:
-    radial-gradient(60vw 45vh at 100% 0%,rgba(213,245,63,.055),transparent 70%),
-    radial-gradient(55vw 50vh at 0% 100%,rgba(106,179,243,.05),transparent 70%),
-    var(--bg);
+    radial-gradient(38vmax 30vmax at 92% -4%,rgba(213,245,63,.17),transparent 64%),
+    radial-gradient(44vmax 36vmax at -6% 104%,rgba(70,140,255,.22),transparent 64%),
+    radial-gradient(34vmax 28vmax at 38% 46%,rgba(150,96,255,.10),transparent 70%),
+    radial-gradient(30vmax 26vmax at 70% 92%,rgba(40,210,190,.08),transparent 70%),
+    #07070a;
   color:var(--text);
   font-family:'IRANSans',-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;
   font-weight:400;font-size:15px;line-height:1.6;
@@ -98,7 +112,8 @@ body::before{
 .iconbtn{
   width:clamp(26px,2.2vw,32px);height:clamp(26px,2.2vw,32px);flex:0 0 clamp(26px,2.2vw,32px);
   display:grid;place-items:center;border-radius:50%;
-  background:transparent;border:1px solid var(--hair-2);
+  background:var(--chip);border:1px solid transparent;box-shadow:var(--chip-edge);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   color:var(--muted);font-family:inherit;font-size:clamp(12px,1.1vw,14px);cursor:pointer;
 }
 
@@ -111,16 +126,27 @@ main{
   display:grid;
   grid-template-columns:1fr 1fr;
   grid-template-rows:minmax(0,1fr) minmax(0,auto);
-  column-gap:0;row-gap:clamp(5px,0.9vw,14px);
+  gap:clamp(5px,0.9vw,14px);
 }
 .pane{
+  position:relative;
   display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;
-  background:var(--surface);
+  border-radius:var(--r);
+  background:var(--glass-sheen),var(--glass-tint);
+  -webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
+  box-shadow:var(--glass-edge),var(--glass-drop);
 }
-/* editor and preview read as one split card: outer corners round, a hairline between */
-#pEdit{border-radius:0 var(--r) var(--r) 0;}
-#pView{border-radius:var(--r) 0 0 var(--r);background:var(--tg-bg);box-shadow:inset -1px 0 0 var(--hair);}
-#pMedia{grid-column:1 / -1;max-height:clamp(190px,34vh,420px);border-radius:var(--r);}
+/* the rim: brightest where the light hits the top corner, fading along the sides */
+.pane::after{
+  content:"";position:absolute;inset:0;z-index:5;pointer-events:none;border-radius:inherit;padding:1px;
+  background:linear-gradient(150deg,rgba(255,255,255,.34),rgba(255,255,255,.07) 28%,rgba(255,255,255,0) 52%,rgba(255,255,255,.05) 82%,rgba(255,255,255,.14));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+/* the preview is a Telegram screen set into its glass pane */
+#pView{padding:clamp(3px,0.45vw,7px) clamp(3px,0.45vw,7px) 0;}
+#pView .scroll{border-radius:calc(var(--r) - clamp(3px,0.45vw,7px));}
+#pMedia{grid-column:1 / -1;max-height:clamp(190px,34vh,420px);}
 #pMedia.hide{display:none !important;}
 
 /* ---------- toolbar rail ---------- */
@@ -131,16 +157,18 @@ main{
   flex:0 0 auto;
   display:flex;flex-direction:column;flex-wrap:nowrap;
   gap:clamp(2px,0.3vw,5px);
-  padding:clamp(4px,0.5vw,8px);
-  background:var(--surface-2);
+  padding:clamp(3px,0.4vw,7px);
+  margin:clamp(3px,0.45vw,8px);margin-inline-end:0;
+  border-radius:clamp(11px,1vw,16px);
+  background:var(--chip);box-shadow:var(--chip-edge);
   overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;
   cursor:grab;touch-action:pan-y;
-  transition:box-shadow .2s;
+  transition:box-shadow .25s;
 }
 .toolbar::-webkit-scrollbar{display:none;}
 .toolbar.dragging{cursor:grabbing;}
 /* while the preview is being edited the rail works on the preview: a volt edge says so */
-.toolbar.for-preview{box-shadow:inset 2px 0 0 var(--volt);}
+.toolbar.for-preview{box-shadow:var(--chip-edge),inset 0 0 0 1.5px var(--volt-line),0 0 18px -6px rgba(213,245,63,.45);}
 .tb{
   flex:0 0 auto;
   width:clamp(22px,min(2.3vw,3.8vh),36px);height:clamp(22px,min(2.3vw,3.8vh),36px);
@@ -154,6 +182,10 @@ main{
 .tb b{font-weight:700;} .tb i{font-style:italic;font-family:Georgia,serif;}
 .tb u{text-decoration:underline;text-underline-offset:2px;} .tb s{text-decoration:line-through;}
 .tb-sep{flex:0 0 1px;width:50%;height:1px;align-self:center;background:var(--hair-2);margin:clamp(2px,0.3vw,4px) 0;}
+/* the rich-text buttons only show up in rich mode */
+.rich-only{display:none !important;}
+body.rich .tb.rich-only{display:grid !important;}
+body.rich .tb-sep.rich-only{display:block !important;}
 
 /* ---------- editor ---------- */
 textarea{
@@ -179,10 +211,32 @@ textarea::placeholder{color:var(--dim);}
 #pView .scroll{
   background:
     radial-gradient(rgba(255,255,255,.035) 1px,transparent 1.3px) 0 0/18px 18px,
-    radial-gradient(120% 80% at 85% 0%,rgba(106,179,243,.10),transparent 60%),
+    radial-gradient(120% 80% at 85% 0%,rgba(106,179,243,.12),transparent 60%),
     var(--tg-bg);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
 }
-.tgwrap{padding:clamp(7px,0.8vw,14px);min-height:100%;}
+.tgwrap{padding:0 clamp(7px,0.8vw,14px) clamp(7px,0.8vw,14px);min-height:100%;}
+/* classic / rich switch: a glass segmented control floating over the chat */
+.modebar{
+  position:sticky;top:0;z-index:4;display:flex;justify-content:center;
+  padding:clamp(5px,0.6vw,10px) 0 clamp(6px,0.6vw,10px);
+}
+.seg{
+  display:inline-flex;gap:2px;padding:3px;border-radius:999px;
+  background:rgba(14,22,33,.5);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15),inset 0 0 0 1px rgba(255,255,255,.06),0 10px 24px -12px rgba(0,0,0,.7);
+}
+.seg-b{
+  border:none;background:transparent;color:var(--tg-meta);cursor:pointer;
+  font-family:inherit;font-weight:700;white-space:nowrap;
+  font-size:clamp(9px,min(0.85vw,1.4vh),11.5px);line-height:1;
+  padding:clamp(5px,0.45vw,7px) clamp(9px,0.9vw,14px);border-radius:999px;
+  transition:background-color .25s,color .25s,box-shadow .25s,transform .3s var(--spring);
+  -webkit-user-select:none;user-select:none;
+}
+.seg-b.on{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28);}
+.seg-b[data-mode="rich"].on{background:linear-gradient(180deg,#e6ff73,#d5f53f 50%,#c3e62a);color:var(--volt-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 14px -6px rgba(213,245,63,.7);}
+.seg-b:active{transform:scale(.93);}
 .bubble{
   position:relative;
   background:var(--tg-bubble);color:var(--tg-text);
@@ -194,6 +248,28 @@ textarea::placeholder{color:var(--dim);}
   animation:pop .35s var(--ease) both;
 }
 .bubble.editing{outline-color:var(--volt-line);}
+/* rich mode: the media panel's pictures open the post, edge to edge, like a Telegram media post */
+.gallery{
+  display:grid;gap:2px;overflow:hidden;
+  margin:calc(-1*clamp(7px,0.7vw,11px)) calc(-1*clamp(9px,0.85vw,14px)) clamp(6px,0.6vw,9px);
+  border-radius:clamp(12px,1.1vw,16px) clamp(12px,1.1vw,16px) 3px 3px;
+}
+.gallery[hidden]{display:none;}
+.gallery.g2,.gallery.g3,.gallery.g4{grid-template-columns:1fr 1fr;}
+.gallery.g3 .gimg:first-child{grid-column:1 / -1;}
+/* heights are capped so the text of the post always shows below the pictures */
+.gimg{position:relative;margin:0;background:#0b1118;width:100%;height:clamp(70px,min(14vh,14vw),190px);overflow:hidden;}
+.gallery.g3 .gimg:first-child{height:clamp(100px,min(22vh,22vw),280px);}
+.gallery.g1 .gimg{height:auto;}
+.gimg img{display:block;width:100%;height:100%;object-fit:cover;}
+.gallery.g1 .gimg img{height:auto;max-height:clamp(150px,32vh,380px);object-fit:contain;margin:auto;}
+.gplay{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:clamp(26px,2.6vw,40px);height:clamp(26px,2.6vw,40px);border-radius:50%;
+  display:grid;place-items:center;font-size:clamp(10px,1vw,14px);color:#fff;
+  background:rgba(0,0,0,.42);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+}
 @keyframes pop{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 #preview{outline:none;cursor:text;caret-color:var(--volt);min-height:1.55em;}
 #preview:empty::before{content:attr(data-ph);color:var(--tg-meta);pointer-events:none;}
@@ -220,6 +296,25 @@ textarea::placeholder{color:var(--dim);}
   background:rgba(106,179,243,.08);
   padding:2px 9px;padding-inline-start:9px;margin:5px 0;color:#d2dbe5;
 }
+/* rich blocks: headings, lists, tables, dividers, pictures */
+.tgtext h1,.tgtext h2,.tgtext h3{font-weight:700;line-height:1.35;margin:.35em 0 .2em;color:#fff;}
+.tgtext h1{font-size:1.42em;} .tgtext h2{font-size:1.24em;} .tgtext h3{font-size:1.09em;}
+.tgtext ul,.tgtext ol{margin:.15em 0;padding-inline-start:1.35em;}
+.tgtext li{margin:.08em 0;}
+.tgtext li::marker{color:var(--tg-link);}
+.tgtext hr{border:none;height:1px;margin:.65em 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);}
+.tgtext table{
+  display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:.4em 0;font-size:.92em;
+}
+.tgtext th,.tgtext td{border:1px solid rgba(255,255,255,.12);padding:.3em .6em;text-align:start;vertical-align:top;}
+.tgtext th{background:rgba(106,179,243,.12);font-weight:700;}
+.tgtext img{display:block;max-width:100%;border-radius:10px;margin:.35em 0;}
+/* the page a rich post is copied from: plain and readable wherever it gets pasted */
+.copybox{
+  position:fixed;left:-10000px;top:0;width:640px;z-index:-1;
+  background:#fff;color:#000;font:15px/1.6 'IRANSans',system-ui,sans-serif;
+  -webkit-user-select:text;user-select:text;
+}
 /* spoiler: Telegram's animated dust, opens on click */
 .spoiler{
   border-radius:4px;color:transparent;cursor:pointer;padding:0 1px;
@@ -243,7 +338,7 @@ textarea::placeholder{color:var(--dim);}
 @keyframes flicker{0%,100%{opacity:1;}50%{opacity:.86;}}
 /* the counter row sticks to the bottom of the preview, so a long caption never hides it */
 .meta{
-  position:sticky;z-index:1;bottom:calc(-1*clamp(5px,0.5vw,8px));
+  position:sticky;z-index:2;bottom:calc(-1*clamp(5px,0.5vw,8px));
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   margin:4px calc(-1*clamp(9px,0.85vw,14px)) calc(-1*clamp(5px,0.5vw,8px));
   padding:3px clamp(9px,0.85vw,14px) clamp(5px,0.5vw,8px);
@@ -272,28 +367,28 @@ textarea::placeholder{color:var(--dim);}
   -webkit-user-select:none;user-select:none;
 }
 .acts::-webkit-scrollbar{display:none;}
-#pView .acts{background:rgba(9,13,20,.55);}
+
 .act{
   flex:0 0 auto;
   min-height:clamp(26px,min(2.9vw,4.6vh),42px);
   padding:0 min(clamp(6px,0.9vw,14px),1.15vw);
   font-size:min(clamp(9.5px,min(1vw,1.6vh),13.5px),2.3vw);
-  border-radius:clamp(8px,0.8vw,12px);
-  background:var(--surface-3);border:1px solid transparent;
+  border-radius:clamp(9px,0.9vw,13px);
+  background:var(--chip);border:1px solid transparent;box-shadow:var(--chip-edge);
   color:var(--text);font-family:inherit;font-weight:500;white-space:nowrap;
   cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
 }
-#pView .act:not(.primary){background:rgba(255,255,255,.07);}
 .act small{color:var(--dim);font-size:.76em;font-weight:400;letter-spacing:.02em;}
+/* the main action is a drop of glossy volt */
 .act.primary{
-  background:var(--volt);color:var(--volt-ink);font-weight:700;flex:1;
-  box-shadow:0 6px 20px -10px rgba(213,245,63,.55);
+  background:linear-gradient(180deg,#e7ff78 0%,#d5f53f 48%,#c2e52a 100%);color:var(--volt-ink);font-weight:700;flex:1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -1px 0 rgba(0,0,0,.16),0 8px 22px -10px rgba(213,245,63,.7);
 }
 .act.primary small{color:rgba(17,19,10,.5);}
 /* the media bar's main button is quieter: one loud volt button per panel is plenty */
-#pMedia .act.primary{background:var(--volt-soft);color:var(--volt);box-shadow:inset 0 0 0 1px rgba(213,245,63,.25);}
+#pMedia .act.primary{background:var(--volt-soft);color:var(--volt);box-shadow:inset 0 1px 0 rgba(213,245,63,.3),inset 0 0 0 1px rgba(213,245,63,.2);}
 #pMedia .act.primary small{color:rgba(213,245,63,.6);}
-.act.done,#pView .act.done{background:var(--ok);color:#052e16;box-shadow:none;}
+.act.done{background:var(--ok);color:#052e16;box-shadow:inset 0 1px 0 rgba(255,255,255,.5);}
 .act.done small{color:rgba(5,46,22,.6);}
 
 /* ---------- media ---------- */
@@ -307,7 +402,8 @@ textarea::placeholder{color:var(--dim);}
 .mcard{
   max-width:400px;min-width:0;
   display:flex;align-items:stretch;          /* preview beside the qualities, not above */
-  background:var(--surface-2);border-radius:clamp(10px,0.9vw,14px);overflow:hidden;
+  background:rgba(255,255,255,.045);box-shadow:var(--chip-edge);
+  border-radius:clamp(11px,1vw,16px);overflow:hidden;
   animation:pop .3s var(--ease) both;
 }
 .mthumb{
@@ -339,9 +435,9 @@ textarea::placeholder{color:var(--dim);}
 .qitem{
   display:flex;align-items:center;min-width:0;
   padding:clamp(2px,0.4vw,5px) clamp(4px,0.5vw,7px);gap:clamp(3px,0.35vw,5px);
-  background:rgba(255,255,255,.035);border:1px solid transparent;border-radius:clamp(7px,0.7vw,10px);
+  background:rgba(255,255,255,.04);border:1px solid transparent;border-radius:clamp(8px,0.75vw,11px);
 }
-.qitem.rec{background:var(--volt-soft);border-color:var(--volt-line);}
+.qitem.rec{background:linear-gradient(180deg,rgba(213,245,63,.15),rgba(213,245,63,.07));border-color:var(--volt-line);box-shadow:inset 0 1px 0 rgba(213,245,63,.25);}
 /* labels are never cut to "…": if a card is ever too narrow the label wraps instead */
 .qname{
   flex:1 1 auto;min-width:0;
@@ -356,10 +452,10 @@ textarea::placeholder{color:var(--dim);}
   min-height:clamp(21px,min(2.2vw,3.4vh),30px);
   padding:0 clamp(5px,0.7vw,9px);
   font-size:clamp(8.5px,min(0.85vw,1.35vh),11px);
-  background:rgba(255,255,255,.07);border:1px solid transparent;border-radius:clamp(6px,0.6vw,8px);
+  background:var(--chip);border:1px solid transparent;box-shadow:var(--chip-edge);border-radius:clamp(7px,0.65vw,9px);
   color:var(--text);font-family:inherit;font-weight:500;white-space:nowrap;cursor:pointer;
 }
-.qitem.rec button{background:rgba(0,0,0,.3);}
+.qitem.rec button{background:rgba(0,0,0,.28);}
 .qitem button.done{background:var(--ok);color:#052e16;}
 .qitem button[aria-disabled="true"]{opacity:.45;}
 .empty{
@@ -370,7 +466,7 @@ textarea::placeholder{color:var(--dim);}
 /* loading and "nothing found" cards */
 @keyframes shimmer{from{background-position:120% 0;}to{background-position:-120% 0;}}
 .shim,.mthumb.wait{
-  background:linear-gradient(100deg,var(--surface-3) 30%,#2c2c33 50%,var(--surface-3) 70%) var(--surface-3);
+  background:linear-gradient(100deg,rgba(255,255,255,.05) 30%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.05) 70%) rgba(255,255,255,.05);
   background-size:220% 100%;
   animation:shimmer 1.4s ease-in-out infinite;
 }
@@ -402,12 +498,12 @@ textarea::placeholder{color:var(--dim);}
   display:flex;align-items:center;gap:9px;
   width:max-content;max-width:min(92vw,760px);
   min-height:clamp(26px,2.2vw,32px);
-  background:rgba(30,30,35,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  border:1px solid var(--hair-2);border-radius:18px;
+  background:var(--glass-sheen),rgba(28,28,36,.62);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid transparent;border-radius:18px;
   padding:4px 16px 4px 14px;
   color:var(--text);font-size:clamp(11px,1vw,13px);font-weight:500;line-height:1.6;text-align:center;
-  box-shadow:0 14px 34px -14px #000;z-index:80;pointer-events:none;
-  transition:transform .34s cubic-bezier(.2,1.2,.3,1),opacity .2s;
+  box-shadow:var(--glass-edge),inset 0 0 0 1px rgba(255,255,255,.07),0 16px 36px -14px rgba(0,0,0,.9);z-index:80;pointer-events:none;
+  transition:transform .42s var(--spring),opacity .2s;
 }
 .toast::before{content:"";flex:0 0 8px;height:8px;border-radius:50%;background:var(--muted);}
 .toast.show{transform:translate(-50%,0);opacity:1;}
@@ -417,16 +513,18 @@ textarea::placeholder{color:var(--dim);}
 /* ---------- help sheet ---------- */
 .sheet{
   position:fixed;inset:0;z-index:90;
-  background:rgba(5,5,7,.62);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  background:rgba(5,5,7,.45);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
   display:none;align-items:flex-end;justify-content:center;
 }
 .sheet.on{display:flex;animation:fade .22s both;}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
 .sheet-in{
   position:relative;width:100%;max-width:760px;max-height:82vh;overflow-y:auto;
-  background:var(--surface);border-radius:24px 24px 0 0;
+  background:var(--glass-sheen),rgba(20,20,27,.7);
+  -webkit-backdrop-filter:blur(30px) saturate(175%);backdrop-filter:blur(30px) saturate(175%);
+  border-radius:26px 26px 0 0;
   padding:24px calc(18px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));
-  box-shadow:0 -24px 60px -24px #000;
+  box-shadow:var(--glass-edge),0 -24px 60px -24px #000;
   animation:up .3s var(--ease) both;
 }
 .sheet-in::before{
@@ -439,29 +537,29 @@ textarea::placeholder{color:var(--dim);}
 .sheet b{color:var(--text);font-weight:700;}
 .syn,kbd{
   font-family:ui-monospace,Menlo,Consolas,monospace;
-  background:var(--surface-3);border-radius:5px;
-  padding:1px 5px;font-size:11px;color:var(--volt);direction:ltr;display:inline-block;
+  background:var(--chip);box-shadow:var(--chip-edge);border-radius:6px;
+  padding:1px 6px;font-size:11px;color:var(--volt);direction:ltr;display:inline-block;
 }
 .sheet .act{width:100%;margin-top:6px;}
 
 /* ---------- states: hover, keyboard focus, pressed ---------- */
 .tb,.act,.iconbtn,.qitem button,.mretry{
-  transition:transform .12s,background-color .18s,border-color .18s,color .18s,filter .18s,opacity .18s,box-shadow .18s;
+  transition:transform .32s var(--spring),background-color .2s,border-color .2s,color .2s,filter .2s,opacity .2s,box-shadow .2s;
 }
 .toolbar,.top,.qitem button{-webkit-user-select:none;user-select:none;}
 @media (hover:hover){
-  .tb:hover{background:var(--surface-4);color:var(--text);}
-  .act:not(.primary):not(.done):hover{background:var(--surface-4);}
-  #pView .act:not(.primary):not(.done):hover{background:rgba(255,255,255,.12);}
-  .act.primary:hover,.act.done:hover{filter:brightness(1.08);}
-  .iconbtn:hover{color:var(--text);border-color:rgba(255,255,255,.22);}
-  .qitem button:hover,.mretry:hover{background:rgba(255,255,255,.13);}
+  .tb:hover{background:var(--chip-hi);color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,.14);}
+  .act:not(.primary):not(.done):hover{background:var(--chip-hi);}
+  .act.primary:hover,.act.done:hover{filter:brightness(1.07) saturate(1.05);}
+  .iconbtn:hover{color:var(--text);background:var(--chip-hi);}
+  .qitem button:hover,.mretry:hover{background:var(--chip-hi);}
+  .seg-b:not(.on):hover{color:#cfd8e2;}
   .qitem button.done:hover{background:var(--ok);}
   .bubble:not(.editing):hover{outline-color:rgba(255,255,255,.1);}
 }
 .tb:active,.act:active,.iconbtn:active,.qitem button:active,.mretry:active{transform:scale(.92);}
-.act:not(.primary):not(.done):active,.tb:active{background:var(--surface-4);}
-.tb:focus-visible,.act:focus-visible,.iconbtn:focus-visible,.qitem button:focus-visible,.mretry:focus-visible{
+.act:not(.primary):not(.done):active,.tb:active{background:var(--chip-hi);}
+.tb:focus-visible,.act:focus-visible,.iconbtn:focus-visible,.qitem button:focus-visible,.mretry:focus-visible,.seg-b:focus-visible{
   outline:2px solid var(--volt);outline-offset:1px;
 }
 /* inside the panning strip the ring is drawn inward so it can never be clipped */
@@ -521,6 +619,13 @@ textarea::placeholder{color:var(--dim);}
         <button class="tb" data-line="&gt; " title="Quote" aria-label="Quote"><svg viewBox="0 0 24 24"><path d="M19 4.5v15"/><path d="M5 7.5h9.5M5 12h9.5M8 16.5h6.5"/></svg></button>
         <button class="tb" data-block="code" title="Code block" aria-label="Code block"><svg viewBox="0 0 24 24"><path d="m8.5 8-4 4 4 4"/><path d="m15.5 8 4 4-4 4"/></svg></button>
         <button class="tb" data-b="[" data-a="](https://)" title="Link" aria-label="Link"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.1 1.1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.1-1.1"/></svg></button>
+        <div class="tb-sep rich-only"></div>
+        <button class="tb rich-only" data-line="## " title="تیتر">H</button>
+        <button class="tb rich-only" data-line="- " title="لیست" aria-label="لیست"><svg viewBox="0 0 24 24"><path d="M9 6.5h11M9 12h11M9 17.5h11"/><path d="M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" stroke-width="3"/></svg></button>
+        <button class="tb rich-only" data-line="1. " title="لیست شماره‌دار">1.</button>
+        <button class="tb rich-only" data-line="- [ ] " title="چک‌لیست" aria-label="چک‌لیست"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="1.6"/><path d="m5.3 7.6 1.4 1.4 2.4-2.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><path d="M14 7.5h6.5M14 17h6.5"/></svg></button>
+        <button class="tb rich-only" data-insline="| عنوان | مقدار |&#10;|---|---|&#10;|  |  |" title="جدول" aria-label="جدول"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M3.5 9.5h17M3.5 14.5h17M12 9.5v10"/></svg></button>
+        <button class="tb rich-only" data-insline="---" title="خط جداکننده" aria-label="خط جداکننده"><svg viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M8 7.5h8M8 16.5h8" opacity=".4"/></svg></button>
         <div class="tb-sep"></div>
         <button class="tb" data-line="• " title="آیتم اصلی">•</button>
         <button class="tb" data-line="◦ " title="زیرمورد">◦</button>
@@ -554,7 +659,14 @@ textarea::placeholder{color:var(--dim);}
     <section class="pane on" id="pView">
       <div class="scroll">
         <div class="tgwrap">
+          <div class="modebar">
+            <div class="seg" role="tablist" aria-label="نوع پست">
+              <button class="seg-b on" data-mode="classic" role="tab" aria-selected="true" title="کپشن معمولی تلگرام">معمولی</button>
+              <button class="seg-b" data-mode="rich" role="tab" aria-selected="false" title="پست ریچ: تیتر، جدول، لیست، عکس وسط متن">ریچ ✦</button>
+            </div>
+          </div>
           <div class="bubble">
+            <div class="gallery" id="gallery" hidden></div>
             <div class="tgtext" id="preview" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true"
                  aria-label="پیش‌نمایش؛ برای ویرایش بزن" data-ph="همین‌جا هم می‌تونی بنویسی…"></div>
             <div class="meta">
@@ -589,6 +701,7 @@ textarea::placeholder{color:var(--dim);}
     <p><b>کپی برای تلگرام:</b> هم‌زمان <span class="syn">text/html</span> و <span class="syn">text/plain</span> رو کپی می‌کنه؛ تلگرام نسخه‌ی HTML رو می‌خونه و فرمت‌ها رو می‌سازه.</p>
     <p><b>ویرایش در پیش‌نمایش:</b> روی پیش‌نمایش بزن و مثل تلگرام بنویس. وسط یه خط بولد تایپ کنی، بولد می‌مونه. نوار ابزار وقتی تو پیش‌نمایش هستی روی همون کار می‌کنه (لبه‌ی سبزش روشن می‌شه). هر تغییری خودش تو ادیتور هم میاد.</p>
     <p><b>اصلاح جهت (خودکار):</b> لازم نیست دکمه‌ای بزنی — پیش‌نمایش و هر چیزی که کپی می‌کنی، خودکار اصلاح شده‌اند. دکمه‌ی «اصلاح متن ادیتور» فقط وقتی لازم است که بخواهی خودِ متن داخل باکس هم بازنویسی شود.</p><p><b>جزئیات:</b> خط انگلیسی‌شروع با ادامه‌ی فارسی <span class="syn">RLM</span> می‌گیره، خط تغییر عددی با <span class="syn">LRM</span> قفل میشه، خط خالی <span class="syn">ZWNJ</span> می‌گیره. خط هشتگ و خط کاملاً انگلیسی دست‌نخورده می‌مونن. عدد بعد از Season / Chapter / Part جزو اسم حساب می‌شه.</p>
+    <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![](لینک عکس)</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن و با «کپی برای تلگرام» همراه متن کپی می‌شن (ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
     <p><b>شمارنده:</b> پایین پیش‌نمایش تعداد کاراکترِ متنِ نهایی رو می‌بینی. سقف کپشن عکس و ویدیو در تلگرام <span class="syn">1024</span> هست؛ نزدیکش زرد و بیشترش قرمز می‌شه.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
@@ -603,21 +716,28 @@ textarea::placeholder{color:var(--dim);}
 (function(){
 "use strict";
 
-var RLM="‏", LRM="‎", ZWNJ="‌";
-var PERSIAN=/[؀-ۿ]/, LATIN=/[A-Za-z]/;
+var RLM="\u200F", LRM="\u200E", ZWNJ="\u200C";
+var PERSIAN=/[\u0600-\u06FF]/, LATIN=/[A-Za-z]/;
 var SIGNATURE=[
 "**🛒 USE CODE : FNLS ❤️‍🩹**",
 "**📣 TG | @LolSmash**",
 "**🛍️ SP | DeftGame.com**",
 "**#Fortnite | #فورتنایت**"].join("\n");
 var CAPTION_LIMIT=1024;          // Telegram's limit for a photo/video caption
-var DRAFT_KEY="caption-studio-draft";
+var RICH_LIMIT=32768;            // Telegram's limit for a rich-text post
+var DRAFT_KEY="caption-studio-draft", MODE_KEY="caption-studio-mode";
+// "classic": a normal Telegram caption. "rich": Telegram's rich-text post (headings,
+// tables, lists, pictures between paragraphs), made in Telegram's rich text editor
+var mode="classic";
+try{ if(localStorage.getItem(MODE_KEY)==="rich") mode="rich"; }catch(e){}
+function isRich(){ return mode==="rich"; }
 
 var input=document.getElementById("input"),
     preview=document.getElementById("preview"),
     bubble=document.querySelector(".bubble"),
     toolbar=document.querySelector(".toolbar"),
     counter=document.getElementById("count"),
+    gallery=document.getElementById("gallery"),
     toast=document.getElementById("toast"),
     mgrid=document.getElementById("mgrid"),
     mBadge=document.getElementById("mBadge"),
@@ -651,10 +771,11 @@ var ASSET_RE=/\.(jpe?g|png|gif|webp|avif|mp4|mov|webm|m4v)(\?|$)|pbs\.twimg\.com
 var TWEET_RE=/https?:\/\/(?:www\.)?(?:x|twitter)\.com\/[^\/\s]+\/status\/(\d+)/i;
 var IMG_EXT=/\.(jpe?g|png|gif|webp|avif)(\?|$)/i;
 var VID_EXT=/\.(mp4|mov|webm|m4v)(\?|$)/i;
-var MARKS_RE=/[‎‏]/g;
+var MARKS_RE=/[\u200E\u200F]/g;
 
-// "#️⃣" (keycap emoji) starts a normal line, not a hashtag line
-function isHashtagLine(l){ return /^\s*\*{0,2}\s*#(?![️⃣])/.test(l.replace(MARKS_RE,"")); }
+// "#️⃣" (the keycap emoji) starts a normal line, not a hashtag line
+// "# title" is a heading in rich mode, so a hashtag needs its word right after the "#"
+function isHashtagLine(l){ return /^\s*\*{0,2}\s*#(?![\s\uFE0F\u20E3])/.test(l.replace(MARKS_RE,"")); }
 function isBlank(l){ return l.replace(new RegExp("[\\s"+ZWNJ+RLM+LRM+"]","g"),"")===""; }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function isMediaMetaLine(l){
@@ -836,10 +957,54 @@ function inline(s,plain){
     });
   }
 }
-function parse(text){
+var HEAD_RE=/^\s*(#{1,6})\s+(\S.*)$/,
+    HR_RE=/^\s*([-*_])(?:\s*\1){2,}\s*$/,
+    IMG_RE=/^\s*!\[([^\]]*)\]\(([^)\s]+)\)\s*$/,
+    LIST_RE=/^(\s*)([-*+]|\d{1,3}[.)])\s+(?:\[([ xX])\]\s+)?(.*)$/,
+    TABLE_SEP_RE=/^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?\s*$/;
+function cells(l){
+  return l.replace(/^\s*\|/,"").replace(/\|\s*$/,"").split("|").map(function(c){ return c.trim(); });
+}
+function isTableStart(lines,i){
+  return lines[i].indexOf("|")!==-1 && i+1<lines.length && TABLE_SEP_RE.test(lines[i+1].replace(MARKS_RE,"")) && cells(lines[i]).length>1;
+}
+// what is left of a line after its first n visible characters (direction marks don't count)
+function afterPrefix(raw,n){
+  var i=0, c=0;
+  while(i<raw.length && c<n){ if(raw.charAt(i)!==RLM && raw.charAt(i)!==LRM) c++; i++; }
+  return raw.slice(i);
+}
+// rich mode also understands headings, dividers, pictures, tables and (nested/numbered/task) lists
+function richBlock(lines,i){
+  var l=lines[i].replace(MARKS_RE,""), m;
+  if((m=IMG_RE.exec(l))) return {t:"img",alt:m[1],url:m[2],from:i,to:i+1};
+  if(HR_RE.test(l)) return {t:"hr",from:i,to:i+1};
+  if((m=HEAD_RE.exec(lines[i]))) return {t:"h",level:Math.min(3,m[1].length),text:m[2],from:i,to:i+1};
+  if(isTableStart(lines,i)){
+    var rows=[cells(lines[i])], j=i+2;
+    while(j<lines.length && lines[j].indexOf("|")!==-1 && !isBlank(lines[j])){ rows.push(cells(lines[j])); j++; }
+    return {t:"table",rows:rows,from:i,to:j};
+  }
+  if(LIST_RE.test(l)){
+    var items=[], k=i;
+    // the marker is read without direction marks ("[x]" may have them around the x),
+    // the item text keeps its marks
+    while(k<lines.length && (m=LIST_RE.exec(lines[k].replace(MARKS_RE,"")))){
+      items.push({level:Math.floor(m[1].replace(/\t/g,"  ").length/2), ordered:/\d/.test(m[2]),
+                  task:m[3]===undefined? null : m[3]!==" ",
+                  text:afterPrefix(lines[k],lines[k].replace(MARKS_RE,"").length-m[4].length)});
+      k++;
+    }
+    return {t:"list",items:items,from:i,to:k};
+  }
+  return null;
+}
+function parse(text,rich){
   var lines=text.split("\n"), out=[], i=0;
   while(i<lines.length){
     var l=lines[i], from=i;
+    var rb=rich && !/^\s*```/.test(l) && !/^\s*>\s?/.test(l) && richBlock(lines,i);
+    if(rb){ out.push(rb); i=rb.to; continue; }
     if(/^\s*```/.test(l)){
       var buf=[]; i++;
       while(i<lines.length && !/^\s*```/.test(lines[i])){ buf.push(lines[i]); i++; }
@@ -879,10 +1044,90 @@ function toPlain(b){
     return inline(x.text,true);
   }).join("\n");
 }
+function attr(s){ return esc(String(s)).replace(/"/g,"&quot;"); }
+function cellsOf(rows){
+  var n=rows.reduce(function(m,r){ return Math.max(m,r.length); },0);
+  return rows.map(function(r){ while(r.length<n) r.push(""); return r; });
+}
+function listHtml(items){
+  var html="", stack=[];
+  items.forEach(function(it){
+    var tag=it.ordered? "ol" : "ul", top=stack[stack.length-1];
+    while(top && top.level>it.level){ html+="</li></"+stack.pop().tag+">"; top=stack[stack.length-1]; }
+    if(!top || top.level<it.level){ html+="<"+tag+">"; stack.push({tag:tag,level:it.level}); }
+    else if(top.tag!==tag){ html+="</li></"+stack.pop().tag+"><"+tag+">"; stack.push({tag:tag,level:it.level}); }
+    else html+="</li>";
+    html+='<li dir="auto">'+(it.task===null? "" : it.task? "☑ " : "☐ ")+inline(it.text);
+  });
+  while(stack.length) html+="</li></"+stack.pop().tag+">";
+  return html;
+}
+function richBlockHtml(b){
+  if(b.t==="h") return "<h"+b.level+' dir="auto">'+inline(b.text)+"</h"+b.level+">";
+  if(b.t==="hr") return "<hr>";
+  if(b.t==="img") return '<img src="'+attr(b.url)+'" alt="'+attr(b.alt)+'" referrerpolicy="no-referrer">';
+  if(b.t==="list") return listHtml(b.items);
+  if(b.t==="table"){
+    var rows=cellsOf(b.rows);
+    return "<table><thead><tr>"+rows[0].map(function(c){ return '<th dir="auto">'+inline(c)+"</th>"; }).join("")+"</tr></thead><tbody>"
+      + rows.slice(1).map(function(r){ return "<tr>"+r.map(function(c){ return '<td dir="auto">'+inline(c)+"</td>"; }).join("")+"</tr>"; }).join("")
+      + "</tbody></table>";
+  }
+  return null;
+}
+// rich post: pictures from the media panel first (like a Telegram post), then the text as
+// paragraphs, headings, lists and tables
+function toRichHtml(b,images){
+  var out=images.map(function(u){ return '<p><img src="'+attr(u)+'" alt=""></p>'; }), para=[];
+  function flush(){ if(para.length) out.push('<p dir="auto">'+para.join("<br>")+"</p>"); para=[]; }
+  b.forEach(function(x){
+    if(x.t==="line"){ para.push(inline(x.text)); return; }
+    flush();
+    if(x.t==="blank") return;
+    if(x.t==="pre") out.push("<pre><code>"+esc(x.lines.join("\n"))+"</code></pre>");
+    else if(x.t==="quote") out.push('<blockquote dir="auto">'+x.lines.map(function(y){ return inline(y); }).join("<br>")+"</blockquote>");
+    else out.push(richBlockHtml(x));
+  });
+  flush();
+  return '<div dir="rtl">'+out.join("")+"</div>";
+}
+function toRichPlain(b){
+  var out=[];
+  b.forEach(function(x){
+    if(x.t==="blank") out.push("");
+    else if(x.t==="line") out.push(inline(x.text,true));
+    else if(x.t==="pre") out.push(x.lines.join("\n"));
+    else if(x.t==="quote") out.push(x.lines.map(function(y){ return inline(y,true); }).join("\n"));
+    else if(x.t==="h") out.push(inline(x.text,true));
+    else if(x.t==="hr") out.push("———");
+    else if(x.t==="list"){
+      // numbering restarts for each numbered run at each depth
+      var num=[], kind=[];
+      x.items.forEach(function(it){
+        num.length=kind.length=it.level+1;
+        if(kind[it.level]!==it.ordered){ kind[it.level]=it.ordered; num[it.level]=0; }
+        num[it.level]++;
+        out.push(new Array(it.level+1).join("   ")+(it.ordered? num[it.level]+". " : "• ")+(it.task===null? "" : it.task? "☑ " : "☐ ")+inline(it.text,true));
+      });
+    }
+    else if(x.t==="table") cellsOf(x.rows).forEach(function(r){ out.push(r.map(function(c){ return inline(c,true); }).join(" | ")); });
+  });
+  return out.join("\n");
+}
+// pictures of the media panel that go with a rich post (not the ones already placed in the text)
+function postImages(blocks){
+  if(!isRich()) return [];
+  var placed={};
+  blocks.forEach(function(b){ if(b.t==="img") placed[b.url.split("?")[0]]=1; });
+  return currentMedia.filter(function(m){ return m.kind==="image" && !placed[m.url.split("?")[0]]; })
+                     .map(function(m){ return m.url; });
+}
 // exactly what "کپی برای تلگرام" / "ساده" put on the clipboard
 function output(){
-  var b=parse(autoFix(input.value));
-  return { html: toHtml(b), plain: toPlain(b) };
+  var b=parse(autoFix(input.value),isRich());
+  if(!isRich()) return { html: toHtml(b), plain: toPlain(b) };
+  var images=postImages(b);
+  return { html: toRichHtml(b,images), plain: toRichPlain(b), images: images, rich: true };
 }
 
 /* ---------- preview ---------- */
@@ -898,7 +1143,7 @@ function requestRender(){
 function render(){
   if(renderQueued){ cancelAnimationFrame(renderQueued); renderQueued=0; }
   var raw=input.value, rawLines=raw.split("\n");
-  var blocks=parse(fixLines(raw).lines.join("\n"));
+  var blocks=parse(fixLines(raw).lines.join("\n"),isRich());
   var shown={};
   blocks.forEach(function(b){ for(var k=b.from;k<b.to;k++) shown[k]=1; });
   hiddenLines=[];
@@ -918,7 +1163,8 @@ function render(){
     if(b.t==="blank"){ d.className="sp-blank"; d.innerHTML="<br>"; }
     else if(b.t==="pre") d.innerHTML="<pre><code>"+esc(b.lines.join("\n"))+"</code></pre>";
     else if(b.t==="quote") d.innerHTML=("<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>").replace(/tg-spoiler/g,"spoiler");
-    else d.innerHTML=inline(b.text).replace(/tg-spoiler/g,"spoiler");
+    else if(b.t==="line") d.innerHTML=inline(b.text).replace(/tg-spoiler/g,"spoiler");
+    else { d.className="rb rb-"+b.t; d.innerHTML=richBlockHtml(b).replace(/tg-spoiler/g,"spoiler"); }
     d._src=rawLines.slice(b.from,b.to);
     frag.appendChild(d);
   });
@@ -927,7 +1173,27 @@ function render(){
   Array.prototype.forEach.call(preview.children,function(d){ d._snap=snapshot(d); });
   previewDirty=false;
   if(caret) restoreCaret(caret);
+  drawGallery(blocks);
   updateCount();
+}
+// rich mode: the media panel's pictures (and video posters) sit at the top of the post
+var galleryKey=null;
+function drawGallery(blocks){
+  var items=[];
+  if(isRich()){
+    var images=postImages(blocks||parse(fixLines(input.value).lines.join("\n"),true));
+    images.forEach(function(u){ items.push({src:u,video:false}); });
+    currentMedia.forEach(function(m){ if(m.kind==="video" && m.poster) items.push({src:m.poster,video:true}); });
+  }
+  var key=JSON.stringify(items);
+  if(key===galleryKey) return;
+  galleryKey=key;
+  gallery.innerHTML=items.map(function(it){
+    return '<figure class="gimg'+(it.video?" gvid":"")+'"><img src="'+attr(it.src)+'" alt="" referrerpolicy="no-referrer">'
+         + (it.video? '<span class="gplay" title="ویدیو رو جدا بفرست">▶</span>' : "")+"</figure>";
+  }).join("");
+  gallery.className="gallery g"+Math.min(items.length,4);
+  gallery.hidden=!items.length;
 }
 // what a block looks like, ignoring spoilers that were merely opened
 function snapshot(d){ return d.innerHTML.replace(/ open"/g,'"'); }
@@ -935,12 +1201,14 @@ function snapshot(d){ return d.innerHTML.replace(/ open"/g,'"'); }
 /* caption length */
 var wasOver=false;
 function updateCount(){
-  var n=output().plain.length;
-  counter.textContent=n+" / "+CAPTION_LIMIT;
-  counter.classList.toggle("near",n>CAPTION_LIMIT-124 && n<=CAPTION_LIMIT);
-  counter.classList.toggle("over",n>CAPTION_LIMIT);
-  if(n>CAPTION_LIMIT && !wasOver && booted) say("کپشن از "+CAPTION_LIMIT+" کاراکتر رد شد — تلگرام برای عکس و ویدیو بیشترش رو قبول نمی‌کنه","warn");
-  wasOver=n>CAPTION_LIMIT;
+  var n=output().plain.length, limit=isRich()? RICH_LIMIT : CAPTION_LIMIT;
+  counter.textContent=n+" / "+limit;
+  counter.classList.toggle("near",n>limit*0.88 && n<=limit);
+  counter.classList.toggle("over",n>limit);
+  counter.title=isRich()? "سقف پست ریچ در تلگرام "+limit+" کاراکتره" : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره";
+  if(n>limit && !wasOver && booted) say(isRich()? "پست از "+limit+" کاراکتر رد شد — تلگرام بیشترش رو قبول نمی‌کنه"
+                                             : "کپشن از "+limit+" کاراکتر رد شد — تلگرام برای عکس و ویدیو بیشترش رو قبول نمی‌کنه","warn");
+  wasOver=n>limit;
 }
 
 /* --- caret in the preview, by block and visible character --- */
@@ -1000,13 +1268,30 @@ function nodeToLines(node){
   walkRuns(node,{},"",items,node);
   var lines=[], cur=[], kind="", open=false;
   function flush(){
-    lines.push((kind==="quote"? "> " : "")+runsToMarkdown(cur));
+    var md=runsToMarkdown(cur);
+    if(/^li:/.test(kind)) md=md.replace(/^☐\s*/,"[ ] ").replace(/^☑\s*/,"[x] ");
+    lines.push(linePrefix(kind)+md);
     cur=[]; open=false;
   }
+  function row(r){ return "| "+r.join(" | ")+" |"; }
   items.forEach(function(it){
     if(it.pre!==undefined){
       if(cur.length||open) flush();
       lines.push("```"); it.pre.split("\n").forEach(function(l){ lines.push(l); }); lines.push("```");
+      return;
+    }
+    if(it.table){
+      if(cur.length||open) flush();
+      if(it.table.length){
+        lines.push(row(it.table[0]));
+        lines.push("|"+it.table[0].map(function(){ return "---"; }).join("|")+"|");
+        it.table.slice(1).forEach(function(r){ lines.push(row(r)); });
+      }
+      return;
+    }
+    if(it.hr || it.img!==undefined){
+      if(cur.length||open) flush();
+      lines.push(it.hr? "---" : "!["+it.alt+"]("+it.img+")");
       return;
     }
     if(it.br){ kind=it.kind||kind; flush(); open=true; return; }
@@ -1018,7 +1303,27 @@ function nodeToLines(node){
   if(!lines.length && node.nodeType===1) lines.push("");   // an empty block is a blank line
   return lines;
 }
-function isBlockTag(t){ return /^(DIV|P|LI|UL|OL|BLOCKQUOTE|H[1-6])$/.test(t); }
+function isBlockTag(t){ return /^(DIV|P|LI|UL|OL|BLOCKQUOTE|H[1-6]|FIGURE)$/.test(t); }
+// "quote" → "> ", "h2" → "## ", list item "li:<level>:<ordered>:<index>" → "  - " / "  3. "
+function linePrefix(kind){
+  if(kind==="quote") return "> ";
+  var m=/^h([1-6])$/.exec(kind);
+  if(m) return new Array(+m[1]+1).join("#")+" ";
+  m=/^li:(\d+):(\d):(\d+)$/.exec(kind);
+  if(m) return new Array(+m[1]+1).join("  ")+(m[2]==="1"? (+m[3]+1)+". " : "- ");
+  return "";
+}
+function liKind(li,root){
+  var level=-1, n=0;
+  for(var p=li.parentNode;p && p!==root.parentNode;p=p.parentNode) if(p.tagName==="UL"||p.tagName==="OL") level++;
+  for(var s=li.previousElementSibling;s;s=s.previousElementSibling) if(s.tagName==="LI") n++;
+  return "li:"+Math.max(0,level)+":"+(li.parentNode && li.parentNode.tagName==="OL"? 1 : 0)+":"+n;
+}
+function tableRows(table){
+  return Array.prototype.map.call(table.rows,function(tr){
+    return Array.prototype.map.call(tr.cells,function(td){ return nodeToLines(td).join(" ").replace(/\|/g,"/").trim(); });
+  });
+}
 // a <br> that ends its line is only a placeholder browsers add; it makes no new line
 function isTrailingBr(n,root){
   for(;n && n!==root;n=n.parentNode){
@@ -1033,7 +1338,7 @@ function isTrailingBr(n,root){
 }
 function walkRuns(node,f,kind,items,root){
   if(node.nodeType===3){
-    var t=node.nodeValue.replace(MARKS_RE,"").replace(/ /g," ").replace(/\n/g," ");
+    var t=node.nodeValue.replace(MARKS_RE,"").replace(/\u00A0/g," ").replace(/\n/g," ");
     if(t) items.push({t:t,f:f,kind:kind});
     return;
   }
@@ -1041,6 +1346,9 @@ function walkRuns(node,f,kind,items,root){
   var tag=node.tagName;
   if(tag==="BR"){ if(!isTrailingBr(node,root)) items.push({br:1,kind:kind}); return; }
   if(tag==="PRE"){ items.push({pre:(node.innerText||node.textContent).replace(MARKS_RE,"").replace(/\n$/,"")}); return; }
+  if(tag==="TABLE"){ items.push({table:tableRows(node)}); return; }
+  if(tag==="HR"){ items.push({hr:1}); return; }
+  if(tag==="IMG"){ items.push({img:node.getAttribute("src")||"",alt:node.getAttribute("alt")||""}); return; }
   var g={}, st=node.style||{}, w=st.fontWeight||"";
   for(var key in f) g[key]=f[key];
   if(tag==="B"||tag==="STRONG"||/^(bold|bolder|[6-9]00)$/.test(w)) g.b=1;
@@ -1053,7 +1361,7 @@ function walkRuns(node,f,kind,items,root){
   if(node.classList && (node.classList.contains("spoiler")||node.classList.contains("tg-spoiler"))) g.sp=1;
   if(tag==="CODE") g.code=1;
   if(tag==="A" && node.getAttribute("href")) g.a=node.getAttribute("href");
-  var k2=tag==="BLOCKQUOTE"? "quote" : kind;
+  var k2=tag==="BLOCKQUOTE"? "quote" : /^H[1-6]$/.test(tag)? "h"+Math.min(3,+tag.charAt(1)) : tag==="LI"? liKind(node,root) : kind;
   var block=node!==root && isBlockTag(tag);
   if(block) items.push({edge:1});
   for(var c=node.firstChild;c;c=c.nextSibling) walkRuns(c,g,k2,items,root);
@@ -1193,7 +1501,7 @@ function previewTool(d){
     else if(d.b==="||") previewSpoiler(r);
     else if(d.b==="[") previewLink(r);
   } else if(d.ins) document.execCommand("insertText",false,d.ins);
-  else if(d.line||d.block){ previewLines(d); return; }
+  else if(d.line||d.block||d.insline){ previewLines(d); return; }
   syncPreview(); commit();
 }
 function previewSpoiler(r){
@@ -1235,11 +1543,16 @@ function previewLines(d){
   var caret=saveCaret();
   var lines=input.value.split("\n"), from=a._from, to=Math.max(b._to,from+1);
   var seg=lines.slice(from,to);
-  if(d.line) seg=seg.map(function(l){ return l.indexOf(d.line)===0? l : d.line+l; });
-  else if(!/^\s*```/.test(seg[0]||"")) seg=["```"].concat(seg,["```"]);
-  lines.splice.apply(lines,[from,to-from].concat(seg));
+  if(d.insline){
+    lines.splice.apply(lines,[to,0].concat(d.insline.split("\n")));
+    if(caret){ caret.b=Array.prototype.indexOf.call(preview.childNodes,b)+1; caret.o=0; }
+  } else {
+    if(d.line) seg=seg.map(function(l){ return l.indexOf(d.line)===0? l : d.line+l; });
+    else if(!/^\s*```/.test(seg[0]||"")) seg=["```"].concat(seg,["```"]);
+    lines.splice.apply(lines,[from,to-from].concat(seg));
+  }
   input.value=lines.join("\n");
-  if(caret && d.line && d.line!=="> ") caret.o+=d.line.length;
+  if(caret && d.line && d.line!=="> " && d.line.charAt(0)!=="#") caret.o+=d.line.length;
   commit(); render(); detectMedia();
   if(caret) restoreCaret(caret);
 }
@@ -1475,6 +1788,7 @@ function paint(found,waiting,failed){
   var seen={},u=[];
   found.forEach(function(m){ if(!seen[m.url]){seen[m.url]=1;u.push(m);} });
   currentMedia=u;
+  drawGallery();
 
   mBadge.textContent=u.length;
   mBadge.classList.toggle("show",u.length>0);
@@ -1680,6 +1994,15 @@ function insertAt(t){
   input.value=v.slice(0,s)+t+v.slice(s);
   caretTo(s+t.length,s+t.length); render();
 }
+// a table or divider goes on its own new line (or replaces the current line if it is empty)
+function insertLine(t){
+  var s=input.selectionEnd, v=input.value;
+  var a=v.lastIndexOf("\n",s-1)+1, b=v.indexOf("\n",s); if(b===-1) b=v.length;
+  var empty=!v.slice(a,b).trim();
+  input.value=empty? v.slice(0,a)+t+v.slice(b) : v.slice(0,b)+"\n"+t+v.slice(b);
+  var end=(empty? a : b+1)+t.length;
+  caretTo(end,end); render();
+}
 function insertBlock(){
   var s=input.selectionStart,e=input.selectionEnd,v=input.value;
   var sel=v.slice(s,e)||"code", t="```\n"+sel+"\n```";
@@ -1693,8 +2016,27 @@ function flash(btn,label){
   btn.innerHTML=label; btn.classList.add("done");
   setTimeout(function(){ btn.innerHTML=old; btn.classList.remove("done"); },1600);
 }
+// a rich post is copied the way a browser copies part of a page you selected: that is
+// what Telegram's rich text editor reads best, and Safari/iPhone keep the pictures with it
+function copyAsPage(html){
+  var box=document.createElement("div"), sel=window.getSelection(), active=document.activeElement, ok=false;
+  box.className="copybox"; box.setAttribute("dir","rtl"); box.innerHTML=html;
+  document.body.appendChild(box);
+  if(active && active.blur) active.blur();
+  var r=document.createRange(); r.selectNodeContents(box);
+  sel.removeAllRanges(); sel.addRange(r);
+  try{ ok=document.execCommand("copy"); }catch(e){ ok=false; }
+  sel.removeAllRanges(); box.remove();
+  if(active===input || active===preview){ try{ active.focus({preventScroll:true}); }catch(e){ active.focus(); } }
+  return ok;
+}
 async function copyRich(btn){
   var o=output(), html=o.html, plain=o.plain;
+  if(o.rich){
+    var vids=currentMedia.filter(function(m){ return m.kind==="video"; }).length;
+    var note=(o.images.length? " · "+o.images.length+" عکس" : "")+(vids? " — ویدیو رو جدا بفرست" : "");
+    if(copyAsPage(html)){ flash(btn,"کپی شد ✓"); say("پست ریچ کپی شد"+note,"ok"); return; }
+  }
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
       await navigator.clipboard.write([new ClipboardItem({
@@ -1740,11 +2082,12 @@ document.querySelectorAll(".acts").forEach(function(bar){
 document.querySelectorAll(".tb").forEach(function(b){
   b.addEventListener("click",function(){
     var d=b.dataset;
-    if(d.b===undefined && !d.line && !d.ins && !d.block) return;
+    if(d.b===undefined && !d.line && !d.ins && !d.block && !d.insline) return;
     if(previewFocused() || backToPreview()){ previewTool(d); return; }
     if(d.b!==undefined) wrapSel(d.b,d.a);
     else if(d.line) prefixLines(d.line);
     else if(d.ins) insertAt(d.ins);
+    else if(d.insline) insertLine(d.insline);
     else insertBlock();
     commit();
   });
@@ -1790,6 +2133,25 @@ document.getElementById("bStrip").onclick=stripLinks;
 document.getElementById("bOpenAll").onclick=function(){
   currentMedia.forEach(function(m,i){ setTimeout(function(){ window.open(m.url,"_blank","noopener"); },i*220); });
 };
+
+/* classic / rich switch */
+var segs=document.querySelectorAll(".seg-b");
+function setMode(m,quiet){
+  mode=m==="rich"? "rich" : "classic";
+  try{ localStorage.setItem(MODE_KEY,mode); }catch(e){}
+  document.body.classList.toggle("rich",isRich());
+  segs.forEach(function(b){
+    var on=b.getAttribute("data-mode")===mode;
+    b.classList.toggle("on",on); b.setAttribute("aria-selected",on? "true" : "false");
+  });
+  wasOver=false; galleryKey=null;
+  render();
+  if(!quiet) say(isRich()? "حالت ریچ: تیتر، جدول، لیست، و عکس‌ها همراه متن" : "حالت معمولی: کپشن عادی تلگرام","ok");
+}
+segs.forEach(function(b){
+  b.addEventListener("mousedown",function(e){ e.preventDefault(); });
+  b.addEventListener("click",function(){ if(b.getAttribute("data-mode")!==mode) setMode(b.getAttribute("data-mode")); });
+});
 
 var sheet=document.getElementById("sheet");
 document.getElementById("bHelp").onclick=function(){ sheet.classList.add("on"); };
@@ -1870,7 +2232,7 @@ var booted=false;
   try{ saved=localStorage.getItem(DRAFT_KEY); }catch(e){}
   if(saved && !input.value){ input.value=saved; hist=[saved]; hi=0; }
 })();
-render(); detectMedia(); histBtns();
+setMode(mode,true); detectMedia(); histBtns();
 booted=true;
 })();
 </script>
