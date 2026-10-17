@@ -1,0 +1,12 @@
+{
+  "name": "caption-studio-tests",
+  "private": true,
+  "description": "Tests for ../index.html. Not used by the live page.",
+  "scripts": {
+    "test": "node --test pipeline.test.js browser.test.js",
+    "screens": "node screens.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
