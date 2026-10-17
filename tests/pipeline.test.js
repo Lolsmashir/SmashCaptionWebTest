@@ -249,7 +249,7 @@ test("URLs on a Persian line stay whole; a markdown link target gets no marks", 
 test("@handles and #tags inside a Persian line keep their sign and underscores", () => {
   assert.equal(fix("منبع: @Fortnite_Leaks"), `منبع: ${R}@Fortnite_Leaks${R}`);
   assert.equal(fix("متن #Fortnite جدید"), `متن ${R}#Fortnite${R} جدید`);
-  assert.equal(fix("__Chapter 7 Season 1__ شروع شد"), `__${R}Chapter 7 Season${R} 1__ شروع شد`);
+  assert.equal(fix("__Fortnite Chapter 7__ شروع شد"), `__${R}Fortnite Chapter 7${R}__ شروع شد`);
 });
 
 test("a line starting with the #️⃣ button is fixed like any other line", () => {
@@ -272,4 +272,93 @@ test("portrait clips: 720x1280 is 720p and gets the star", () => {
   ] });
   assert.deepEqual(plainData(vars.map((v) => v.label)), ["1080p", "720p", "480p", "320p"]);
   assert.equal(vars[app.pickRecommended(vars, "video")].label, "720p");
+});
+
+/* ---------- approved: a number after Season / Chapter / Part ... is part of the name ---------- */
+
+test("Season 1, Chapter 7, Part 2 keep their number inside the run", () => {
+  assert.equal(fix("**Chapter 7 Season 1** شروع شد"), `**${R}Chapter 7 Season 1${R}** شروع شد`);
+  assert.equal(fix("آیتم‌های Part 2 اومد"), `آیتم‌های ${R}Part 2${R} اومد`);
+  assert.equal(fix("چالش‌های Week 5 آزاد شد"), `چالش‌های ${R}Week 5${R} آزاد شد`);
+  // a date after an ordinary name still belongs to the Persian sentence
+  assert.equal(fix("پک The Final Reckoning 29 شهریور"), `پک ${R}The Final Reckoning${R} 29 شهریور`);
+  assert.equal(fix("آپدیت Fortnite 12 شهریور"), `آپدیت ${R}Fortnite${R} 12 شهریور`);
+});
+
+/* ---------- the inline parser: nested and back-to-back formats ---------- */
+
+test("back-to-back and nested formats come out well-formed", () => {
+  const h = (t) => app.inline(t);
+  assert.equal(h("**a *b***"), "<b>a <i>b</i></b>");
+  assert.equal(h("**a*b***"), "<b>a<i>b</i></b>");
+  assert.equal(h("*a***b**"), "<i>a</i><b>b</b>");
+  assert.equal(h("***a****b*"), "<b><i>a</i></b><i>b</i>");
+  assert.equal(h("***a* b**"), "<b><i>a</i> b</b>");
+  assert.equal(h("*a **b** c*"), "<i>a <b>b</b> c</i>");
+  assert.equal(h("**x ||y|| z**"), '<b>x <span class="tg-spoiler">y</span> z</b>');
+  assert.equal(h("**🔥 Batman 🦇**"), "<b>🔥 Batman 🦇</b>");
+  // the old forgiving forms still work
+  assert.equal(h("** x**"), "<b> x</b>");
+  assert.equal(h("**x **"), "<b>x </b>");
+  assert.equal(h("2*3*4"), "2<i>3</i>4");
+  // and things that are not formats stay text
+  for (const t of ["5 * 3 * 2", "**hello", "____", "**", "a_b_c", "TG | @LolSmash"]) assert.equal(h(t), t);
+  // markers inside a bare URL are part of the URL
+  assert.equal(h("https://x.com/a__b__c"), "https://x.com/a__b__c");
+  assert.equal(h("**https://fortnite.com**"), "<b>https://fortnite.com</b>");
+  assert.equal(app.inline("**a *b***", true), "a b");
+});
+
+// tiny reader for the HTML the parser makes, back into per-character formats
+function htmlChars(html) {
+  const chars = [], stack = [];
+  const re = /<(\/?)(span|code|b|i|u|s|a)(\s[^>]*)?>|&(amp|lt|gt|quot);|([\s\S])/g;
+  let m;
+  while ((m = re.exec(html))) {
+    if (m[2]) {
+      const k = m[2] === "span" ? "sp" : m[2] === "a" ? "a:" + (/href="([^"]*)"/.exec(m[3] || "") || [])[1] : m[2];
+      if (m[1]) stack.splice(stack.map((x) => x.split(":")[0]).lastIndexOf(k.split(":")[0]), 1);
+      else stack.push(k);
+      continue;
+    }
+    const ch = m[4] ? { amp: "&", lt: "<", gt: ">", quot: '"' }[m[4]] : m[5];
+    chars.push({ ch, f: [...stack].sort().join(",") });
+  }
+  return chars;
+}
+function runChars(runs) {
+  const chars = [];
+  for (const r of runs) {
+    const f = ["b", "i", "u", "s", "sp", "code"].filter((k) => r.f[k]);
+    if (r.f.a) f.push("a:" + r.f.a);
+    for (const ch of r.t) chars.push({ ch, f: f.sort().join(",") });
+  }
+  return chars;
+}
+
+test("round trip: preview formatting → editor text → the same formatting (2000 random lines)", () => {
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const words = ["سلام", "Fortnite", "LEGO", "شهریور", "۱۲", "v42.00", "🦇", "a", "b", "Batman", "اسکین", "x"];
+  const keys = ["b", "i", "u", "s", "sp"];
+  for (let n = 0; n < 2000; n++) {
+    const runs = [];
+    const count = 1 + rnd(5);
+    for (let k = 0; k < count; k++) {
+      const f = {};
+      for (const key of keys) if (rnd(3) === 0) f[key] = 1;
+      if (rnd(14) === 0) f.code = 1;
+      if (rnd(16) === 0) f.a = "https://fortnite.com/p" + rnd(3);
+      let t = words[rnd(words.length)];
+      if (rnd(4) === 0) t = " " + t;
+      if (rnd(4) === 0) t += " ";
+      runs.push({ t, f });
+    }
+    const md = app.runsToMarkdown(runs);
+    const got = htmlChars(app.inline(md)), want = runChars(runs);
+    // spaces at the edge of bold/italic may move outside it, which looks identical
+    const norm = (c) => c.ch === " " ? c.f.split(",").filter((x) => x !== "b" && x !== "i").join(",") : c.f;
+    assert.equal(got.map((c) => c.ch).join(""), want.map((c) => c.ch).join(""), "text: " + md);
+    got.forEach((c, i) => assert.equal(norm(c), norm(want[i]), `format of "${c.ch}" (#${i}) in ${JSON.stringify(md)}`));
+  }
 });

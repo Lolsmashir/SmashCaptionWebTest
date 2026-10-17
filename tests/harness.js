@@ -132,8 +132,14 @@ async function openApp(browser, base, { viewport, mobile = false, apis = "ok", s
   return { ctx, page, log, errors, releaseApis: () => release() };
 }
 
+// the preview is drawn on the next animation frame; wait for it
+function settle(page) {
+  return page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+}
+
 async function typeCaption(page, text = CAPTION) {
   await page.fill("#input", text);
+  await settle(page);
 }
 
 async function waitForMedia(page, rows = 4) {
@@ -150,4 +156,4 @@ function launch() {
   return chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 }
 
-module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, CAPTION, TWEET_ID, SIZES };
+module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, TWEET_ID, SIZES, FX, VX };

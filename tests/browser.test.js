@@ -3,7 +3,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { startServer, openApp, typeCaption, waitForMedia, launch, CAPTION } = require("./harness");
+const { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION } = require("./harness");
 
 const R = "‏";
 const DESKTOP = { width: 1440, height: 900 };
@@ -82,6 +82,7 @@ test("preview: Telegram bubble, dir=auto lines, dust spoiler that opens on click
   assert.ok(await sp.evaluate((e) => e.classList.contains("open")));
   assert.equal(await page.locator("#preview").innerText().then((t) => t.includes("x.com")), false);
   await page.fill("#input", "متن ||راز|| و **پررنگ با ||راز دوم||**");
+  await settle(page);
   assert.equal(await page.locator("#preview .spoiler").count(), 2, "spoilers in plain and bold text");
   await ctx.close();
 });

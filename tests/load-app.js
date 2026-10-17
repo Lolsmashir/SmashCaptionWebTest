@@ -36,7 +36,8 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
     inline:inline, isMediaMetaLine:isMediaMetaLine, trimBlankEdges:trimBlankEdges,
     videoVariants:videoVariants, imageVariants:imageVariants, pickRecommended:pickRecommended,
     resolveTweet:resolveTweet, collectDirect:collectDirect, tweetIds:tweetIds,
-    SIGNATURE:SIGNATURE, input:input
+    SIGNATURE:SIGNATURE, input:input, runsToMarkdown:runsToMarkdown, output:output,
+    fixLines:fixLines
   };};`;
   if (!/"use strict";/.test(src)) throw new Error('"use strict"; marker not found');
   src = src.replace('"use strict";', '"use strict";' + hook);
@@ -45,6 +46,8 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
   const document = {
     getElementById(id) { return elements[id] || (elements[id] = fakeElement()); },
     createElement() { return fakeElement(); },
+    createDocumentFragment() { return fakeElement(); },
+    hasFocus() { return true; },
     querySelector() { return fakeElement(); },
     querySelectorAll() { return []; },
     addEventListener() {},
@@ -57,6 +60,9 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
     navigator: { userAgent, clipboard: {} },
     fetch: fetchImpl || (() => Promise.reject(new Error("network disabled in tests"))),
     setTimeout, clearTimeout, console,
+    requestAnimationFrame: (f) => setTimeout(f, 0), cancelAnimationFrame: clearTimeout,
+    localStorage: { getItem() { return null; }, setItem() {} },
+    getSelection: () => ({ rangeCount: 0 }),
     matchMedia: () => ({ matches: false, addEventListener() {} }),
     addEventListener() {},
   };
