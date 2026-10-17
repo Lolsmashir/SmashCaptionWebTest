@@ -420,8 +420,9 @@ textarea{
   border-radius:clamp(8px,0.7vw,10px);
 }
 
+/* a card is never narrower than its label + three buttons need */
 .mgrid{
-  grid-template-columns:repeat(auto-fill,minmax(clamp(244px,27vw,380px),1fr));
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,clamp(290px,27vw,380px)),1fr));
   gap:clamp(6px,0.7vw,12px);padding:clamp(6px,0.7vw,12px);
   align-content:start;
 }
@@ -429,7 +430,8 @@ textarea{
 .mthumb{width:clamp(60px,6.5vw,92px);min-height:clamp(74px,10vh,132px);}
 .qlist{padding:clamp(4px,0.6vw,8px);gap:clamp(3px,0.4vw,5px);}
 .qitem{padding:clamp(2px,0.4vw,5px) clamp(4px,0.5vw,7px);gap:clamp(3px,0.35vw,5px);}
-.qname{font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);}
+/* labels are never cut to "…": if a card is ever too narrow the label wraps instead */
+.qname{font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);white-space:normal;overflow:visible;line-height:1.35;}
 .qitem button{
   min-height:clamp(21px,min(2.2vw,3.4vh),30px);
   padding:0 clamp(5px,0.7vw,9px);
@@ -855,21 +857,24 @@ function imageVariants(u){
   ];
 }
 
+// "720p" means the short side, so a 720x1280 portrait clip is 720p, not 1280p
+function shortSide(u){
+  var m=u.match(/\/(\d+)x(\d+)\//);
+  return m? Math.min(parseInt(m[1],10),parseInt(m[2],10)) : 0;
+}
 function videoVariants(v){
   var out=[];
   var list=v.variants||v.video_variants||null;
   if(list && list.length){
     list.forEach(function(x){
-      if(!x.url || (x.content_type && x.content_type.indexOf("mp4")===-1)) return;
-      var m=x.url.match(/\/(\d+)x(\d+)\//);
-      var hh=m? parseInt(m[2],10) : 0;
+      if(!x.url || /\.m3u8(\?|$)/i.test(x.url) || (x.content_type && x.content_type.indexOf("mp4")===-1)) return;
+      var hh=shortSide(x.url);
       out.push({label: hh? hh+"p" : (x.bitrate? Math.round(x.bitrate/1000)+"k" : "MP4"),
                 url:x.url, h:hh, bitrate:x.bitrate||0});
     });
   }
-  if(!out.length && v.url){
-    var m2=v.url.match(/\/(\d+)x(\d+)\//);
-    var h2=m2? parseInt(m2[2],10) : 0;
+  if(!out.length && v.url && !/\.m3u8(\?|$)/i.test(v.url)){
+    var h2=shortSide(v.url);
     out.push({label: h2? h2+"p" : "بالاترین کیفیت", url:v.url, h:h2, bitrate:0});
   }
   // de-dupe and sort high -> low
@@ -1021,7 +1026,8 @@ function paint(found){
           +   '</span>'
           +   '<button data-act="dl" data-i="'+i+'" data-v="'+vi+'">دانلود</button>'
           +   '<button data-act="copy" data-i="'+i+'" data-v="'+vi+'">کپی</button>'
-          +   (canShare?'<button data-act="share" data-i="'+i+'" data-v="'+vi+'">ارسال</button>':'')
+          +   '<button data-act="share" data-i="'+i+'" data-v="'+vi+'"'
+          +     (canShare?'':' aria-disabled="true" title="این مرورگر ارسال فایل نداره"')+'>ارسال</button>'
           + '</div>';
     });
     list+='</div>';
@@ -1039,8 +1045,8 @@ function paint(found){
       if(act==="dl") downloadFile(v.url,b);
       else if(act==="share") shareFile({url:v.url,kind:m.kind},b);
       else if(m.kind==="image") copyImage(v.url,b);
-      else if(canShare) shareFile({url:v.url,kind:m.kind},b);  // phone: share sheet -> Save Video
-      else copyLink(v.url,b);
+      else if(shareFirst) shareFile({url:v.url,kind:m.kind},b);  // phone: share sheet -> Save Video
+      else copyLink(v.url,b);                                     // desktop: the link
     });
   });
 
@@ -1089,6 +1095,8 @@ async function copyImage(url,btn){
   }catch(e){ btn.textContent=old; say("کپی نشد — دستی ذخیره کن","warn"); }
 }
 async function shareFile(m,btn){
+  // no share sheet at all: say so right away instead of downloading the file first
+  if(!(navigator.canShare&&navigator.share)){ say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn"); return; }
   var old=btn.textContent; btn.textContent="…";
   try{
     var res=await fetch(m.url,{mode:"cors",referrerPolicy:"no-referrer"});
