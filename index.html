@@ -591,7 +591,9 @@ function say(m,k){
 
 /* ---------- text helpers ---------- */
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
-var LATIN_RUN_RE=/[A-Za-z][A-Za-z0-9]*(?:[ \u00D7&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9]*)*/g;
+// an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
+// otherwise the mark lands inside the name and Telegram stops linking it
+var LATIN_RUN_RE=/[@#]?[A-Za-z][A-Za-z0-9_]*(?:[ \u00D7&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9_]*)*/g;
 // a number at the very end of a latin run belongs to the persian sentence
 // ("The Final Reckoning 29 شهریور"), so it is left outside the isolation
 var TRAIL_NUM_RE=/^([\s\S]*?[A-Za-z][A-Za-z0-9]*)(\s+[\d][\d.,]*)$/;
@@ -613,7 +615,8 @@ function isSkippable(ch){
   return false;
 }
 function firstRealIdx(l){ for(var i=0;i<l.length;i++) if(!isSkippable(l[i])) return i; return -1; }
-function isHashtagLine(l){ return /^\s*\*{0,2}\s*#/.test(l.replace(new RegExp("["+RLM+LRM+"]","g"),"")); }
+// "#️⃣" (keycap emoji) starts a normal line, not a hashtag line
+function isHashtagLine(l){ return /^\s*\*{0,2}\s*#(?![\uFE0F\u20E3])/.test(l.replace(new RegExp("["+RLM+LRM+"]","g"),"")); }
 function isBlank(l){ return l.replace(new RegExp("[\\s"+ZWNJ+RLM+LRM+"]","g"),"")===""; }
 function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function isMediaMetaLine(l){
@@ -649,16 +652,33 @@ function applyDirection(text){
     if(!fa && line.indexOf("\u27A5")!==-1){ n++; return LRM+line; }
     if(fa){
       var before=line;
-      line=line.replace(LATIN_RUN_RE,function(mm){
-        var t=TRAIL_NUM_RE.exec(mm);
-        if(t) return RLM+t[1]+RLM+t[2];
-        return RLM+mm+RLM;
-      });
+      line=isolateLatin(line);
       if(line!==before) n++;
     }
     return line;
   }).join("\n");
   return { text: trimBlankEdges(out), count: n };
+}
+
+function isolateLatin(line){
+  // URLs are held aside first so no mark ever lands inside one:
+  // a markdown link target stays untouched, a bare URL is isolated as one run
+  var held=[];
+  function hold(s){ held.push(s); return "\u0002"+(held.length-1)+"\u0003"; }
+  line=line.replace(/\]\([^)\s]+\)/g,hold).replace(URL_RE,function(u){
+    var tail=(u.match(/[).,;:!?»«]+$/)||[""])[0];
+    u=u.slice(0,u.length-tail.length);
+    return (u? hold(RLM+u+RLM) : "")+tail;
+  });
+  line=line.replace(LATIN_RUN_RE,function(mm){
+    // a trailing "__" is an underline marker, not part of the word
+    var end=(mm.match(/_+$/)||[""])[0];
+    mm=mm.slice(0,mm.length-end.length);
+    var t=TRAIL_NUM_RE.exec(mm);
+    if(t) return RLM+t[1]+RLM+t[2]+end;
+    return RLM+mm+RLM+end;
+  });
+  return line.replace(/\u0002(\d+)\u0003/g,function(m,i){ return held[i]; });
 }
 
 // applied automatically to the preview and to everything copied
