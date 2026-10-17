@@ -253,3 +253,56 @@ test("keyboard focus shows a ring", async () => {
   assert.equal(style.outline, "solid");
   await ctx.close();
 });
+
+test("on a phone, پاک / پیست / اصلاح / امضا and the toolbar never pull the keyboard up", async () => {
+  const { ctx, page } = await open({ viewport: { width: 390, height: 844 }, mobile: true });
+  await typeCaption(page, "سلام Fortnite");
+  await page.evaluate(() => {
+    navigator.clipboard.readText = async () => "متن تازه";
+    document.getElementById("input").blur();
+  });
+  const focused = () => page.evaluate(() => document.activeElement && document.activeElement.id);
+  for (const sel of ["#bClear", "#bPaste", "#bFix", "#bSign", ".tb[title='Bold']", ".tb[data-ins='⟡ ']"]) {
+    await page.tap(sel);
+    await page.waitForTimeout(60);
+    assert.notEqual(await focused(), "input", sel + " focused the editor (keyboard would pop up)");
+  }
+  assert.ok((await page.inputValue("#input")).includes("متن تازه"), "the buttons still did their job");
+  // when you are already typing, the keyboard stays where it is
+  await page.focus("#input");
+  await page.tap("#bClear");
+  assert.equal(await focused(), "input");
+  await ctx.close();
+});
+
+test("on a computer پاک still puts the cursor in the editor", async () => {
+  const { ctx, page } = await open();
+  await typeCaption(page, "سلام");
+  await page.evaluate(() => document.getElementById("input").blur());
+  await page.click("#bClear");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "input");
+  await ctx.close();
+});
+
+test("messages drop in at the top, in the header band, and cover no button", async () => {
+  for (const vp of [{ width: 390, height: 844, mobile: true }, { width: 1440, height: 900 }]) {
+    const { ctx, page } = await open({ viewport: { width: vp.width, height: vp.height }, mobile: !!vp.mobile });
+    await typeCaption(page, "سلام");
+    await page.click("#bSign");
+    await page.waitForFunction(() => document.querySelector(".toast.show"));
+    await page.waitForTimeout(450);
+    const r = await page.evaluate(() => {
+      const box = (el) => el.getBoundingClientRect();
+      const t = box(document.getElementById("toast")), top = box(document.querySelector(".top"));
+      const hits = [...document.querySelectorAll(".act,.tb,textarea,#preview,.qitem button")].filter((el) => {
+        const b = box(el);
+        return b.width && !(b.right <= t.left || b.left >= t.right || b.bottom <= t.top || b.top >= t.bottom);
+      }).map((el) => el.id || el.className);
+      return { t: { top: t.top, bottom: t.bottom }, headerBottom: top.bottom, hits, text: document.getElementById("toast").textContent };
+    });
+    assert.equal(r.text, "امضا اضافه شد");
+    assert.ok(r.t.top >= 0 && r.t.top < r.headerBottom, JSON.stringify(r));
+    assert.deepEqual(r.hits, [], `${vp.width}px: toast covers ${r.hits}`);
+    await ctx.close();
+  }
+});
