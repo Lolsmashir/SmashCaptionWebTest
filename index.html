@@ -347,6 +347,17 @@ textarea::placeholder{color:var(--dim);}
   -webkit-user-select:none;user-select:none;
 }
 .meta .time{display:flex;gap:5px;}
+.meta .mleft{display:flex;align-items:center;gap:5px;min-width:0;}
+/* ✂ split the post: quiet until the caption is longer than a normal caption may be */
+.cutb{
+  flex:0 0 auto;border:none;cursor:pointer;font-family:inherit;font-size:1em;line-height:1;
+  height:1.7em;min-width:1.9em;padding:0 .45em;border-radius:99px;
+  display:inline-grid;place-items:center;background:rgba(255,255,255,.06);color:var(--tg-meta);
+  transition:background-color .2s,color .2s,transform .3s var(--spring);
+}
+.cutb.hot{background:rgba(213,245,63,.17);color:var(--volt);}
+.cutb:active{transform:scale(.9);}
+body.rich .cutb{display:none;}
 /* caption length against Telegram's 1024-character limit for media captions */
 .cnt{
   direction:ltr;font-variant-numeric:tabular-nums;
@@ -354,6 +365,12 @@ textarea::placeholder{color:var(--dim);}
   transition:background-color .2s,color .2s;
 }
 .cnt.near{color:var(--warn);background:rgba(251,191,36,.12);}
+/* over 1024: a caption only Telegram Premium can send (up to 4096) */
+.cnt{white-space:nowrap;}
+.cnt.prem{color:#e4d9ff;}
+.cnt.prem::before{content:"✦";margin-inline-end:3px;}
+/* in a phone-narrow bubble the colour alone says Premium, so the count stays on one line */
+@media (max-width:600px){ .meta .cnt.prem::before{content:none;} }
 .cnt.over{color:#fff;background:rgba(239,68,68,.85);font-weight:700;}
 
 /* ---------- action bars ---------- */
@@ -541,6 +558,23 @@ textarea::placeholder{color:var(--dim);}
   padding:1px 6px;font-size:11px;color:var(--volt);direction:ltr;display:inline-block;
 }
 .sheet .act{width:100%;margin-top:6px;}
+/* the ✂ sheet: the parts as Telegram bubbles, a cut between each two that moves line by line */
+.cut-in{max-width:820px;}
+.cut-ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:2px 0 12px;}
+.cut-ctl .seg{flex-wrap:wrap;justify-content:center;}
+.cut-ctl .seg-b{font-size:11.5px;padding:7px 12px;}
+.cut-ctl .seg-b[disabled]{opacity:.35;cursor:default;}
+.cut-none{font-size:12px;color:var(--muted);padding:6px 10px;}
+.cpart{background:rgba(255,255,255,.04);box-shadow:var(--chip-edge);border-radius:16px;padding:8px;}
+.cpart-top{display:flex;align-items:center;gap:8px;margin:0 2px 7px;font-size:12px;}
+.cpart-top b{flex:1;min-width:0;}
+.cpart-top .cnt{font-size:11px;color:var(--tg-meta);line-height:1.7;}
+.sheet .cpart-top .act{width:auto;margin:0;min-height:30px;font-size:12px;}
+.act.tint{background:var(--volt-soft);color:var(--volt);box-shadow:inset 0 1px 0 rgba(213,245,63,.3),inset 0 0 0 1px rgba(213,245,63,.2);}
+.cpart-view{background:var(--tg-bubble);color:var(--tg-text);border-radius:14px 14px 14px 5px;padding:8px 11px;font-size:13px;line-height:1.6;}
+.cut-at{display:flex;align-items:center;gap:10px;margin:8px 4px;color:var(--volt);font-size:11.5px;white-space:nowrap;}
+.cut-at::before,.cut-at::after{content:"";flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--volt-line) 0 6px,transparent 6px 11px);}
+.cut-at .iconbtn{flex:0 0 30px;width:30px;height:30px;color:var(--volt);font-size:11px;}
 
 /* ---------- states: hover, keyboard focus, pressed ---------- */
 .tb,.act,.iconbtn,.qitem button,.mretry{
@@ -678,7 +712,8 @@ textarea::placeholder{color:var(--dim);}
 .cnt{--fill:rgba(213,245,63,.16);--rest:rgba(255,255,255,.05);transition:--p .35s var(--ease),color .2s;}
 .cnt.near{--fill:rgba(251,191,36,.3);--rest:rgba(251,191,36,.1);}
 .cnt.over{--fill:rgba(239,68,68,.9);--rest:rgba(239,68,68,.9);}
-.cnt,.cnt.near,.cnt.over{background:linear-gradient(90deg,var(--fill) var(--p),var(--rest) var(--p));}
+.cnt.prem{--fill:rgba(160,120,255,.42);--rest:rgba(160,120,255,.14);}
+.cnt,.cnt.near,.cnt.over,.cnt.prem{background:linear-gradient(90deg,var(--fill) var(--p),var(--rest) var(--p));}
 
 /* the classic / rich switch: one pill glides between the two */
 .seg{position:relative;}
@@ -819,7 +854,7 @@ textarea::placeholder{color:var(--dim);}
             <div class="tgtext" id="preview" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true"
                  aria-label="پیش‌نمایش؛ برای ویرایش بزن" data-ph="همین‌جا هم می‌تونی بنویسی…"></div>
             <div class="meta">
-              <span class="cnt" id="count" title="سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره">0 / 1024</span>
+              <span class="mleft"><span class="cnt" id="count" title="سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره">0 / 1024</span><button class="cutb" id="bCut" title="تقسیم پست به چند قسمت" aria-label="تقسیم پست">✂</button></span>
               <span class="time"><span id="clock">00:00</span><span class="ticks" id="ticks"><i>✓</i><i>✓</i></span></span>
             </div>
           </div>
@@ -844,6 +879,19 @@ textarea::placeholder{color:var(--dim);}
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<div class="sheet" id="cutSheet" role="dialog" aria-label="تقسیم پست">
+  <div class="sheet-in cut-in">
+    <h2>✂ تقسیم پست</h2>
+    <p id="cutInfo"></p>
+    <div class="cut-ctl">
+      <div class="seg"><button class="seg-b" data-limit="1024">سقف عادی 1024</button><button class="seg-b" data-limit="4096">پریمیوم 4096</button></div>
+      <div class="seg" id="cutCount"></div>
+    </div>
+    <div id="cutParts"></div>
+    <button class="act" id="bCloseCut">بستن</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <h2>راهنما / Guide</h2>
@@ -851,7 +899,8 @@ textarea::placeholder{color:var(--dim);}
     <p><b>ویرایش در پیش‌نمایش:</b> روی پیش‌نمایش بزن و مثل تلگرام بنویس. وسط یه خط بولد تایپ کنی، بولد می‌مونه. نوار ابزار وقتی تو پیش‌نمایش هستی روی همون کار می‌کنه (لبه‌ی سبزش روشن می‌شه). هر تغییری خودش تو ادیتور هم میاد.</p>
     <p><b>اصلاح جهت (خودکار):</b> لازم نیست دکمه‌ای بزنی — پیش‌نمایش و هر چیزی که کپی می‌کنی، خودکار اصلاح شده‌اند. دکمه‌ی «اصلاح متن ادیتور» فقط وقتی لازم است که بخواهی خودِ متن داخل باکس هم بازنویسی شود.</p><p><b>جزئیات:</b> خط انگلیسی‌شروع با ادامه‌ی فارسی <span class="syn">RLM</span> می‌گیره، خط تغییر عددی با <span class="syn">LRM</span> قفل میشه، خط خالی <span class="syn">ZWNJ</span> می‌گیره. خط هشتگ و خط کاملاً انگلیسی دست‌نخورده می‌مونن. عدد بعد از Season / Chapter / Part جزو اسم حساب می‌شه.</p>
     <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![](لینک عکس)</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن و با «کپی برای تلگرام» همراه متن کپی می‌شن (ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
-    <p><b>شمارنده:</b> پایین پیش‌نمایش تعداد کاراکترِ متنِ نهایی رو می‌بینی. سقف کپشن عکس و ویدیو در تلگرام <span class="syn">1024</span> هست؛ نزدیکش زرد و بیشترش قرمز می‌شه.</p>
+    <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
+    <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
     <p><b>ذخیره‌ی خودکار:</b> متنت خودش ذخیره می‌شه؛ اگه صفحه بسته یا رفرش شد، دوباره برمی‌گرده. برای شروع از اول «پاک» رو بزن.</p>
@@ -873,6 +922,7 @@ var SIGNATURE=[
 "**🛍️ SP | DeftGame.com**",
 "**#Fortnite | #فورتنایت**"].join("\n");
 var CAPTION_LIMIT=1024;          // Telegram's limit for a photo/video caption
+var PREMIUM_LIMIT=4096;          // ...and with Telegram Premium
 var RICH_LIMIT=32768;            // Telegram's limit for a rich-text post
 var DRAFT_KEY="caption-studio-draft", MODE_KEY="caption-studio-mode";
 // "classic": a normal Telegram caption. "rich": Telegram's rich-text post (headings,
@@ -1286,8 +1336,9 @@ function postImages(blocks){
                      .map(function(m){ return m.url; });
 }
 // exactly what "کپی برای تلگرام" / "ساده" put on the clipboard
-function output(){
-  var b=parse(autoFix(input.value),isRich());
+function output(){ return outputOf(input.value); }
+function outputOf(text){
+  var b=parse(autoFix(text),isRich());
   if(!isRich()) return { html: copyHtml(b), plain: toPlain(b), md: isIOS? toTelegramMarkdown(b) : null };
   var images=postImages(b);
   return { html: toRichHtml(b,images), plain: toRichPlain(b), images: images, rich: true };
@@ -1426,18 +1477,27 @@ function captionLength(){
   if(isRich()) return output().plain.length;
   return toPlain(parse(autoFix(input.value),false),true).length;
 }
-var wasOver=false;
+// 0: fits any caption; 1: over 1024, only Telegram Premium sends it (up to 4096); 2: too long even for that.
+// Writing is never stopped: the counter only says which limit applies, and ✂ splits the post
+var overLevel=0;
 function updateCount(){
-  var n=captionLength(), limit=isRich()? RICH_LIMIT : CAPTION_LIMIT;
+  var n=captionLength(), level, limit;
+  if(isRich()){ limit=RICH_LIMIT; level=n>limit? 2 : 0; }
+  else { level=n>PREMIUM_LIMIT? 2 : n>CAPTION_LIMIT? 1 : 0; limit=level? PREMIUM_LIMIT : CAPTION_LIMIT; }
   counter.textContent=n+" / "+limit;
   counter.style.setProperty("--p",Math.min(100,n*100/limit).toFixed(1)+"%");
   counter.classList.toggle("near",n>limit*0.88 && n<=limit);
-  counter.classList.toggle("over",n>limit);
+  counter.classList.toggle("prem",level===1);
+  counter.classList.toggle("over",level===2);
+  document.getElementById("bCut").classList.toggle("hot",level>0);
   counter.title=isRich()? "سقف پست ریچ در تلگرام "+limit+" کاراکتره"
-                        : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره (با پریمیوم ۴۰۹۶) — ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن";
-  if(n>limit && !wasOver && booted) say(isRich()? "پست از "+limit+" کاراکتر رد شد — تلگرام بیشترش رو قبول نمی‌کنه"
-                                             : "کپشن از "+limit+" کاراکتر رد شد — تلگرام برای عکس و ویدیو بیشترش رو قبول نمی‌کنه","warn");
-  wasOver=n>limit;
+    : level===1? "بیشتر از ۱۰۲۴ — این کپشن فقط با تلگرام پریمیوم می‌ره (تا ۴۰۹۶)؛ برای حساب عادی ✂ رو بزن"
+    : level===2? "بیشتر از ۴۰۹۶ — حتی با پریمیوم هم نمی‌ره؛ ✂ رو بزن تا تقسیم بشه"
+    : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره (با پریمیوم ۴۰۹۶) — ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن";
+  if(level>overLevel && booted) say(isRich()? "پست از "+limit+" کاراکتر رد شد — تلگرام بیشترش رو قبول نمی‌کنه"
+    : level===1? "از ۱۰۲۴ رد شد — فقط با پریمیوم (تا ۴۰۹۶)؛ یا ✂ تقسیمش کن"
+    : "از ۴۰۹۶ هم رد شد — حتی پریمیوم نه؛ ✂ تقسیمش کن","warn");
+  overLevel=level;
 }
 
 /* --- caret in the preview, by block and visible character --- */
@@ -2560,8 +2620,10 @@ function copyAsPage(html){
   if(active===input || active===preview){ try{ active.focus({preventScroll:true}); }catch(e){ active.focus(); } }
   return ok;
 }
-async function copyRich(btn){
-  var o=output(), html=o.html, plain=o.plain, clip=o.md||o.plain;
+// what: the name of a part of a split post ("قسمت ۲"), copied instead of the whole caption
+async function copyRich(btn,o,what){
+  o=o||output();
+  var html=o.html, plain=o.plain, clip=o.md||o.plain;
   if(o.rich){
     var vids=currentMedia.filter(function(m){ return m.kind==="video"; }).length;
     var note=(o.images.length? " · "+o.images.length+" عکس" : "")+(vids? " — ویدیو رو جدا بفرست" : "");
@@ -2573,7 +2635,9 @@ async function copyRich(btn){
         "text/html":new Blob([html],{type:"text/html"}),
         "text/plain":new Blob([clip],{type:"text/plain"})
       })]);
-      flash(btn,"کپی شد ✓"); sent(); say("با فرمت کامل کپی شد","ok"); return;
+      flash(btn,"کپی شد ✓");
+      if(what) say(what+" کپی شد — با فرمت کامل","ok"); else { sent(); say("با فرمت کامل کپی شد","ok"); }
+      return;
     }
     await navigator.clipboard.writeText(plain);
     flash(btn,"کپی شد ✓"); sent(); say("متن ساده کپی شد","warn");
@@ -2619,6 +2683,7 @@ document.getElementById("tbRedo").onclick=redo;
 // pressing a toolbar button must not take the focus (or the selection) away from the text
 toolbar.addEventListener("mousedown",function(e){ if(e.target.closest(".tb")) e.preventDefault(); });
 // the action buttons leave the focus alone too: an open keyboard stays open, a closed one stays closed
+document.getElementById("bCut").addEventListener("mousedown",function(e){ e.preventDefault(); });
 document.querySelectorAll(".acts").forEach(function(bar){
   bar.addEventListener("mousedown",function(e){ if(e.target.closest(".act")) e.preventDefault(); });
 });
@@ -2676,7 +2741,7 @@ document.getElementById("bOpenAll").onclick=function(){
 };
 
 /* classic / rich switch */
-var segs=document.querySelectorAll(".seg-b");
+var segs=document.querySelectorAll(".modebar .seg-b");
 function setMode(m,quiet){
   mode=m==="rich"? "rich" : "classic";
   try{ localStorage.setItem(MODE_KEY,mode); }catch(e){}
@@ -2686,7 +2751,7 @@ function setMode(m,quiet){
     b.classList.toggle("on",on); b.setAttribute("aria-selected",on? "true" : "false");
   });
   glide(!quiet);
-  wasOver=false; galleryKey=null;
+  overLevel=0; galleryKey=null;
   render();
   if(!quiet) say(isRich()? "حالت ریچ: تیتر، جدول، لیست، و عکس‌ها همراه متن" : "حالت معمولی: کپشن عادی تلگرام","ok");
 }
@@ -2707,13 +2772,214 @@ segs.forEach(function(b){
   b.addEventListener("click",function(){ if(b.getAttribute("data-mode")!==mode) setMode(b.getAttribute("data-mode")); });
 });
 
+/* ---------- splitting a long post ----------
+   Telegram takes 1024 characters in a caption (4096 with Premium). A longer post is cut into parts
+   where a reader would pause: a blank line first, the end of a sentence next; never inside a quote
+   or a code block, not right after a line that opens a list ("…:"), not right under the title — and
+   the parts come out about the same size. Part 1 keeps the post's own signature; every other part
+   ends with the short one. Each cut can then be moved line by line by hand. */
+// the short signature is the first two lines of the full one
+var SHORT_SIGNATURE=SIGNATURE.split("\n").slice(0,2).join("\n"), CUT_KEY="caption-studio-cut-limit";
+
+// what Telegram counts for a piece of editor text (see captionLength)
+function lengthOf(text){ return toPlain(parse(autoFix(text),false),true).length; }
+function unitText(u){ return u.lines.join("\n"); }
+// the text in units a cut never goes through: a line, a blank line, a whole quote, a whole code block.
+// Link: / Media: lines are in no copy, so they are left out (and two blank lines never touch)
+function captionUnits(text){
+  var lines=text.split("\n"), units=[], i=0;
+  while(i<lines.length){
+    var l=lines[i], j=i+1;
+    if(/^\s*```/.test(l)){ while(j<lines.length && !/^\s*```/.test(lines[j])) j++; j=Math.min(j+1,lines.length); }
+    else if(/^\s*>\s?/.test(l)){ while(j<lines.length && /^\s*>\s?/.test(lines[j])) j++; }
+    else if(isMediaMetaLine(l)){ i=j; continue; }
+    var u={lines:lines.slice(i,j), blank:j===i+1 && isBlank(l), quote:/^\s*>/.test(l), code:/^\s*```/.test(l)};
+    if(!(u.blank && (!units.length || units[units.length-1].blank))) units.push(u);
+    i=j;
+  }
+  while(units.length && units[units.length-1].blank) units.pop();
+  return units;
+}
+// everything needed to cut a post: its units (without the signature), what each counts, the signature
+function cutPlan(text,limit){
+  var units=captionUnits(text), sig="", end=units.length;
+  // the signature: from its «USE CODE» line to the end, if that is in the last few lines
+  for(var i=end-1;i>=0 && i>=end-6;i--){
+    if(/USE CODE/i.test(unitText(units[i]))){
+      sig=units.slice(i).map(unitText).join("\n");
+      units=units.slice(0,i);
+      while(units.length && units[units.length-1].blank) units.pop();
+      break;
+    }
+  }
+  var len=units.map(function(u){ return u.blank? 1 : lengthOf(unitText(u)); }), pre=[0];
+  len.forEach(function(x,n){ pre.push(pre[n]+x); });
+  // a signature sits under a blank line: "\n" + ZWNJ + "\n" before it
+  return { units:units, pre:pre, sig:sig, limit:limit,
+           sigLen:[sig? lengthOf(sig)+3 : 0, lengthOf(SHORT_SIGNATURE)+3] };
+}
+// a part is the units a..b-1 without blank lines at its edges
+function partRange(p,a,b){
+  while(a<b && p.units[a].blank) a++;
+  while(b>a && p.units[b-1].blank) b--;
+  return [a,b];
+}
+function partLength(p,a,b,k){
+  var r=partRange(p,a,b);
+  if(r[0]>=r[1]) return Infinity;
+  return p.pre[r[1]]-p.pre[r[0]]+(r[1]-r[0]-1)+p.sigLen[k? 1 : 0];
+}
+// how bad a cut before unit i reads
+function cutCost(p,i){
+  var prev=p.units[i-1], next=p.units[i];
+  if(prev.blank || next.blank) return 0;
+  var last=unitText(prev).replace(MARKS_RE,"").replace(/[\s*_~|`]+$/,""),
+      first=unitText(next).replace(MARKS_RE,"").replace(/^[\s*_~|`>]+/,""),
+      bullet=/^[•◦▸✦✧⟡➥\-–—]/, c=4;
+  if(/[:：]$/.test(last)) c=12;                      // "…:" opens what follows
+  else if(/[.!?؟…»)]$/.test(last)) c=2;             // the end of a sentence
+  if(bullet.test(first) && bullet.test(unitText(prev).replace(MARKS_RE,"").replace(/^[\s*_~|`>]+/,""))) c+=4;   // inside a list
+  if(prev.quote || next.quote || prev.code || next.code) c=Math.min(c,2);
+  if(i===1) c+=6;                                    // the title stays with its text
+  return c;
+}
+// the best n-part cut: well-placed cuts, parts about the same size, none over the limit if possible
+function autoCuts(p,n){
+  var U=p.units.length, INF=1e15;
+  if(n<1 || n>U) return null;
+  var ideal=(p.pre[U]+p.sigLen[0]+(n-1)*p.sigLen[1])/n, dp=[], from=[], k, i, j;
+  for(k=0;k<=n;k++){ dp.push([]); from.push([]); for(j=0;j<=U;j++){ dp[k].push(INF); from[k].push(-1); } }
+  dp[0][0]=0;
+  for(k=1;k<=n;k++) for(j=1;j<=U;j++) for(i=k-1;i<j;i++){
+    if(dp[k-1][i]>=INF) continue;
+    var L=partLength(p,i,j,k-1);
+    if(L===Infinity) continue;
+    var c=dp[k-1][i]+(i? cutCost(p,i) : 0)+8*Math.pow((L-ideal)/ideal,2)+(L>p.limit? 1e6+(L-p.limit)*100 : 0);
+    if(c<dp[k][j]){ dp[k][j]=c; from[k][j]=i; }
+  }
+  if(dp[n][U]>=INF) return null;
+  var cuts=[];
+  for(k=n,j=U;k>1;k--){ j=from[k][j]; cuts.unshift(j); }
+  return cuts;
+}
+function partBounds(p,cuts){ return [0].concat(cuts,[p.units.length]); }
+function partsFit(p,cuts){
+  var b=partBounds(p,cuts);
+  for(var k=0;k+1<b.length;k++) if(partLength(p,b[k],b[k+1],k)>p.limit) return false;
+  return true;
+}
+// the fewest parts that all fit (null: some single line or block is longer than the limit)
+function minParts(p){
+  var U=p.units.length, total=p.pre[U]+p.sigLen[0];
+  if(!U) return null;
+  for(var n=Math.max(1,Math.ceil(total/p.limit));n<=U;n++){
+    var cuts=n===1? [] : autoCuts(p,n);
+    if(cuts && partsFit(p,cuts)) return n;
+    if(n>Math.ceil(total/p.limit)+6) break;
+  }
+  return null;
+}
+// the editor text of part k: its lines, a blank line, its signature
+function partText(p,cuts,k){
+  var b=partBounds(p,cuts), r=partRange(p,b[k],b[k+1]);
+  var body=p.units.slice(r[0],r[1]).map(unitText).join("\n"), sig=k? SHORT_SIGNATURE : p.sig;
+  return sig? body+"\n\n"+sig : body;
+}
+// moving cut k one line up (dir -1) or down (+1); blank lines are stepped over; no part is left empty
+function movedCuts(p,cuts,k,dir){
+  var c=cuts.slice(), x=c[k], lo=(k? c[k-1] : 0), hi=(k+1<c.length? c[k+1] : p.units.length);
+  do{ x+=dir; }while(x>lo && x<hi && p.units[dir<0? x : x-1].blank);
+  if(x<=lo || x>=hi) return null;
+  c[k]=x;
+  var b=partBounds(p,c);
+  if(partLength(p,b[k],b[k+1],k)===Infinity || partLength(p,b[k+1],b[k+2],k+1)===Infinity) return null;
+  return c;
+}
+
+/* --- the ✂ sheet --- */
+var cutSheet=document.getElementById("cutSheet"), cutState=null;
+function cutLimit(){ var v=null; try{ v=localStorage.getItem(CUT_KEY); }catch(e){} return v==="4096"? PREMIUM_LIMIT : CAPTION_LIMIT; }
+function openCut(){
+  if(isRich()) return;
+  var p=cutPlan(input.value,cutLimit());
+  cutState={plan:p, min:minParts(p)};
+  cutState.n=Math.max(2,cutState.min||2);
+  cutState.cuts=autoCuts(p,cutState.n)||[];
+  drawCut();
+  cutSheet.classList.add("on");
+}
+function setCut(limit,n){
+  var p=cutPlan(input.value,limit);
+  try{ localStorage.setItem(CUT_KEY,String(limit)); }catch(e){}
+  cutState={plan:p, min:minParts(p)};
+  cutState.n=n? Math.max(n,cutState.min||1) : Math.max(2,cutState.min||2);
+  cutState.cuts=autoCuts(p,cutState.n)||[];
+  drawCut();
+}
+function partView(text){
+  return parse(autoFix(text),false).map(function(x){
+    var h=x.t==="blank"? "<br>" : x.t==="pre"? "<pre><code>"+esc(x.lines.join("\n"))+"</code></pre>"
+        : x.t==="quote"? "<blockquote>"+x.lines.map(function(y){ return inline(y); }).join("<br>")+"</blockquote>" : inline(x.text);
+    return '<div dir="auto">'+h.replace(/tg-spoiler/g,"spoiler open")+"</div>";
+  }).join("");
+}
+function drawCut(){
+  var s=cutState, p=s.plan, limit=p.limit, total=lengthOf(input.value), U=p.units.length;
+  var info="این کپشن "+total+" کاراکتره. سقف تلگرام برای کپشن "+CAPTION_LIMIT+" هست و با پریمیوم "+PREMIUM_LIMIT+".";
+  if(s.min===null && U) info+=" یه خط یا نقل‌قول به‌تنهایی از سقف بلندتره — اون قسمت قرمز می‌مونه.";
+  else if(s.min>1) info+=" با سقف "+limit+" دست‌کم "+s.min+" قسمت لازمه.";
+  document.getElementById("cutInfo").textContent=info;
+  cutSheet.querySelectorAll("[data-limit]").forEach(function(b){ b.classList.toggle("on",+b.getAttribute("data-limit")===limit); });
+  var counts="", most=Math.min(U,Math.max(6,(s.min||2)+2));
+  for(var n=2;n<=most;n++){
+    var off=s.min!==null && n<s.min;
+    counts+='<button class="seg-b'+(n===s.n? " on" : "")+'" data-parts="'+n+'"'+(off? ' disabled title="کمتر از این از سقف رد می‌شه"' : "")+">"+n+" قسمت</button>";
+  }
+  document.getElementById("cutCount").innerHTML=counts||'<span class="cut-none">این متن برای تقسیم کوتاهه</span>';
+  var html="";
+  if(U>=2) for(var k=0;k<s.n;k++){
+    var t=partText(p,s.cuts,k), n2=lengthOf(t), cls=n2>limit? " over" : n2>limit*0.88? " near" : "";
+    if(k) html+='<div class="cut-at"><button class="iconbtn" data-move="'+(k-1)+'" data-dir="-1" title="برش یه خط بالاتر" aria-label="برش یه خط بالاتر">▲</button>'
+               +'<span>✂ اینجا تقسیم می‌شه</span><button class="iconbtn" data-move="'+(k-1)+'" data-dir="1" title="برش یه خط پایین‌تر" aria-label="برش یه خط پایین‌تر">▼</button></div>';
+    html+='<div class="cpart"><div class="cpart-top"><b>قسمت '+(k+1)+'</b>'
+         +'<span class="cnt'+cls+'" style="--p:'+Math.min(100,n2*100/limit).toFixed(1)+'%">'+n2+" / "+limit+"</span>"
+         +'<button class="act tint" data-copy="'+k+'">کپی قسمت '+(k+1)+"</button></div>"
+         +'<div class="cpart-view tgtext">'+partView(t)+"</div></div>";
+  }
+  document.getElementById("cutParts").innerHTML=html;
+}
+cutSheet.addEventListener("click",function(e){
+  if(e.target===cutSheet){ cutSheet.classList.remove("on"); return; }
+  var b=e.target.closest && e.target.closest("button");
+  if(!b || !cutState) return;
+  if(b.id==="bCloseCut"){ cutSheet.classList.remove("on"); return; }
+  var p=cutState.plan;
+  // another limit: start again from the fewest parts that fit it
+  if(b.hasAttribute("data-limit")){ setCut(+b.getAttribute("data-limit")); return; }
+  if(b.hasAttribute("data-parts") && !b.disabled){
+    cutState.n=+b.getAttribute("data-parts"); cutState.cuts=autoCuts(p,cutState.n)||[]; drawCut(); return;
+  }
+  if(b.hasAttribute("data-move")){
+    var c=movedCuts(p,cutState.cuts,+b.getAttribute("data-move"),+b.getAttribute("data-dir"));
+    if(c){ cutState.cuts=c; drawCut(); } else say("از این طرف دیگه جا نداره","warn");
+    return;
+  }
+  if(b.hasAttribute("data-copy")){
+    var k=+b.getAttribute("data-copy");
+    copyRich(b,outputOf(partText(p,cutState.cuts,k)),"قسمت "+(k+1));
+  }
+});
+document.getElementById("bCut").onclick=openCut;
+
 var sheet=document.getElementById("sheet");
 document.getElementById("bHelp").onclick=function(){ sheet.classList.add("on"); };
 document.getElementById("bCloseSheet").onclick=function(){ sheet.classList.remove("on"); };
 sheet.onclick=function(e){ if(e.target===sheet) sheet.classList.remove("on"); };
 
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape" && sheet.classList.contains("on")){ sheet.classList.remove("on"); return; }
+  if(e.key==="Escape" && (sheet.classList.contains("on") || cutSheet.classList.contains("on"))){
+    sheet.classList.remove("on"); cutSheet.classList.remove("on"); return;
+  }
   var mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
   if(mod&&e.key.toLowerCase()==="y"){ e.preventDefault(); redo(); return; }

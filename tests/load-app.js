@@ -37,7 +37,7 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
     videoVariants:videoVariants, imageVariants:imageVariants, pickRecommended:pickRecommended,
     resolveTweet:resolveTweet, collectDirect:collectDirect, tweetIds:tweetIds,
     SIGNATURE:SIGNATURE, input:input, runsToMarkdown:runsToMarkdown, output:output,
-    fixLines:fixLines, toRichHtml:toRichHtml, toRichPlain:toRichPlain, captionLength:captionLength, toTelegramMarkdown:toTelegramMarkdown, copyHtml:copyHtml, htmlRuns:htmlRuns,
+    fixLines:fixLines, toRichHtml:toRichHtml, toRichPlain:toRichPlain, captionLength:captionLength, toTelegramMarkdown:toTelegramMarkdown, copyHtml:copyHtml, htmlRuns:htmlRuns, cutPlan:cutPlan, autoCuts:autoCuts, minParts:minParts, partText:partText, movedCuts:movedCuts, lengthOf:lengthOf, SHORT_SIGNATURE:SHORT_SIGNATURE, partsFit:partsFit,
     setModeForTest:function(m){ mode=m; }
   };};`;
   if (!/"use strict";/.test(src)) throw new Error('"use strict"; marker not found');
