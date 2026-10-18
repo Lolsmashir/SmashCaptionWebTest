@@ -6,6 +6,10 @@ Read this whole file before changing anything in this repo.
 
 ### Text pipeline
 - Markdown → Telegram copy: "کپی برای تلگرام" writes BOTH `text/html` and `text/plain` via `ClipboardItem`, falling back to `writeText`, then `execCommand`.
+- The copy is made for each Telegram app (checked against their own source code, 2026):
+  - Telegram Desktop reads the HTML (`tg-spoiler` class, makes the line break around a quote itself) — unchanged.
+  - Telegram Android reads the HTML but knows a spoiler only as `<spoiler>` and adds no line break around a quote or code block: every spoiler is `<span class="tg-spoiler"><spoiler>…</spoiler></span>`, and on Android the `<br>` before/after quotes and code blocks stay in.
+  - Telegram iPhone never takes a quote (or spoiler) from pasted HTML; since mid-2026 it reads the plain text as CommonMark markdown. On iPhone the plain text is that markdown (`toTelegramMarkdown`): `  ` hard break at every line end, a blank line around quotes and code blocks, `<u>…</u>` for underline, markdown characters escaped, spoilers left as text (no markdown for them there). A caption with no format at all stays plain text. The HTML stays beside it for older versions. `tests/phones.test.js` reads it back with markdown-it.
 - Formats, including nested combinations: `**bold**`, `*italic*`, `***bold+italic***`, `__underline__`, `~~strike~~`, `||spoiler||`, `` `code` ``, fenced code blocks, `> quote` blocks, `[text](url)`.
 - Spoiler preview uses the animated "dust" effect and opens on click (and stays open while you edit inside it in the preview).
 - Direction fixing runs automatically on the preview and on everything copied, but NOT on the editor text:

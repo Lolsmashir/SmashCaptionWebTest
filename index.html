@@ -892,6 +892,9 @@ var input=document.getElementById("input"),
     mBadge=document.getElementById("mBadge"),
     pMedia=document.getElementById("pMedia");
 var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+// each Telegram app reads a different part of the clipboard (see copyHtml / toTelegramMarkdown)
+var isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints>1);
+var isAndroid=/Android/i.test(navigator.userAgent);
 var isTouch=!!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
 // "reduce motion" in the system settings: no opening, no glows, no sweeps
 var calm=!!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -1183,13 +1186,16 @@ function parse(text,rich){
   while(out.length && out[out.length-1].t==="blank") out.pop();
   return out;
 }
-function toHtml(b){
-  return b.map(function(x){
+// blockBreaks: keep the <br> before and after a quote or code block (Telegram Desktop and browsers
+// make that break themselves and would show an extra blank line; Telegram Android needs it)
+function toHtml(b,blockBreaks){
+  var html=b.map(function(x){
     if(x.t==="blank") return ZWNJ;
     if(x.t==="pre") return "<pre><code>"+esc(x.lines.join("\n"))+"</code></pre>";
     if(x.t==="quote") return "<blockquote>"+x.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>";
     return inline(x.text);
-  }).join("<br>").replace(/<br>(<pre|<blockquote)/g,"$1").replace(/(<\/pre>|<\/blockquote>)<br>/g,"$1");
+  }).join("<br>");
+  return blockBreaks? html : html.replace(/<br>(<pre|<blockquote)/g,"$1").replace(/(<\/pre>|<\/blockquote>)<br>/g,"$1");
 }
 // labels: a link keeps only its text (as Telegram has it), not "text url" as «ساده» copies it
 function toPlain(b,labels){
@@ -1282,9 +1288,64 @@ function postImages(blocks){
 // exactly what "کپی برای تلگرام" / "ساده" put on the clipboard
 function output(){
   var b=parse(autoFix(input.value),isRich());
-  if(!isRich()) return { html: toHtml(b), plain: toPlain(b) };
+  if(!isRich()) return { html: copyHtml(b), plain: toPlain(b), md: isIOS? toTelegramMarkdown(b) : null };
   var images=postImages(b);
   return { html: toRichHtml(b,images), plain: toRichPlain(b), images: images, rich: true };
+}
+
+/* --- the copy, as each Telegram app reads it ---
+   Checked against the apps' own code (2026):
+   - Telegram Desktop reads the HTML: <b> <i> <u> <s> <code> <pre> <blockquote> <a> and spoilers as
+     tg-spoiler; it makes the line break around a quote itself.
+   - Telegram Android reads the HTML too, but knows a spoiler only as <spoiler>, and makes no line
+     break around a quote or code block — so on Android those <br>s stay in.
+   - Telegram iPhone never takes a quote (or a spoiler) from pasted HTML; it reads the clipboard's
+     plain text as markdown (CommonMark) instead, quotes included. So on iPhone the plain text is
+     that markdown. Older iPhone versions without it still read the HTML, as before. */
+function copyHtml(b){
+  // only spoilers make <span>s in a caption
+  return toHtml(b,isAndroid).replace(/<span class="tg-spoiler">/g,'<span class="tg-spoiler"><spoiler>').replace(/<\/span>/g,"</spoiler></span>");
+}
+// The caption in the markdown Telegram's iPhone app reads on paste: a hard break ("  ") ends every
+// line (a lone newline would join two lines), a blank line closes a quote or code block (Telegram
+// joins blocks with one newline, so no blank line shows), underline is <u>…</u> (__ is bold
+// there), spoilers have no markdown there and stay text, and every other markdown character of
+// the text is escaped. null when the caption has no format at all: then plain text is the best paste.
+function toTelegramMarkdown(b){
+  var groups=[], para=null, rich=false;
+  function line(text){
+    var runs=htmlRuns(inline(text)).map(function(r){
+      var f={};
+      for(var k in r.f) if(k!=="sp"){ f[k]=r.f[k]; rich=true; }
+      return {t:r.t,f:f};
+    });
+    mdMode=true;
+    try{ var m=marksFor(edgeSpaces(runs,false),false); }finally{ mdMode=false; }
+    // what would start a list, a heading underline or an indented code block stays text
+    return m.replace(/^([-+])(?=\s)/,"\\$1").replace(/^(\d{1,9})([.)])(?=\s)/,"$1\\$2")
+            .replace(/^(=+)(?=\s*$)/,"\\$1").replace(/^ +/,function(sp){ return sp.replace(/ /g,"\u00A0"); });
+  }
+  b.forEach(function(x){
+    if(x.t==="pre"){
+      para=null; rich=true;
+      var fence="```";
+      x.lines.forEach(function(l){ (l.match(/`{3,}/g)||[]).forEach(function(r){ if(r.length>=fence.length) fence=r+"`"; }); });
+      groups.push(fence+"\n"+x.lines.join("\n")+"\n"+fence);
+      return;
+    }
+    if(x.t==="quote"){ para=null; rich=true; groups.push(x.lines.map(function(y){ return "> "+line(y); }).join("  \n")); return; }
+    if(!para){ para=[]; groups.push(para); }
+    para.push(x.t==="blank"? ZWNJ : line(x.text));
+  });
+  if(!rich) return null;
+  return groups.map(function(g){ return typeof g==="string"? g : g.join("  \n"); }).join("\n\n");
+}
+// markdown characters in the text are escaped; addresses stay as they are (they become links by themselves)
+function mdText(t){
+  var re=new RegExp(URL_RE.source,"gi"), out="", last=0, m;
+  function e(s){ return s.replace(/[\\`*_\[\]<>|~$&!#]/g,"\\$&"); }
+  while((m=re.exec(t))){ out+=e(t.slice(last,m.index))+m[0]; last=m.index+m[0].length; }
+  return out+e(t.slice(last));
 }
 
 /* ---------- preview ---------- */
@@ -1767,7 +1828,7 @@ function marksFor(parts,smart){
     var add=want.filter(function(k){ return open.indexOf(k)<0; });
     if(smart) add.sort(function(a,b){ return reach(parts,n,b)-reach(parts,n,a); });
     add.forEach(function(k){ out+=openMark(k); open.push(k); });
-    out+=r.t;
+    out+=!mdMode? r.t : r.f.code? r.t : mdText(r.t);
   });
   for(var z=open.length-1;z>=0;z--) out+=closeMark(open[z]);
   return out;
@@ -1783,23 +1844,29 @@ function reach(parts,n,k){
 function readsBack(md,runs){
   function key(c,f){ return c+"|"+FMT_ORDER.filter(function(k){ return f[k] && !(/\s/.test(c) && (k==="b"||k==="i")); })
                                      .map(function(k){ return k==="a"? "a"+f.a : k; }).join(","); }
+  function keys(rs){ var out=[]; rs.forEach(function(r){ for(var i=0;i<r.t.length;i++) out.push(key(r.t.charAt(i),r.f)); }); return out.join("\n"); }
+  return keys(htmlRuns(inline(md)))===keys(runs);
+}
+// the HTML inline() makes for a line, back into runs of text with their formats
+function htmlRuns(html){
   function unesc(s){ return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&amp;/g,"&"); }
-  var want=[], got=[], stack=[], re=/<(\/?)(b|i|u|s|span|code|a)(\s[^>]*)?>|([^<]+)/g, m, html=inline(md);
-  runs.forEach(function(r){ for(var i=0;i<r.t.length;i++) want.push(key(r.t.charAt(i),r.f)); });
+  var runs=[], stack=[], re=/<(\/?)(b|i|u|s|span|code|a)(\s[^>]*)?>|([^<]+)/g, m;
   while((m=re.exec(html))){
     if(m[4]===undefined){
       if(m[1]) stack.pop();
       else stack.push(m[2]==="a"? {k:"a",v:unesc((/href="([^"]*)"/.exec(m[3]||"")||["",""])[1])} : {k:m[2]==="span"? "sp" : m[2],v:1});
       continue;
     }
-    var f={}, t=unesc(m[4]);
-    stack.forEach(function(s){ f[s.k]=s.v; });
-    for(var i=0;i<t.length;i++) got.push(key(t.charAt(i),f));
+    var f={};
+    stack.forEach(function(x){ f[x.k]=x.v; });
+    runs.push({t:unesc(m[4]),f:f});
   }
-  return got.join("\n")===want.join("\n");
+  return runs;
 }
-function openMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "[" : MARK[k]; }
-function closeMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "]("+k.slice(2)+")" : MARK[k]; }
+// mdMode: writing the markdown Telegram's iPhone app reads (toTelegramMarkdown): underline is HTML there
+var mdMode=false, MD_MARK={b:["**","**"],i:["*","*"],u:["<u>","</u>"],s:["~~","~~"],code:["`","`"]};
+function openMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "[" : mdMode? MD_MARK[k][0] : MARK[k]; }
+function closeMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "]("+k.slice(2)+")" : mdMode? MD_MARK[k][1] : MARK[k]; }
 function wantOf(f){
   return FMT_ORDER.filter(function(k){ return f[k]; }).map(function(k){ return k==="a"? "a\u0000"+f.a : k; });
 }
@@ -1822,13 +1889,13 @@ function edgeSpaces(runs,loose){
     if(m[3]) parts.push({t:m[3],f:r.f,ws:1});
   });
   return parts.map(function(p,n){
-    if(!p.ws || !(p.f.b||p.f.i)) return p;
+    if(!p.ws || !(p.f.b||p.f.i||(mdMode && p.f.s))) return p;
     var P=null, N=null, a, b;
     for(a=n-1;a>=0;a--) if(!parts[a].ws){ P=parts[a]; break; }
     for(b=n+1;b<parts.length;b++) if(!parts[b].ws){ N=parts[b]; break; }
     var g={}, own=wantOf(p.f), wp=P? wantOf(P.f) : [], wn=N? wantOf(N.f) : [];
     for(var k in p.f) g[k]=p.f[k];
-    ["b","i"].forEach(function(k){
+    (mdMode? ["b","i","s"] : ["b","i"]).forEach(function(k){
       var ok=loose? !!(P && P.f[k] && N && N.f[k]) : samePrefix(own,wp,k) && samePrefix(own,wn,k);
       if(g[k] && !ok) g[k]=0;
     });
@@ -2494,7 +2561,7 @@ function copyAsPage(html){
   return ok;
 }
 async function copyRich(btn){
-  var o=output(), html=o.html, plain=o.plain;
+  var o=output(), html=o.html, plain=o.plain, clip=o.md||o.plain;
   if(o.rich){
     var vids=currentMedia.filter(function(m){ return m.kind==="video"; }).length;
     var note=(o.images.length? " · "+o.images.length+" عکس" : "")+(vids? " — ویدیو رو جدا بفرست" : "");
@@ -2504,7 +2571,7 @@ async function copyRich(btn){
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
       await navigator.clipboard.write([new ClipboardItem({
         "text/html":new Blob([html],{type:"text/html"}),
-        "text/plain":new Blob([plain],{type:"text/plain"})
+        "text/plain":new Blob([clip],{type:"text/plain"})
       })]);
       flash(btn,"کپی شد ✓"); sent(); say("با فرمت کامل کپی شد","ok"); return;
     }
