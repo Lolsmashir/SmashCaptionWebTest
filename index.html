@@ -1031,7 +1031,7 @@ function inline(s,plain){
     // a link's label can carry formats (and [brackets] of its own); its target is used as it is.
     // "[ [label](url) ]" — brackets around a link stay text
     str=str.replace(/\[((?:[^\[\]]|\[[^\[\]]*\])+)\]\(([^)\s]+)\)/g,function(m,label,url){
-      return hold(plain? formats(label)+" "+url : '<a href="'+url.replace(/"/g,"&quot;")+'">'+formats(label)+"</a>");
+      return hold(plain? formats(label)+(plain==="label"? "" : " "+url) : '<a href="'+url.replace(/"/g,"&quot;")+'">'+formats(label)+"</a>");
     });
     // a bare URL is held aside too, so a__b or ~~ inside it is never read as a format
     str=str.replace(URL_RE,function(u){
@@ -1191,12 +1191,14 @@ function toHtml(b){
     return inline(x.text);
   }).join("<br>").replace(/<br>(<pre|<blockquote)/g,"$1").replace(/(<\/pre>|<\/blockquote>)<br>/g,"$1");
 }
-function toPlain(b){
+// labels: a link keeps only its text (as Telegram has it), not "text url" as «ساده» copies it
+function toPlain(b,labels){
+  var p=labels? "label" : true;
   return b.map(function(x){
     if(x.t==="blank") return ZWNJ;
     if(x.t==="pre") return x.lines.join("\n");
-    if(x.t==="quote") return x.lines.map(function(y){return inline(y,true);}).join("\n");
-    return inline(x.text,true);
+    if(x.t==="quote") return x.lines.map(function(y){return inline(y,p);}).join("\n");
+    return inline(x.text,p);
   }).join("\n");
 }
 function attr(s){ return esc(String(s)).replace(/"/g,"&quot;"); }
@@ -1355,14 +1357,23 @@ function drawGallery(blocks){
 function snapshot(d){ return d.innerHTML.replace(/ open"/g,'"'); }
 
 /* caption length */
+// counted the way Telegram counts a caption: the text of the post once its formats are applied.
+// Format markers and the addresses behind links don't count; direction marks and the ZWNJ of
+// blank lines are real characters of the post and do; units are UTF-16 (an emoji is 2), like
+// Telegram's own text lengths
+function captionLength(){
+  if(isRich()) return output().plain.length;
+  return toPlain(parse(autoFix(input.value),false),true).length;
+}
 var wasOver=false;
 function updateCount(){
-  var n=output().plain.length, limit=isRich()? RICH_LIMIT : CAPTION_LIMIT;
+  var n=captionLength(), limit=isRich()? RICH_LIMIT : CAPTION_LIMIT;
   counter.textContent=n+" / "+limit;
   counter.style.setProperty("--p",Math.min(100,n*100/limit).toFixed(1)+"%");
   counter.classList.toggle("near",n>limit*0.88 && n<=limit);
   counter.classList.toggle("over",n>limit);
-  counter.title=isRich()? "سقف پست ریچ در تلگرام "+limit+" کاراکتره" : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره";
+  counter.title=isRich()? "سقف پست ریچ در تلگرام "+limit+" کاراکتره"
+                        : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره (با پریمیوم ۴۰۹۶) — ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن";
   if(n>limit && !wasOver && booted) say(isRich()? "پست از "+limit+" کاراکتر رد شد — تلگرام بیشترش رو قبول نمی‌کنه"
                                              : "کپشن از "+limit+" کاراکتر رد شد — تلگرام برای عکس و ویدیو بیشترش رو قبول نمی‌کنه","warn");
   wasOver=n>limit;
