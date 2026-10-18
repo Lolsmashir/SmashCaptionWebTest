@@ -258,7 +258,7 @@ test("on a phone, پاک / پیست / اصلاح / امضا and the toolbar neve
   const { ctx, page } = await open({ viewport: { width: 390, height: 844 }, mobile: true });
   await typeCaption(page, "سلام Fortnite");
   await page.evaluate(() => {
-    navigator.clipboard.readText = async () => "متن تازه";
+    navigator.clipboard.read = async () => [new ClipboardItem({ "text/plain": new Blob(["متن تازه"], { type: "text/plain" }) })];
     document.getElementById("input").blur();
   });
   const focused = () => page.evaluate(() => document.activeElement && document.activeElement.id);
@@ -267,6 +267,7 @@ test("on a phone, پاک / پیست / اصلاح / امضا and the toolbar neve
     await page.waitForTimeout(60);
     assert.notEqual(await focused(), "input", sel + " focused the editor (keyboard would pop up)");
   }
+  await page.waitForFunction(() => document.getElementById("input").value.includes("متن تازه"), null, { timeout: 3000 }).catch(() => {});
   assert.ok((await page.inputValue("#input")).includes("متن تازه"), "the buttons still did their job");
   // when you are already typing, the keyboard stays where it is
   await page.focus("#input");

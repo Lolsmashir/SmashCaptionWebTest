@@ -113,18 +113,19 @@ test("the toolbar works on the preview: bold, spoiler, link, insert, bullet, quo
   await ctx.close();
 });
 
-test("pasting into the preview inserts plain text only", async () => {
+test("pasting into the preview keeps the Telegram formats and nothing else of the source", async () => {
   const { ctx, page } = await open();
   await typeCaption(page, "سلام");
   await caretAt(page, "سلام", 4);
   await page.evaluate(() => {
     const dt = new DataTransfer();
-    dt.setData("text/html", "<b style='color:red'>BAD</b>");
-    dt.setData("text/plain", " دنیا");
+    dt.setData("text/html", "<b style='color:red;font-size:40px'>دنیا</b><script>window.bad=1</script><img src='x' onerror='window.bad=1'>");
+    dt.setData("text/plain", "دنیا");
     document.getElementById("preview").dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
   });
-  assert.equal(await editor(page), "سلام دنیا");
-  assert.equal(await page.$("#preview b"), null);
+  assert.equal(await editor(page), "سلام**دنیا**");
+  assert.equal(await page.$eval("#preview b", (b) => b.outerHTML), "<b>دنیا</b>");
+  assert.equal(await page.evaluate(() => window.bad), undefined, "nothing in the pasted HTML runs");
   await ctx.close();
 });
 
@@ -227,13 +228,19 @@ test("no zoom on phones: viewport is capped and taps don't double-tap-zoom", asy
 
 test("the پیست button pastes, and explains what to do when the browser blocks it", async () => {
   const { ctx, page } = await open();
-  await page.evaluate(() => { navigator.clipboard.readText = async () => "متن کپی‌شده"; });
+  await page.evaluate(() => {
+    navigator.clipboard.read = async () => [new ClipboardItem({ "text/plain": new Blob(["متن کپی‌شده"], { type: "text/plain" }) })];
+  });
   await page.click("#bPaste");
+  await page.waitForFunction(() => document.getElementById("input").value);
   assert.equal(await editor(page), "متن کپی‌شده");
   await page.fill("#input", "");
-  await page.evaluate(() => { navigator.clipboard.readText = async () => { throw new DOMException("no", "NotAllowedError"); }; });
+  await page.evaluate(() => {
+    navigator.clipboard.read = async () => { throw new DOMException("no", "NotAllowedError"); };
+    navigator.clipboard.readText = async () => { throw new DOMException("no", "NotAllowedError"); };
+  });
   await page.click("#bPaste");
-  assert.match(await page.textContent("#toast"), /Ctrl\+V/);
+  await page.waitForFunction(() => /Ctrl\+V/.test(document.getElementById("toast").textContent));
   assert.equal(await page.evaluate(() => document.activeElement.id), "input");
   await ctx.close();
 });

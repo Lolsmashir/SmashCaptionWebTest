@@ -1142,7 +1142,8 @@ function requestRender(){
 }
 function render(){
   if(renderQueued){ cancelAnimationFrame(renderQueued); renderQueued=0; }
-  var raw=input.value, rawLines=raw.split("\n");
+  // an empty editor has no lines at all (not one empty line to keep under what is typed in the preview)
+  var raw=input.value, rawLines=raw? raw.split("\n") : [];
   var blocks=parse(fixLines(raw).lines.join("\n"),isRich());
   var shown={};
   blocks.forEach(function(b){ for(var k=b.from;k<b.to;k++) shown[k]=1; });
@@ -1266,23 +1267,34 @@ function previewToLines(){
 function nodeToLines(node){
   var items=[];
   walkRuns(node,{},"",items,node);
-  var lines=[], cur=[], kind="", open=false;
+  var lines=[], cur=[], kind="", open=false, cutAt=null, gap=false;
+  // pasted into a normal caption, lists, tables and dividers become plain caption lines
+  var classic=pasting && !isRich();
+  // (in pasted HTML a line opened by a <br> only counts once something is written on it)
+  function pending(){ return cur.length || cutAt!==null || (open && !pasting); }
   function flush(){
-    var md=runsToMarkdown(cur);
-    if(/^li:/.test(kind)) md=md.replace(/^☐\s*/,"[ ] ").replace(/^☑\s*/,"[x] ");
+    var md=(cutAt!==null? cutAt+CUT : "")+runsToMarkdown(cur);
+    if(pasting) md=md.replace(/^[ \t]+|[ \t]+$/g,"");
+    if(/^li:/.test(kind) && !classic) md=md.replace(/^☐\s*/,"[ ] ").replace(/^☑\s*/,"[x] ");
     lines.push(linePrefix(kind)+md);
-    cur=[]; open=false;
+    cur=[]; open=false; cutAt=null;
   }
   function row(r){ return "| "+r.join(" | ")+" |"; }
   items.forEach(function(it){
+    if(it.tbr) return;
+    if(it.edge || it.gap){ if(pending()) flush(); if(it.gap) gap=true; return; }
+    // the gap under a pasted paragraph is one blank line before whatever follows it
+    if(gap){ if(lines.length && lines[lines.length-1]!=="") lines.push(""); gap=false; }
+    if(it.blank){ if(pending()) flush(); lines.push(""); return; }
     if(it.pre!==undefined){
-      if(cur.length||open) flush();
+      if(pending()) flush();
       lines.push("```"); it.pre.split("\n").forEach(function(l){ lines.push(l); }); lines.push("```");
       return;
     }
     if(it.table){
-      if(cur.length||open) flush();
-      if(it.table.length){
+      if(pending()) flush();
+      if(classic) it.table.forEach(function(r){ lines.push(r.join(" | ")); });
+      else if(it.table.length){
         lines.push(row(it.table[0]));
         lines.push("|"+it.table[0].map(function(){ return "---"; }).join("|")+"|");
         it.table.slice(1).forEach(function(r){ lines.push(row(r)); });
@@ -1290,28 +1302,33 @@ function nodeToLines(node){
       return;
     }
     if(it.hr || it.img!==undefined){
-      if(cur.length||open) flush();
-      lines.push(it.hr? "---" : "!["+it.alt+"]("+it.img+")");
+      if(pending()) flush();
+      lines.push(it.hr? (classic? "———" : "---") : "!["+it.alt+"]("+it.img+")");
       return;
     }
     if(it.br){ kind=it.kind||kind; flush(); open=true; return; }
-    if(it.edge){ if(cur.length||open) flush(); return; }
-    if(cur.length && it.kind!==kind) flush();
-    kind=it.kind; cur.push(it);
+    if((cur.length || cutAt!==null) && it.kind!==kind) flush();
+    kind=it.kind;
+    // the caret's spot while pasting into the preview: formats close before it and open again after it
+    if(it.cut){ cutAt=runsToMarkdown(cur); cur=[]; return; }
+    cur.push(it);
   });
-  if(cur.length||open) flush();
+  if(pending()) flush();
   if(!lines.length && node.nodeType===1) lines.push("");   // an empty block is a blank line
   return lines;
 }
-function isBlockTag(t){ return /^(DIV|P|LI|UL|OL|BLOCKQUOTE|H[1-6]|FIGURE)$/.test(t); }
+function isBlockTag(t){ return /^(DIV|P|LI|UL|OL|BLOCKQUOTE|H[1-6]|FIGURE|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|NAV|ADDRESS|DL|DT|DD|FIGCAPTION|CENTER)$/.test(t); }
+function startsBlock(el){ return isBlockTag(el.tagName) || /^(PRE|TABLE|HR)$/.test(el.tagName); }
 // "quote" → "> ", "h2" → "## ", list item "li:<level>:<ordered>:<index>" → "  - " / "  3. "
 function linePrefix(kind){
   if(kind==="quote") return "> ";
   var m=/^h([1-6])$/.exec(kind);
   if(m) return new Array(+m[1]+1).join("#")+" ";
   m=/^li:(\d+):(\d):(\d+)$/.exec(kind);
-  if(m) return new Array(+m[1]+1).join("  ")+(m[2]==="1"? (+m[3]+1)+". " : "- ");
-  return "";
+  if(!m) return "";
+  // a list pasted into a normal caption gets the toolbar's own bullets
+  if(pasting && !isRich()) return m[2]==="1"? (+m[3]+1)+". " : m[1]==="0"? "• " : "◦ ";
+  return new Array(+m[1]+1).join("  ")+(m[2]==="1"? (+m[3]+1)+". " : "- ");
 }
 function liKind(li,root){
   var level=-1, n=0;
@@ -1328,9 +1345,11 @@ function tableRows(table){
 function isTrailingBr(n,root){
   for(;n && n!==root;n=n.parentNode){
     for(var s=n.nextSibling;s;s=s.nextSibling){
-      if(s.nodeType===3 && !s.nodeValue.replace(MARKS_RE,"")) continue;
+      var txt=s.nodeType===3? s.nodeValue.replace(MARKS_RE,"") : null;
+      if(txt!==null && !(pasting? txt.replace(/[ \t\n\r\f]+/g,"") : txt)) continue;
       if(s.nodeType!==1 && s.nodeType!==3) continue;
-      return false;
+      // in pasted HTML a <br> right before a quote or a paragraph ends the same line the block ends
+      return pasting && s.nodeType===1 && startsBlock(s)? "block" : false;
     }
     if(n.parentNode && n.parentNode!==root && isBlockTag(n.parentNode.tagName)) return true;
   }
@@ -1338,18 +1357,47 @@ function isTrailingBr(n,root){
 }
 function walkRuns(node,f,kind,items,root){
   if(node.nodeType===3){
-    var t=node.nodeValue.replace(MARKS_RE,"").replace(/\u00A0/g," ").replace(/\n/g," ");
+    var t=node.nodeValue.replace(MARKS_RE,"");
+    if(pasting){ pasteText(t,f,kind,items,node,root); return; }
+    t=t.replace(/\u00A0/g," ").replace(/\n/g," ");
+    var at=t.indexOf(CUT);
+    if(at>=0){
+      if(at) items.push({t:t.slice(0,at),f:f,kind:kind});
+      items.push({cut:1,kind:kind});
+      t=t.slice(at+1);
+    }
     if(t) items.push({t:t,f:f,kind:kind});
     return;
   }
   if(node.nodeType!==1) return;
-  var tag=node.tagName;
-  if(tag==="BR"){ if(!isTrailingBr(node,root)) items.push({br:1,kind:kind}); return; }
-  if(tag==="PRE"){ items.push({pre:(node.innerText||node.textContent).replace(MARKS_RE,"").replace(/\n$/,"")}); return; }
-  if(tag==="TABLE"){ items.push({table:tableRows(node)}); return; }
+  var tag=node.tagName, st=node.style||{};
+  if(pasting && skipPasted(node,tag,st)) return;
+  if(tag==="BR"){
+    if(pasting && (/Apple-interchange-newline/.test(node.className) || afterQuote(node))) return;
+    var tr=isTrailingBr(node,root), last=items[items.length-1];
+    // ...unless it is alone on its line: then it is an empty line (Google Docs' blank lines)
+    if(tr==="block" && !(last && (last.t!==undefined || last.cut))) tr=false;
+    if(!tr) items.push({br:1,kind:kind});
+    else if(pasting) items.push({tbr:1});
+    return;
+  }
+  if(tag==="PRE"){
+    items.push({pre:(pasting? preText(node) : node.innerText||node.textContent).replace(MARKS_RE,"").replace(/\n$/,"")});
+    if(pasting) pasteFmt=true;
+    return;
+  }
+  if(tag==="TABLE"){ items.push({table:tableRows(node)}); if(pasting) pasteFmt=true; return; }
   if(tag==="HR"){ items.push({hr:1}); return; }
-  if(tag==="IMG"){ items.push({img:node.getAttribute("src")||"",alt:node.getAttribute("alt")||""}); return; }
-  var g={}, st=node.style||{}, w=st.fontWeight||"";
+  if(tag==="IMG"){
+    var alt=node.getAttribute("alt")||"";
+    // an emoji drawn as a picture (Telegram Web) is the emoji itself
+    if(pasting && alt && (/emoji/i.test(node.className) || (alt.length<=16 && !/[\sA-Za-z0-9\u0600-\u06FF]/.test(alt)))){
+      pasteText(alt,f,kind,items,null,root); return;
+    }
+    if(!pasting || isRich()) items.push({img:node.getAttribute("src")||"",alt:alt});
+    return;
+  }
+  var g={}, w=st.fontWeight||"";
   for(var key in f) g[key]=f[key];
   if(tag==="B"||tag==="STRONG"||/^(bold|bolder|[6-9]00)$/.test(w)) g.b=1;
   if(/^(normal|[1-5]00)$/.test(w)) g.b=0;
@@ -1360,13 +1408,174 @@ function walkRuns(node,f,kind,items,root){
   if(tag==="S"||tag==="STRIKE"||tag==="DEL"||/line-through/.test(deco)) g.s=1;
   if(node.classList && (node.classList.contains("spoiler")||node.classList.contains("tg-spoiler"))) g.sp=1;
   if(tag==="CODE") g.code=1;
-  if(tag==="A" && node.getAttribute("href")) g.a=node.getAttribute("href");
-  var k2=tag==="BLOCKQUOTE"? "quote" : /^H[1-6]$/.test(tag)? "h"+Math.min(3,+tag.charAt(1)) : tag==="LI"? liKind(node,root) : kind;
-  var block=node!==root && isBlockTag(tag);
+  if(tag==="A" && node.getAttribute("href")) g.a=pasting? linkTarget(node)||f.a : node.getAttribute("href");
+  if(pasting) pastedFormats(node,tag,st,g);
+  var heading=/^H[1-6]$/.test(tag);
+  // a heading pasted into a normal caption is a bold line
+  if(heading && pasting && !isRich()){ g.b=1; heading=false; }
+  var k2=tag==="BLOCKQUOTE"? "quote" : heading? "h"+Math.min(3,+tag.charAt(1)) : tag==="LI"? liKind(node,root) : kind;
+  var block=node!==root && isBlockTag(tag), at0=items.length;
   if(block) items.push({edge:1});
   for(var c=node.firstChild;c;c=c.nextSibling) walkRuns(c,g,k2,items,root);
+  if(block && pasting) pastedBlockEnd(tag,st,items,at0);
   if(block) items.push({edge:1});
 }
+
+/* --- pasting formatted text --- */
+// Telegram Desktop puts HTML on the clipboard (<b> <i> <u> <s> <tg-spoiler> <code> <pre>
+// <blockquote> <a>), Telegram Web and browsers copy their page, and this site copies its own
+// HTML; their formats come back as markdown. Colours, fonts and sizes never come in.
+var pasting=false, pasteFmt=false, CUT="\uE000", CARET="\uE001", SOFT="\u0007";
+var MONO_RE=/^(ui-monospace|monospace|courier|menlo|consolas|monaco|sf ?mono|lucida console|liberation mono|dejavu sans mono|roboto mono|fira (code|mono)|jetbrains mono|source code pro|cascadia (code|mono)|andale mono)/;
+
+// clipboard HTML → editor text; null when it carries no format worth keeping
+function htmlToMarkdown(html){
+  if(!html || typeof DOMParser==="undefined") return null;
+  var lines=null;
+  pasting=true; pasteFmt=false;
+  try{ lines=nodeToLines(new DOMParser().parseFromString(html,"text/html").body); }catch(e){ lines=null; }
+  pasting=false;
+  if(!lines || !pasteFmt) return null;
+  // a blank line of a copied caption is a lone ZWNJ; in the editor it is simply empty
+  return trimBlankEdges(lines.map(function(l){ return isBlank(l)? "" : l; }).join("\n"));
+}
+function skipPasted(node,tag,st){
+  return /^(STYLE|SCRIPT|TITLE|META|LINK|TEMPLATE|NOSCRIPT|HEAD|BUTTON|INPUT|SELECT|TEXTAREA|IFRAME|OBJECT|VIDEO|AUDIO|CANVAS|SVG|MATH)$/i.test(tag)
+      || node.hidden===true || st.display==="none";
+}
+// spaces and line breaks of pasted HTML: what only lays out the HTML source (a line break
+// or tab with its indent) is one space and never stacks up; spaces that are text stay
+function pasteText(t,f,kind,items,node,root){
+  var ws=f.ws||"", keep=/^(pre|pre-wrap|break-spaces)$/.test(ws);
+  t=t.replace(/\r\n?/g,"\n");
+  if(!keep) t=t.replace(ws==="pre-line"? /[ \t\f]*\t[ \t\f]*/g : /[ \t\n\f]*[\t\n\f][ \t\n\f]*/g,SOFT);
+  var parts=t.replace(/\u00A0/g," ").split("\n");
+  // a line break at the very end of a block starts no new line
+  if(parts.length>1 && parts[parts.length-1]==="" && node && isTrailingBr(node,root)) parts.pop();
+  parts.forEach(function(p,n){
+    if(n) items.push({br:1,kind:kind});
+    var last=items[items.length-1], soft=false;
+    if(!keep){
+      if(!last || last.t===undefined || last.soft) p=p.replace(/^[ \u0007]+/,"");
+      else if(/ $/.test(last.t)) p=p.replace(/^\u0007+/,"");
+      soft=/\u0007$/.test(p);
+      p=p.replace(/\u0007/g," ");
+    }
+    if(!p) return;
+    items.push({t:p,f:f,kind:kind,soft:soft});
+    if(/\S/.test(p) && (wantOf(f).length || kind)) pasteFmt=true;
+  });
+}
+function pastedFormats(node,tag,st,g){
+  var et=node.getAttribute("data-entity-type")||"", cls=typeof node.className==="string"? node.className : "";
+  var fam=((tag==="FONT"? node.getAttribute("face") : "") || (isBlockTag(tag)? "" : st.fontFamily) || "")
+          .split(",")[0].replace(/["']/g,"").trim().toLowerCase();
+  if(/Bold/.test(et)) g.b=1;
+  if(/Italic/.test(et)) g.i=1;
+  if(tag==="INS"||/Underline/.test(et)) g.u=1;
+  if(/Strike/.test(et)) g.s=1;
+  if(tag==="TG-SPOILER"||tag==="SPOILER"||/Spoiler/.test(et)||/(^|\s)(tg-)?spoiler(\s|$)/i.test(cls)||fam==="spoiler") g.sp=1;
+  if(/^(KBD|SAMP|TT)$/.test(tag)||/Code$/.test(et)||MONO_RE.test(fam)) g.code=1;
+  if(st.whiteSpace) g.ws=st.whiteSpace;
+}
+// a pasted link stays a link only when its text isn't the address itself:
+// Telegram links bare URLs, @handles and #tags by itself
+function linkTarget(a){
+  var href=(a.getAttribute("href")||"").trim(), t=(a.textContent||"").replace(MARKS_RE,"").trim();
+  if(!/^(https?:|tg:|mailto:)/i.test(href) || /^[@#$\/]/.test(t)) return "";
+  function bare(u){ try{ u=decodeURI(u); }catch(e){} return u.replace(/^[a-z]+:(\/\/)?(www\.)?/i,"").replace(/\/+$/,"").toLowerCase(); }
+  return bare(t)===bare(href)? "" : href.replace(/\)/g,"%29").replace(/\s/g,"%20");
+}
+// Telegram Desktop writes the line break after a quote as a <br> behind it
+function afterQuote(br){
+  for(var s=br.previousSibling;s;s=s.previousSibling){
+    if(s.nodeType===3 && !s.nodeValue.replace(/[ \t\n\r\f]/g,"")) continue;
+    return s.nodeType===1 && /^(BLOCKQUOTE|PRE)$/.test(s.tagName);
+  }
+  return false;
+}
+// a pasted block holding only a <br> is a blank line; a paragraph with a margin leaves a gap
+function pastedBlockEnd(tag,st,items,at0){
+  var inner=items.slice(at0+1);
+  var empty=inner.every(function(it){ return it.edge || it.tbr; });
+  if(empty){ if(inner.some(function(it){ return it.tbr; })) items.push({blank:1}); return; }
+  if(tag==="P" && ((!st.marginTop && !st.marginBottom) || parseFloat(st.marginTop)>0 || parseFloat(st.marginBottom)>0)) items.push({gap:1});
+}
+function preText(node){
+  var s="";
+  for(var c=node.firstChild;c;c=c.nextSibling){
+    if(c.nodeType===3) s+=c.nodeValue;
+    else if(c.nodeType!==1 || skipPasted(c,c.tagName,c.style||{})) continue;
+    else if(c.tagName==="BR") s+="\n";
+    else s+=(isBlockTag(c.tagName) && s && !/\n$/.test(s)? "\n" : "")+preText(c);
+  }
+  return s;
+}
+function inFence(v,pos){
+  return (v.slice(0,v.lastIndexOf("\n",pos-1)+1).match(/^\s*```/gm)||[]).length%2===1;
+}
+// formatted text pasted into the preview goes through the editor: the caret's spot is marked,
+// the markdown goes in there, and the preview is drawn again with the caret after the paste
+function pasteIntoPreview(md,plain){
+  commit();
+  document.execCommand("insertText",false,CUT);
+  syncPreview();
+  var v=input.value, at=v.indexOf(CUT);
+  if(at<0){ if(plain) document.execCommand("insertText",false,plain); return; }
+  var ls=v.lastIndexOf("\n",at-1)+1, le=v.indexOf("\n",at);
+  if(le<0) le=v.length;
+  var head=v.slice(ls,at), tail=v.slice(at+1,le), ins;
+  if(inFence(v,at)) ins=plain||"";               // inside a code block it goes in as it is
+  else {
+    var lines=md.split("\n"), q=/^\s*>\s?/.exec(head);
+    // pasted inside a quote, every pasted line belongs to the quote
+    if(q) lines=lines.map(function(l,n){ l=l.replace(/^\s*>\s?/,""); return n? q[0]+l : l; });
+    else {
+      // a pasted quote or code block starts and ends on its own line
+      if(head.trim() && /^\s*(>|```)/.test(lines[0])) lines.unshift("");
+      if(tail.trim() && /^\s*(>|```)/.test(lines[lines.length-1])) lines.push("");
+    }
+    ins=lines.join("\n");
+  }
+  input.value=v.slice(0,at)+ins+CARET+v.slice(at+1);
+  render();
+  var c=markOf(CARET);
+  input.value=input.value.replace(CARET,"");
+  commit(); render(); detectMedia();
+  if(c) restoreCaret(c);
+}
+// where a character sits in the preview, as (block, visible offset) for restoreCaret
+function markOf(ch){
+  var w=document.createTreeWalker(preview,NodeFilter.SHOW_TEXT,null), n;
+  while((n=w.nextNode())){
+    var i=n.nodeValue.indexOf(ch), blk=i<0? null : blockOf(n);
+    if(!blk) continue;
+    var r=document.createRange();
+    r.selectNodeContents(blk); r.setEnd(n,i);
+    return { b: Array.prototype.indexOf.call(preview.childNodes,blk), o: r.toString().replace(MARKS_RE,"").length };
+  }
+  return null;
+}
+// the clipboard with its formats when the browser hands over its HTML, else its plain text
+async function readClipboard(){
+  var c=navigator.clipboard;
+  if(c && c.read){
+    try{
+      var items=await c.read(), html="", text="";
+      for(var i=0;i<items.length;i++){
+        if(!html && items[i].types.indexOf("text/html")>=0) html=await (await items[i].getType("text/html")).text();
+        if(!text && items[i].types.indexOf("text/plain")>=0) text=await (await items[i].getType("text/plain")).text();
+      }
+      return { text: text, md: htmlToMarkdown(html) };
+    }catch(e){
+      // refused (or the "Paste" bubble was dismissed): asking again with readText would only nag
+      if(e && e.name==="NotAllowedError") return null;
+    }
+  }
+  try{ if(c && c.readText) return { text: await c.readText(), md: null }; }catch(e){}
+  return null;
+}
+
 // formatted runs → markdown, opening and closing as few markers as possible
 function runsToMarkdown(runs){
   var out="", open=[];
@@ -1454,11 +1663,13 @@ preview.addEventListener("blur",function(){
     syncPreview(); commit(); render();
   },300);
 });
-// pasted or dropped text arrives as plain text, never as foreign HTML
+// pasted text keeps its Telegram formats and nothing else (no colours, fonts or sizes)
 preview.addEventListener("paste",function(e){
   e.preventDefault();
-  var t=(e.clipboardData||window.clipboardData).getData("text/plain");
-  if(t) document.execCommand("insertText",false,t);
+  var cd=e.clipboardData||window.clipboardData, t=cd.getData("text/plain");
+  var md=htmlToMarkdown(cd.getData("text/html"));
+  if(md!==null) pasteIntoPreview(md,t);
+  else if(t) document.execCommand("insertText",false,t);
 });
 preview.addEventListener("drop",function(e){ e.preventDefault(); });
 // spoilers open on click, and stay open while the caret is inside them
@@ -2071,6 +2282,19 @@ tabs.querySelectorAll("button").forEach(function(b,i){ b.onclick=function(){ goT
 
 /* ---------- events ---------- */
 input.addEventListener("input",function(){ requestRender(); pushH(); detectMedia(); });
+// Ctrl+V / long-press Paste in the editor: formatted text (Telegram, this site) comes in as markdown
+input.addEventListener("paste",function(e){
+  var md=e.clipboardData && !inFence(input.value,input.selectionStart)? htmlToMarkdown(e.clipboardData.getData("text/html")) : null;
+  if(md===null) return;                       // nothing formatted: the browser pastes the text itself
+  e.preventDefault();
+  commit();
+  if(!document.execCommand("insertText",false,md)){
+    var s=input.selectionStart, v=input.value;
+    input.value=v.slice(0,s)+md+v.slice(input.selectionEnd);
+    input.setSelectionRange(s+md.length,s+md.length);
+  }
+  commit(); render(); detectMedia();
+});
 document.getElementById("tbUndo").onclick=undo;
 document.getElementById("tbRedo").onclick=redo;
 // pressing a toolbar button must not take the focus (or the selection) away from the text
@@ -2093,10 +2317,8 @@ document.querySelectorAll(".tb").forEach(function(b){
   });
 });
 document.getElementById("bPaste").onclick=async function(){
-  var t=null;
-  try{
-    if(navigator.clipboard&&navigator.clipboard.readText) t=await navigator.clipboard.readText();
-  }catch(err){ t=null; }
+  var c=await readClipboard();
+  var t=!c? null : c.md!==null && !inFence(input.value,input.selectionStart)? c.md : c.text;
   if(t===null){
     // the browser keeps the clipboard locked: the editor is ready for a normal paste instead
     if(!isTouch) input.focus();
