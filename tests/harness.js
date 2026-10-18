@@ -106,10 +106,13 @@ async function makePoster(browser) {
 }
 
 // opts.apis: "ok" | "fail" | "slow" ; opts.share: stub navigator.share like iPhone Safari
-async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0 } = {}) {
+// opts.motion: play the animations (by default the page runs as with "reduce motion", so
+// nothing is mid-animation while a test measures or clicks)
+async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false } = {}) {
   const poster = await makePoster(browser);
   const ctx = await browser.newContext({
     viewport, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile,
+    reducedMotion: motion ? "no-preference" : "reduce",
     userAgent: mobile
       ? "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
       : undefined,
@@ -158,6 +161,8 @@ async function openApp(browser, base, { viewport, mobile = false, apis = "ok", s
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(base);
   await page.evaluate(() => document.fonts.ready);
+  // the opening has played and cleared itself away
+  await page.waitForFunction(() => !document.getElementById("intro") && !document.querySelector(".app.boot"), null, { timeout: 5000 });
   return { ctx, page, log, errors, releaseApis: () => release() };
 }
 

@@ -565,9 +565,155 @@ textarea::placeholder{color:var(--dim);}
 /* inside the panning strip the ring is drawn inward so it can never be clipped */
 .tb:focus-visible{outline-offset:-2px;}
 
+/* ---------- motion ----------
+   short and light: only transform / opacity move (the page never re-lays out for an animation),
+   nothing runs while you wait, and "reduce motion" turns all of it off */
+
+/* opening: the logo charges up in the middle (the bolt draws itself), flashes a ring, and the
+   glass panes rise into place behind it. Under a second, and nothing waits for it */
+.intro{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:none;
+  background:
+    radial-gradient(30vmax 30vmax at 50% 50%,rgba(213,245,63,.10),transparent 70%),
+    #07070a;
+  animation:introOut .3s .52s var(--ease) both;
+}
+.intro-mark{position:relative;width:clamp(54px,7vmin,76px);height:clamp(54px,7vmin,76px);
+  animation:markIn .42s var(--spring) both,markOut .34s .5s var(--ease) forwards;}
+.intro-mark svg{display:block;width:100%;height:100%;filter:drop-shadow(0 12px 34px rgba(213,245,63,.42));}
+.intro-mark .bolt{fill:#d5f53f;fill-opacity:0;stroke:#d5f53f;stroke-width:.9;stroke-linejoin:round;
+  stroke-dasharray:24;stroke-dashoffset:24;animation:boltDraw .3s .12s ease-out forwards;}
+.intro-ring{position:absolute;inset:-4px;border-radius:30%;border:2px solid var(--volt);opacity:0;
+  animation:ring .55s .34s var(--ease) both;}
+@keyframes introOut{to{opacity:0;visibility:hidden;}}
+@keyframes markIn{from{opacity:0;transform:scale(.5) rotate(-10deg);}to{opacity:1;transform:none;}}
+@keyframes markOut{to{opacity:0;transform:scale(1.5);}}
+@keyframes boltDraw{70%{stroke-dashoffset:0;fill-opacity:0;}to{stroke-dashoffset:0;fill-opacity:1;}}
+@keyframes ring{from{opacity:.9;transform:scale(.85);}to{opacity:0;transform:scale(2.4);}}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.985);}to{opacity:1;transform:none;}}
+.app.boot .top{animation:rise .5s .36s var(--ease) both;}
+.app.boot .pane{animation:rise .5s .42s var(--ease) both;}
+.app.boot #pView{animation-delay:.48s;}
+.app.boot #pMedia{animation-delay:.54s;}
+.app.boot .bubble{animation-delay:.6s;}
+/* the media panel rises in whenever it shows up */
+#pMedia{animation:rise .42s var(--ease) both;}
+
+/* the logo is alive: its glow breathes now and then */
+.logo{position:relative;}
+.logo::after{content:"";position:absolute;inset:-35%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(213,245,63,.45),transparent);opacity:0;
+  animation:breathe 7s 1.4s ease-in-out infinite;}
+@keyframes breathe{0%,72%,100%{opacity:0;transform:scale(.7);}84%{opacity:.8;transform:scale(1);}}
+
+/* every press sends a soft glow out from the finger */
+.act,.tb,.qitem button,.mretry,.seg-b,.iconbtn{position:relative;}
+.act::after,.tb::after,.qitem button::after,.mretry::after,.seg-b::after,.iconbtn::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
+  transform-origin:var(--rx,50%) var(--ry,50%);
+  background:radial-gradient(circle at var(--rx,50%) var(--ry,50%),rgba(255,255,255,.45),rgba(255,255,255,.12) 40%,rgba(255,255,255,0) 72%);
+}
+.rip::after{animation:rip .55s var(--ease);}
+@keyframes rip{from{opacity:1;transform:scale(.55);}to{opacity:0;transform:scale(1.06);}}
+
+/* done: a light sweeps over the button and a check draws itself */
+.act.done::before,.qitem button.done::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.6) 50%,transparent 65%) no-repeat;
+  background-size:260% 100%;animation:sweep .65s var(--ease) both;
+}
+@keyframes sweep{from{background-position:120% 0;}to{background-position:-20% 0;}}
+.chk{width:1.15em;height:1.15em;flex:0 0 auto;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:22;stroke-dashoffset:22;
+  animation:draw .4s .06s var(--ease) forwards;}
+@keyframes draw{to{stroke-dashoffset:0;}}
+
+/* a real progress bar on the quality row while its file comes in (bytes from the stream) */
+.qitem{position:relative;}
+.qitem > *{position:relative;z-index:1;}
+.qbar{
+  position:absolute !important;inset:0;z-index:0 !important;pointer-events:none;border-radius:inherit;overflow:hidden;
+  transform-origin:right center;transform:scaleX(0);
+  background:linear-gradient(270deg,rgba(213,245,63,.10),rgba(213,245,63,.34));
+  transition:transform .25s linear,opacity .5s .25s,background-color .3s;
+}
+.qbar::after{
+  content:"";position:absolute;top:0;bottom:0;left:-40px;right:0;
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.10) 0 8px,transparent 8px 16px);
+  animation:stripes .7s linear infinite;
+}
+@keyframes stripes{to{transform:translateX(17.6px);}}
+.qbar.unknown{transform:scaleX(1);background:rgba(213,245,63,.14);}
+.qbar.ok{transform:scaleX(1);background:rgba(74,222,128,.32);opacity:0;}
+.qbar.bad{transform:scaleX(1);background:rgba(251,191,36,.28);opacity:0;}
+.qbar.ok::after,.qbar.bad::after{animation:none;opacity:0;}
+.qitem.busy button[data-busy]{font-variant-numeric:tabular-nums;color:var(--volt);}
+
+/* typing: the editor's glass glows a little while you type, and the bubble's ticks wait */
+#pEdit::before{
+  content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;opacity:0;
+  box-shadow:inset 0 0 0 1px rgba(213,245,63,.22),inset 0 0 46px -20px rgba(213,245,63,.42);
+  transition:opacity .6s var(--ease);
+}
+#pEdit.typing::before{opacity:1;transition-duration:.15s;}
+.ticks{display:inline-flex;direction:ltr;letter-spacing:-.35em;padding-right:.35em;transition:color .35s;}
+.ticks i{font-style:normal;display:inline-block;transition:transform .35s var(--spring),opacity .2s;}
+.bubble.typing .ticks i:last-child{opacity:0;transform:translateX(-4px) scale(.5);}
+.ticks.read{color:var(--tg-link);}
+.ticks.read i{animation:tick .45s var(--spring);}
+.ticks.read i:last-child{animation-delay:.08s;}
+@keyframes tick{40%{transform:scale(1.45);}}
+
+/* sent: after «کپی برای تلگرام» a light passes over the bubble */
+.bubble::before{
+  content:"";position:absolute;inset:0;z-index:3;border-radius:inherit;pointer-events:none;opacity:0;
+  background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.13) 50%,transparent 62%) no-repeat;
+  background-size:250% 100%;
+}
+.bubble.sent::before{animation:sent .8s var(--ease);}
+@keyframes sent{from{opacity:1;background-position:130% 0;}to{opacity:1;background-position:-30% 0;}}
+
+/* the caption counter fills up as the caption grows */
+@property --p{syntax:"<percentage>";inherits:false;initial-value:0%;}
+.cnt{--fill:rgba(213,245,63,.16);--rest:rgba(255,255,255,.05);transition:--p .35s var(--ease),color .2s;}
+.cnt.near{--fill:rgba(251,191,36,.3);--rest:rgba(251,191,36,.1);}
+.cnt.over{--fill:rgba(239,68,68,.9);--rest:rgba(239,68,68,.9);}
+.cnt,.cnt.near,.cnt.over{background:linear-gradient(90deg,var(--fill) var(--p),var(--rest) var(--p));}
+
+/* the classic / rich switch: one pill glides between the two */
+.seg{position:relative;}
+.seg-b{z-index:1;}
+.seg::before{
+  content:"";position:absolute;top:3px;bottom:3px;left:0;width:var(--w,0px);border-radius:999px;opacity:0;
+  transform:translateX(var(--x,0px));
+  background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.28);
+}
+.seg.glide::before{opacity:1;}
+.seg.glide.rich-on::before{background:linear-gradient(180deg,#e6ff73,#d5f53f 50%,#c3e62a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 14px -6px rgba(213,245,63,.7);}
+.seg.moving::before{transition:transform .5s var(--spring),width .4s var(--ease),background .3s,box-shadow .3s;}
+.seg.glide .seg-b.on{background:transparent;box-shadow:none;}
+
+/* toasts show how long they stay: a thin line runs out under the text */
+.toast::after{content:"";position:absolute;left:18px;right:18px;bottom:2px;height:2px;border-radius:2px;
+  background:currentColor;opacity:0;}
+.toast.show[data-n="1"]::after{animation:life1 var(--life,3s) linear both;}
+.toast.show[data-n="2"]::after{animation:life2 var(--life,3s) linear both;}
+@keyframes life1{from{opacity:.2;transform:scaleX(1);}to{opacity:.2;transform:scaleX(0);}}
+@keyframes life2{from{opacity:.2;transform:scaleX(1);}to{opacity:.2;transform:scaleX(0);}}
+
+/* media thumbnails settle in once their picture has loaded */
+.mthumb img,.mthumb video{transition:opacity .4s var(--ease),transform .6s var(--ease);}
+.mthumb.wait img,.mthumb.wait video{opacity:0;transform:scale(1.06);}
+
 @media (prefers-reduced-motion:reduce){
   .bubble,.mcard,.sheet.on,.sheet-in{animation:none;}
   .shim,.mthumb.wait,.qsize.wait::after{animation:none;}
+  .intro,#pEdit::before,.act.done::before,.qitem button.done::before{display:none;}
+  .app.boot .top,.app.boot .pane,#pMedia,.logo::after,.qbar::after,.rip::after,.ticks.read i,.bubble.sent::before{animation:none;}
+  .toast.show[data-n="1"]::after,.toast.show[data-n="2"]::after{animation:none;opacity:0;}
+  .chk{animation:none;stroke-dashoffset:0;}
+  .seg.moving::before,.qbar,.mthumb img,.mthumb video,.cnt{transition:none;}
 }
 
 /* the only thing that actually changes: secondary labels are dropped when space is tight */
@@ -587,7 +733,10 @@ textarea::placeholder{color:var(--dim);}
 </head>
 <body>
 
-<div class="app">
+<!-- the opening: plays once, under a second; the page is usable underneath it all along -->
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-mark"><span class="intro-ring"></span><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#d5f53f"/><path d="M16 6.5c5.8 0 10 3.7 10 8.4s-4.2 8.4-10 8.4c-1.1 0-2.2-.1-3.2-.4L8 25.5l1.1-4.3C7.2 19.7 6 17.4 6 14.9 6 10.2 10.2 6.5 16 6.5z" fill="#11130a"/><path class="bolt" d="M17.4 9.8 12.6 15.6h3.3l-1.3 4.6 4.8-5.9h-3.3z"/></svg></div></div>
+
+<div class="app boot">
 
   <div class="top">
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#d5f53f"/><path d="M16 6.5c5.8 0 10 3.7 10 8.4s-4.2 8.4-10 8.4c-1.1 0-2.2-.1-3.2-.4L8 25.5l1.1-4.3C7.2 19.7 6 17.4 6 14.9 6 10.2 10.2 6.5 16 6.5z" fill="#11130a"/><path d="M17.4 9.8 12.6 15.6h3.3l-1.3 4.6 4.8-5.9h-3.3z" fill="#d5f53f"/></svg></div>
@@ -671,7 +820,7 @@ textarea::placeholder{color:var(--dim);}
                  aria-label="پیش‌نمایش؛ برای ویرایش بزن" data-ph="همین‌جا هم می‌تونی بنویسی…"></div>
             <div class="meta">
               <span class="cnt" id="count" title="سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره">0 / 1024</span>
-              <span class="time"><span id="clock">00:00</span><span>✓✓</span></span>
+              <span class="time"><span id="clock">00:00</span><span class="ticks" id="ticks"><i>✓</i><i>✓</i></span></span>
             </div>
           </div>
         </div>
@@ -744,15 +893,20 @@ var input=document.getElementById("input"),
     pMedia=document.getElementById("pMedia");
 var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 var isTouch=!!(window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+// "reduce motion" in the system settings: no opening, no glows, no sweeps
+var calm=!!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 /* ---------- toast ---------- */
 var tt;
 function say(m,k){
+  // longer advice stays up long enough to read; a thin line under it runs out meanwhile
+  var life=Math.min(5200,1800+m.length*45);
   toast.textContent=m;
+  toast.dataset.n=toast.dataset.n==="1"? "2" : "1";
+  toast.style.setProperty("--life",life+"ms");
   toast.className="toast show"+(k?" "+k:"");
   clearTimeout(tt);
-  // longer advice stays up long enough to read
-  tt=setTimeout(function(){ toast.className="toast"+(k?" "+k:""); },Math.min(5200,1800+m.length*45));
+  tt=setTimeout(function(){ toast.className="toast"+(k?" "+k:""); },life);
 }
 
 /* ---------- text helpers ---------- */
@@ -874,8 +1028,9 @@ function inline(s,plain){
   return t;
 
   function formats(str){
-    // a link's label can carry formats; its target is used as it is
-    str=str.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,function(m,label,url){
+    // a link's label can carry formats (and [brackets] of its own); its target is used as it is.
+    // "[ [label](url) ]" — brackets around a link stay text
+    str=str.replace(/\[((?:[^\[\]]|\[[^\[\]]*\])+)\]\(([^)\s]+)\)/g,function(m,label,url){
       return hold(plain? formats(label)+" "+url : '<a href="'+url.replace(/"/g,"&quot;")+'">'+formats(label)+"</a>");
     });
     // a bare URL is held aside too, so a__b or ~~ inside it is never read as a format
@@ -1204,6 +1359,7 @@ var wasOver=false;
 function updateCount(){
   var n=output().plain.length, limit=isRich()? RICH_LIMIT : CAPTION_LIMIT;
   counter.textContent=n+" / "+limit;
+  counter.style.setProperty("--p",Math.min(100,n*100/limit).toFixed(1)+"%");
   counter.classList.toggle("near",n>limit*0.88 && n<=limit);
   counter.classList.toggle("over",n>limit);
   counter.title=isRich()? "سقف پست ریچ در تلگرام "+limit+" کاراکتره" : "سقف کپشن عکس و ویدیو در تلگرام ۱۰۲۴ کاراکتره";
@@ -1576,20 +1732,60 @@ async function readClipboard(){
   return null;
 }
 
-// formatted runs → markdown, opening and closing as few markers as possible
+// formatted runs → markdown, opening and closing as few markers as possible. Two ways are
+// tried: the formats that run on longest open first (a link inside a bold line stays inside
+// one bold pair: ***[ [label](url) ]***), and the fixed order with links outermost. The first
+// wins when it reads back to exactly the same formats and is shorter without splitting a
+// link, or when the fixed order would not read back right
 function runsToMarkdown(runs){
+  var plain=marksFor(edgeSpaces(runs,false),false), smart=marksFor(edgeSpaces(runs,true),true);
+  if(smart===plain) return plain;
+  var links=function(s){ return s.split("](").length; };
+  if((smart.length>=plain.length || links(smart)>links(plain)) && readsBack(plain,runs)) return plain;
+  return readsBack(smart,runs)? smart : plain;
+}
+function marksFor(parts,smart){
   var out="", open=[];
-  edgeSpaces(runs).forEach(function(r){
-    var want=wantOf(r.f);
-    var keep=0;
-    while(keep<open.length && keep<want.length && open[keep]===want[keep]) keep++;
+  parts.forEach(function(r,n){
+    var want=wantOf(r.f), keep=0;
+    // keep what is open from the outside in, as long as it is still wanted
+    if(smart) while(keep<open.length && want.indexOf(open[keep])>=0) keep++;
+    else while(keep<open.length && keep<want.length && open[keep]===want[keep]) keep++;
     for(var x=open.length-1;x>=keep;x--) out+=closeMark(open[x]);
-    for(var y=keep;y<want.length;y++) out+=openMark(want[y]);
-    open=want;
+    open=open.slice(0,keep);
+    var add=want.filter(function(k){ return open.indexOf(k)<0; });
+    if(smart) add.sort(function(a,b){ return reach(parts,n,b)-reach(parts,n,a); });
+    add.forEach(function(k){ out+=openMark(k); open.push(k); });
     out+=r.t;
   });
   for(var z=open.length-1;z>=0;z--) out+=closeMark(open[z]);
   return out;
+}
+// the last part (from n on) that still has format k
+function reach(parts,n,k){
+  var m=n;
+  while(m+1<parts.length && wantOf(parts[m+1].f).indexOf(k)>=0) m++;
+  return m;
+}
+// every character with its formats, as the runs say and as inline() reads the markdown back
+// (a space may move in or out of bold/italic: that looks the same)
+function readsBack(md,runs){
+  function key(c,f){ return c+"|"+FMT_ORDER.filter(function(k){ return f[k] && !(/\s/.test(c) && (k==="b"||k==="i")); })
+                                     .map(function(k){ return k==="a"? "a"+f.a : k; }).join(","); }
+  function unesc(s){ return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&amp;/g,"&"); }
+  var want=[], got=[], stack=[], re=/<(\/?)(b|i|u|s|span|code|a)(\s[^>]*)?>|([^<]+)/g, m, html=inline(md);
+  runs.forEach(function(r){ for(var i=0;i<r.t.length;i++) want.push(key(r.t.charAt(i),r.f)); });
+  while((m=re.exec(html))){
+    if(m[4]===undefined){
+      if(m[1]) stack.pop();
+      else stack.push(m[2]==="a"? {k:"a",v:unesc((/href="([^"]*)"/.exec(m[3]||"")||["",""])[1])} : {k:m[2]==="span"? "sp" : m[2],v:1});
+      continue;
+    }
+    var f={}, t=unesc(m[4]);
+    stack.forEach(function(s){ f[s.k]=s.v; });
+    for(var i=0;i<t.length;i++) got.push(key(t.charAt(i),f));
+  }
+  return got.join("\n")===want.join("\n");
 }
 function openMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "[" : MARK[k]; }
 function closeMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "]("+k.slice(2)+")" : MARK[k]; }
@@ -1605,7 +1801,8 @@ function samePrefix(x,y,k){
 }
 // spaces at the edge of a bold/italic stretch go outside the stars ("** x**" would not
 // count as bold); a space keeps bold/italic only when the text on both sides continues it
-function edgeSpaces(runs){
+// (for the fixed order also at the same depth, under the same outer formats)
+function edgeSpaces(runs,loose){
   var parts=[];
   runs.forEach(function(r){
     var m=/^(\s*)([\s\S]*?)(\s*)$/.exec(r.t);
@@ -1620,7 +1817,10 @@ function edgeSpaces(runs){
     for(b=n+1;b<parts.length;b++) if(!parts[b].ws){ N=parts[b]; break; }
     var g={}, own=wantOf(p.f), wp=P? wantOf(P.f) : [], wn=N? wantOf(N.f) : [];
     for(var k in p.f) g[k]=p.f[k];
-    ["b","i"].forEach(function(k){ if(g[k] && !(samePrefix(own,wp,k) && samePrefix(own,wn,k))) g[k]=0; });
+    ["b","i"].forEach(function(k){
+      var ok=loose? !!(P && P.f[k] && N && N.f[k]) : samePrefix(own,wp,k) && samePrefix(own,wn,k);
+      if(g[k] && !ok) g[k]=0;
+    });
     return {t:p.t,f:g};
   });
 }
@@ -1637,6 +1837,7 @@ function syncPreview(){
 preview.addEventListener("compositionstart",function(){ composing=true; });
 preview.addEventListener("compositionend",function(){ composing=false; syncPreview(); });
 preview.addEventListener("input",function(e){
+  typingPulse(false);
   if(composing||e.isComposing) return;
   // everything deleted: start again from a clean, unformatted line
   if(!preview.textContent.replace(MARKS_RE,"").trim() && !preview.querySelector("div ~ div")){
@@ -2108,19 +2309,58 @@ mgrid.addEventListener("click",function(e){
 });
 
 async function copyLink(url,btn){
-  var old=btn.textContent;
   try{
     await navigator.clipboard.writeText(url);
-    btn.textContent="✓"; btn.classList.add("done"); say("لینک کپی شد","ok");
-    setTimeout(function(){ btn.textContent=old; btn.classList.remove("done"); },1500);
+    flash(btn,""); say("لینک کپی شد","ok");
   }catch(e){ say("کپی نشد","warn"); }
+}
+// a file of the media panel, with a real progress bar on its quality row: the bytes are
+// counted as they arrive (percent when the size is known, megabytes when it isn't)
+function rowProgress(btn){
+  var row=btn.closest && btn.closest(".qitem"), raf=0, last=null;
+  if(!row) return { set:function(){}, end:function(){} };
+  var bar=document.createElement("span"), old=btn.textContent;
+  bar.className="qbar"; row.insertBefore(bar,row.firstChild);
+  btn.style.minWidth=btn.offsetWidth+"px"; btn.setAttribute("data-busy","1"); row.classList.add("busy");
+  function paint(){
+    raf=0;
+    if(!last) return;
+    var p=last.total? Math.min(1,last.got/last.total) : 0;
+    bar.classList.toggle("unknown",!last.total);
+    if(last.total) bar.style.transform="scaleX("+p.toFixed(3)+")";
+    btn.textContent=last.total? Math.floor(p*100)+"%" : (fmtSize(last.got)||"…");
+  }
+  return {
+    set:function(got,total){ last={got:got,total:total}; if(!raf) raf=requestAnimationFrame(paint); },
+    end:function(ok){
+      cancelAnimationFrame(raf);
+      bar.style.transform=""; bar.classList.remove("unknown"); bar.classList.add(ok? "ok" : "bad");
+      btn.textContent=old; btn.removeAttribute("data-busy"); btn.style.minWidth=""; row.classList.remove("busy");
+      setTimeout(function(){ bar.remove(); },800);
+    }
+  };
+}
+async function fetchBlob(url,btn){
+  var p=rowProgress(btn);
+  try{
+    p.set(0,0);
+    var res=await fetch(url,{mode:"cors",referrerPolicy:"no-referrer"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    var total=+res.headers.get("content-length")||0, type=res.headers.get("content-type")||"", blob;
+    if(res.body && res.body.getReader){
+      var reader=res.body.getReader(), parts=[], got=0, r;
+      p.set(0,total);
+      while(!(r=await reader.read()).done){ parts.push(r.value); got+=r.value.length; p.set(got,total); }
+      blob=new Blob(parts,{type:type});
+    } else blob=await res.blob();
+    p.end(true);
+    return blob;
+  }catch(e){ p.end(false); throw e; }
 }
 
 async function copyImage(url,btn){
-  var old=btn.textContent; btn.textContent="…";
   try{
-    var res=await fetch(url,{mode:"cors",referrerPolicy:"no-referrer"});
-    var blob=await res.blob();
+    var blob=await fetchBlob(url,btn);
     if(blob.type!=="image/png"){
       var bmp=await createImageBitmap(blob);
       var cv=document.createElement("canvas");
@@ -2129,46 +2369,39 @@ async function copyImage(url,btn){
       blob=await new Promise(function(r){ cv.toBlob(r,"image/png"); });
     }
     await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);
-    btn.textContent="✓"; btn.classList.add("done"); say("تصویر کپی شد","ok");
-    setTimeout(function(){ btn.textContent=old; btn.classList.remove("done"); },1600);
-  }catch(e){ btn.textContent=old; say("کپی نشد — دستی ذخیره کن","warn"); }
+    flash(btn,""); say("تصویر کپی شد","ok");
+  }catch(e){ say("کپی نشد — دستی ذخیره کن","warn"); }
 }
 async function shareFile(m,btn){
   // no share sheet at all: say so right away instead of downloading the file first
   if(!(navigator.canShare&&navigator.share)){ say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn"); return; }
-  var old=btn.textContent; btn.textContent="…";
   try{
-    var res=await fetch(m.url,{mode:"cors",referrerPolicy:"no-referrer"});
-    var blob=await res.blob();
+    var blob=await fetchBlob(m.url,btn);
     var name=(m.url.split("/").pop()||"file").split("?")[0];
     if(m.kind==="video"&&!/\.(mp4|mov|m4v|webm)$/i.test(name)) name+=".mp4";
     if(m.kind==="image"&&!/\.(jpe?g|png|webp|gif)$/i.test(name)) name+=".jpg";
     var f=new File([blob],name,{type:blob.type||(m.kind==="video"?"video/mp4":"image/jpeg")});
     if(navigator.canShare&&navigator.canShare({files:[f]})){
       await navigator.share({files:[f]});
-      btn.textContent=old; say("تلگرام رو انتخاب کن","ok"); return;
+      say("تلگرام رو انتخاب کن","ok"); return;
     }
-    btn.textContent=old; say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn");
+    say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn");
   }catch(e){
-    btn.textContent=old;
     if(e&&e.name==="AbortError") return;
     say("ارسال نشد — دانلود کن","warn");
   }
 }
 async function downloadFile(url,btn){
-  var old=btn.textContent; btn.textContent="…";
   try{
-    var res=await fetch(url,{mode:"cors",referrerPolicy:"no-referrer"});
-    var blob=await res.blob();
+    var blob=await fetchBlob(url,btn);
     var a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
     a.download=(url.split("/").pop()||"video").split("?")[0];
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
-    btn.textContent="✓"; btn.classList.add("done"); say("ذخیره شد — به‌عنوان ویدیو بفرست","ok");
-    setTimeout(function(){ btn.textContent=old; btn.classList.remove("done"); },1600);
+    flash(btn,""); say("ذخیره شد — به‌عنوان ویدیو بفرست","ok");
   }catch(e){
-    window.open(url,"_blank","noopener"); btn.textContent=old;
+    window.open(url,"_blank","noopener");
     say("تو تب جدید باز شد","warn");
   }
 }
@@ -2222,10 +2455,18 @@ function insertBlock(){
 }
 
 /* ---------- clipboard ---------- */
+// done: the button turns green, a light sweeps over it and a check draws itself
+// (its width is held, so nothing around it jumps; a second click doesn't lose the label)
+var CHECK='<svg class="chk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>';
 function flash(btn,label){
-  var old=btn.innerHTML;
-  btn.innerHTML=label; btn.classList.add("done");
-  setTimeout(function(){ btn.innerHTML=old; btn.classList.remove("done"); },1600);
+  if(btn._old===undefined){ btn._old=btn.innerHTML; btn.style.minWidth=btn.offsetWidth+"px"; }
+  label=(label||"").replace(/\s*✓\s*$/,"");
+  btn.innerHTML=CHECK+(label? "<span>"+label+"</span>" : "");
+  btn.classList.remove("done"); void btn.offsetWidth; btn.classList.add("done");
+  clearTimeout(btn._ft);
+  btn._ft=setTimeout(function(){
+    btn.innerHTML=btn._old; btn._old=undefined; btn.style.minWidth=""; btn.classList.remove("done");
+  },1600);
 }
 // a rich post is copied the way a browser copies part of a page you selected: that is
 // what Telegram's rich text editor reads best, and Safari/iPhone keep the pictures with it
@@ -2246,7 +2487,7 @@ async function copyRich(btn){
   if(o.rich){
     var vids=currentMedia.filter(function(m){ return m.kind==="video"; }).length;
     var note=(o.images.length? " · "+o.images.length+" عکس" : "")+(vids? " — ویدیو رو جدا بفرست" : "");
-    if(copyAsPage(html)){ flash(btn,"کپی شد ✓"); say("پست ریچ کپی شد"+note,"ok"); return; }
+    if(copyAsPage(html)){ flash(btn,"کپی شد ✓"); sent(); say("پست ریچ کپی شد"+note,"ok"); return; }
   }
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
@@ -2254,16 +2495,16 @@ async function copyRich(btn){
         "text/html":new Blob([html],{type:"text/html"}),
         "text/plain":new Blob([plain],{type:"text/plain"})
       })]);
-      flash(btn,"کپی شد ✓"); say("با فرمت کامل کپی شد","ok"); return;
+      flash(btn,"کپی شد ✓"); sent(); say("با فرمت کامل کپی شد","ok"); return;
     }
     await navigator.clipboard.writeText(plain);
-    flash(btn,"کپی شد ✓"); say("متن ساده کپی شد","warn");
+    flash(btn,"کپی شد ✓"); sent(); say("متن ساده کپی شد","warn");
   }catch(err){
     try{
       var t=document.createElement("textarea");
       t.value=plain; document.body.appendChild(t); t.select();
       document.execCommand("copy"); document.body.removeChild(t);
-      flash(btn,"کپی شد ✓"); say("متن ساده کپی شد","warn");
+      flash(btn,"کپی شد ✓"); sent(); say("متن ساده کپی شد","warn");
     }catch(e2){ say("کپی نشد","warn"); }
   }
 }
@@ -2281,7 +2522,7 @@ function goTab(i){
 tabs.querySelectorAll("button").forEach(function(b,i){ b.onclick=function(){ goTab(i); }; });
 
 /* ---------- events ---------- */
-input.addEventListener("input",function(){ requestRender(); pushH(); detectMedia(); });
+input.addEventListener("input",function(){ requestRender(); pushH(); detectMedia(); typingPulse(true); });
 // Ctrl+V / long-press Paste in the editor: formatted text (Telegram, this site) comes in as markdown
 input.addEventListener("paste",function(e){
   var md=e.clipboardData && !inFence(input.value,input.selectionStart)? htmlToMarkdown(e.clipboardData.getData("text/html")) : null;
@@ -2331,7 +2572,7 @@ document.getElementById("bPaste").onclick=async function(){
   input.value=v.slice(0,s)+t+v.slice(e);
   caretTo(s+t.length, s+t.length);
   commit(); render(); detectMedia();
-  say("پیست شد","ok");
+  flash(this,"پیست شد"); say("پیست شد","ok");
 };
 document.getElementById("bFix").onclick=function(){
   var p=input.selectionStart;
@@ -2348,7 +2589,7 @@ document.getElementById("bClear").onclick=function(){
 document.getElementById("bCopy").onclick=function(){ copyRich(this); };
 document.getElementById("bPlain").onclick=async function(){
   var btn=this;
-  try{ await navigator.clipboard.writeText(output().plain); flash(btn,"✓"); say("متن ساده کپی شد","ok"); }
+  try{ await navigator.clipboard.writeText(output().plain); flash(btn,"✓"); sent(); say("متن ساده کپی شد","ok"); }
   catch(e){ say("کپی نشد","warn"); }
 };
 document.getElementById("bStrip").onclick=stripLinks;
@@ -2366,10 +2607,23 @@ function setMode(m,quiet){
     var on=b.getAttribute("data-mode")===mode;
     b.classList.toggle("on",on); b.setAttribute("aria-selected",on? "true" : "false");
   });
+  glide(!quiet);
   wasOver=false; galleryKey=null;
   render();
   if(!quiet) say(isRich()? "حالت ریچ: تیتر، جدول، لیست، و عکس‌ها همراه متن" : "حالت معمولی: کپشن عادی تلگرام","ok");
 }
+// one pill glides between معمولی and ریچ
+function glide(animate){
+  var seg=segs[0] && segs[0].parentNode, on=seg && seg.querySelector(".seg-b.on");
+  if(!on || !on.offsetWidth) return;
+  seg.classList.toggle("moving",!!animate && !calm);
+  seg.style.setProperty("--x",on.offsetLeft+"px");
+  seg.style.setProperty("--w",on.offsetWidth+"px");
+  seg.classList.toggle("rich-on",on.getAttribute("data-mode")==="rich");
+  seg.classList.add("glide");
+}
+window.addEventListener("resize",function(){ glide(false); });
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ glide(false); });
 segs.forEach(function(b){
   b.addEventListener("mousedown",function(e){ e.preventDefault(); });
   b.addEventListener("click",function(){ if(b.getAttribute("data-mode")!==mode) setMode(b.getAttribute("data-mode")); });
@@ -2443,6 +2697,56 @@ document.addEventListener("keydown",function(e){
 
 window.addEventListener("pagehide",flushDraft);
 document.addEventListener("visibilitychange",function(){ if(document.hidden) flushDraft(); });
+
+/* ---------- motion ---------- */
+// typing: the editor's glass glows a little, and the bubble's second tick waits for a pause
+var pEdit=document.getElementById("pEdit"), ticks=document.getElementById("ticks"), typeT=0;
+function typingPulse(inEditor){
+  if(calm) return;
+  if(inEditor) pEdit.classList.add("typing");
+  bubble.classList.add("typing"); ticks.classList.remove("read");
+  clearTimeout(typeT);
+  typeT=setTimeout(function(){ pEdit.classList.remove("typing"); bubble.classList.remove("typing"); },650);
+}
+// copied for Telegram = sent: the time is now, the ticks turn blue, a light passes over the bubble
+function sent(){
+  var d=new Date();
+  document.getElementById("clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  ticks.classList.remove("read"); bubble.classList.remove("sent");
+  void bubble.offsetWidth;
+  ticks.classList.add("read"); if(!calm) bubble.classList.add("sent");
+}
+bubble.addEventListener("animationend",function(e){ if(e.animationName==="sent") bubble.classList.remove("sent"); });
+// every press sends a soft glow out from the finger
+document.addEventListener("pointerdown",function(e){
+  var b=!calm && e.target.closest && e.target.closest(".act,.tb,.qitem button,.mretry,.seg-b,.iconbtn");
+  if(!b) return;
+  var r=b.getBoundingClientRect();
+  b.style.setProperty("--rx",(e.clientX-r.left)+"px");
+  b.style.setProperty("--ry",(e.clientY-r.top)+"px");
+  b.classList.remove("rip"); void b.offsetWidth; b.classList.add("rip");
+},{capture:true,passive:true});
+document.addEventListener("animationend",function(e){ if(e.animationName==="rip") e.target.classList.remove("rip"); });
+// the opening is pure CSS; once it has played (the curtain gone, the panes risen), its curtain
+// and start-up delays are cleared away. A slow phone just plays it slower; a hidden tab is
+// covered by the fallback
+(function(){
+  var app=document.querySelector(".app"), left={introOut:1,rise:1}, t=0;
+  function done(){
+    clearTimeout(t);
+    var intro=document.getElementById("intro");
+    if(intro) intro.remove();
+    app.classList.remove("boot");
+    document.documentElement.classList.add("ready");
+  }
+  if(calm){ done(); return; }
+  document.addEventListener("animationend",function end(e){
+    if(!((e.animationName==="introOut" && e.target.id==="intro") || (e.animationName==="rise" && e.target.id==="pView"))) return;
+    delete left[e.animationName];
+    if(!left.introOut && !left.rise){ document.removeEventListener("animationend",end); done(); }
+  });
+  t=setTimeout(done,4000);
+})();
 
 /* ---------- init ---------- */
 var booted=false;

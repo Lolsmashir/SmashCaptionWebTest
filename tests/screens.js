@@ -122,7 +122,8 @@ function audit() {
   try {
     // every size twice: a classic caption, and a rich post (headings, lists, table, pictures)
     for (const s of SIZES) for (const rich of [false, true]) {
-      const { ctx, page, errors } = await openApp(browser, url, { viewport: { width: s.w, height: s.h }, mobile: !!s.mobile });
+      // with every animation on: the screenshots show the page as it really ends up
+      const { ctx, page, errors } = await openApp(browser, url, { viewport: { width: s.w, height: s.h }, mobile: !!s.mobile, motion: true });
       if (rich) { await page.click(".seg-b[data-mode='rich']"); await settle(page); }
       await typeCaption(page, rich ? RICH_CAPTION : CAPTION);
       await waitForMedia(page, rich ? 6 : 4);
