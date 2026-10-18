@@ -363,6 +363,47 @@ test("round trip: preview formatting → editor text → the same formatting (20
   }
 });
 
+test("links next to [brackets] and with [brackets] in their text", () => {
+  const h = (s) => app.inline(s);
+  assert.equal(h("***[ [آیتم شاپ | ITEM SHOP](https://fortnite.com/shop) ]***"),
+    '<b><i>[ <a href="https://fortnite.com/shop">آیتم شاپ | ITEM SHOP</a> ]</i></b>');
+  assert.equal(h("[**💢 [ پابلیک چت ]** ](https://t.me/LolSmashCity/942)"),
+    '<a href="https://t.me/LolSmashCity/942"><b>💢 [ پابلیک چت ]</b> </a>');
+  assert.equal(h("[a] [b](https://x.com/1) [c]"), '[a] <a href="https://x.com/1">b</a> [c]');
+  assert.equal(h("[ [a](https://x.com/1) | [b](https://x.com/2) ]"),
+    '[ <a href="https://x.com/1">a</a> | <a href="https://x.com/2">b</a> ]');
+  // and the editor gets the tidy form back from formatted runs
+  const bi = { b: 1, i: 1 }, link = { b: 1, i: 1, a: "https://fortnite.com/shop" };
+  assert.equal(app.runsToMarkdown([{ t: "[ ", f: bi }, { t: "آیتم شاپ", f: link }, { t: " ]", f: bi }]),
+    "***[ [آیتم شاپ](https://fortnite.com/shop) ]***");
+});
+
+test("round trip with [brackets] around and inside links (2000 random lines)", () => {
+  let seed = 3;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const words = ["[", "]", "[ آیتم ]", "سلام", "Fortnite", "TG | @LolSmash", "✦", "ITEM SHOP", "x", "۲۶ مهر", "@LolSmash"];
+  const keys = ["b", "i", "u", "s", "sp"];
+  for (let n = 0; n < 2000; n++) {
+    const runs = [];
+    for (let k = 0, count = 1 + rnd(6); k < count; k++) {
+      const f = {};
+      for (const key of keys) if (rnd(3) === 0) f[key] = 1;
+      if (rnd(5) === 0) f.a = "https://fortnite.com/p" + rnd(3);
+      // a link's own text never has a lone bracket in it
+      const pool = f.a ? words.filter((w) => w !== "[" && w !== "]") : words;
+      let t = pool[rnd(pool.length)];
+      if (rnd(4) === 0) t = " " + t;
+      if (rnd(4) === 0) t += " ";
+      runs.push({ t, f });
+    }
+    const md = app.runsToMarkdown(runs);
+    const got = htmlChars(app.inline(md)), want = runChars(runs);
+    const norm = (c) => c.ch === " " ? c.f.split(",").filter((x) => x !== "b" && x !== "i").join(",") : c.f;
+    assert.equal(got.map((c) => c.ch).join(""), want.map((c) => c.ch).join(""), "text: " + md);
+    got.forEach((c, i) => assert.equal(norm(c), norm(want[i]), `format of "${c.ch}" (#${i}) in ${JSON.stringify(md)}`));
+  }
+});
+
 /* ---------- embedded assets ---------- */
 
 test("the five IRANSans fonts are byte-for-byte the originals; the icon is a 180×180 PNG", () => {

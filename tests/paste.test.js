@@ -258,6 +258,49 @@ test("the پیست button pastes with formats when the clipboard has them", asyn
   await ctx.close();
 });
 
+// two real posts of the channel, as Telegram Desktop copies them: "[ ]" around links, bold+italic
+// lines, a link whose text has its own brackets
+const SHOP = "<html><body><b>🛒 آیتم شاپ آپدیت شد🔥</b><br>" + ZWNJ + "<br><b><i>🗓️ یکشنبه | ۲۶ مهر | ۱۴۰۵</i></b><br>" +
+  "<b>🛒 سایت آیتم شاپ فورتنایت</b><br>" +
+  "<b><i>[ </i></b><a href=\"https://www.fortnite.com/item-shop?creator-code=FNLS\"><b><i>آیتم شاپ | ITEM SHOP</i></b></a><b><i> ]</i></b><br>" +
+  "<b><i>[ </i></b><a href=\"https://deftgame.com/gifting-id/\"><b><i>آیدی های گیفتینگ</i></b></a><b><i> | </i></b>" +
+  "<a href=\"https://deftgame.com/product-category/gifting/\"><b><i>خرید گیفت</i></b></a><b><i> ]</i></b><br>" +
+  ZWNJ + "<br>📣 <b><i><u>@LolSmash</u></i></b></body></html>";
+const STW = "<html><body><b>50 ویباکس رایگان</b> 💰<br>" + ZWNJ + "<br>" +
+  "<a href=\"https://t.me/LolSmashCity/942\"><b>💢 [ پابلیک چت سیو ده ورلد ]</b> </a><br><b>📣 TG | @LolSmash</b></body></html>";
+
+test("Telegram posts with [ ] around their links paste as real links, with tidy markdown", async () => {
+  const { ctx, page, errors } = await open();
+  await typeCaption(page, "");
+  await editorCaret(page, 0);
+  await paste(page, "#input", SHOP);
+  assert.equal(await editor(page), [
+    "**🛒 آیتم شاپ آپدیت شد🔥**",
+    "",
+    "***🗓️ یکشنبه | ۲۶ مهر | ۱۴۰۵***",
+    "**🛒 سایت آیتم شاپ فورتنایت**",
+    "***[ [آیتم شاپ | ITEM SHOP](https://www.fortnite.com/item-shop?creator-code=FNLS) ]***",
+    "***[ [آیدی های گیفتینگ](https://deftgame.com/gifting-id/) | [خرید گیفت](https://deftgame.com/product-category/gifting/) ]***",
+    "",
+    "📣 ***__@LolSmash__***",
+  ].join("\n"));
+  await settle(page);
+  const tags = await previewTags(page);
+  assert.ok(tags.includes("<b><i>[ <a>آیتم شاپ | ITEM SHOP</a> ]</i></b>"), tags);
+  assert.ok(tags.includes("<b><i>[ <a>آیدی های گیفتینگ</a> | <a>خرید گیفت</a> ]</i></b>"), tags);
+  assert.ok(!/\*|\]\(/.test(await page.textContent("#preview")), "no markdown left showing in the preview");
+
+  // the same post pasted into the preview
+  await page.fill("#input", "");
+  await settle(page);
+  await page.focus("#preview");
+  await paste(page, "#preview", STW);
+  assert.equal(await editor(page), "**50 ویباکس رایگان** 💰\n\n[**💢 [ پابلیک چت سیو ده ورلد ]** ](https://t.me/LolSmashCity/942)\n**📣 TG | @LolSmash**");
+  assert.equal(await page.$eval("#preview a", (a) => a.textContent.replace(/[\u200E\u200F]/g, "")), "💢 [ پابلیک چت سیو ده ورلد ] ");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 // the page with a few of its internals reachable from the test (served in place of index.html)
 async function openWithHook() {
   const o = await open();

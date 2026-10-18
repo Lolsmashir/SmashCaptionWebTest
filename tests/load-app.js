@@ -11,7 +11,7 @@ const INDEX = path.join(__dirname, "..", "index.html");
 function fakeElement() {
   const el = {
     value: "", innerHTML: "", textContent: "", className: "",
-    style: {}, dataset: {}, children: [],
+    style: { setProperty() {}, removeProperty() {} }, dataset: {}, children: [],
     selectionStart: 0, selectionEnd: 0, offsetLeft: 0, offsetWidth: 0,
     classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
     addEventListener() {}, removeEventListener() {}, setAttribute() {},
@@ -53,7 +53,7 @@ function loadApp({ fetchImpl, userAgent = "node" } = {}) {
     querySelectorAll() { return []; },
     addEventListener() {},
     execCommand() { return true; },
-    body: fakeElement(),
+    body: fakeElement(), documentElement: fakeElement(),
     activeElement: null,
   };
   const sandbox = {

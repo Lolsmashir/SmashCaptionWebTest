@@ -22,6 +22,7 @@ Read this whole file before changing anything in this repo.
 - Lines labelled `Link:` / `Media:` / `Source:` and bare media-file URLs (pbs.twimg.com, video.twimg.com, image/video extensions) are removed from preview and copy. Plain URLs and markdown links stay.
 - Leading/trailing blank lines are trimmed AFTER media lines are removed (otherwise a stray blank appears under the signature). A removed line between two blank lines leaves ONE blank line, not two.
 - Formats are parsed with a stack (CommonMark-style delimiter matching, including the "rule of 3"), so nested and back-to-back formats like `***x***`, `**a *b***`, `*a***b**`, `**x ||y|| z**` come out well-formed. Markers inside a bare URL are not formats.
+- Literal brackets around a link stay text and the link still works: `***[ [آیتم شاپ | ITEM SHOP](url) ]***`; a link's own text may have brackets too: `[**💢 [ پابلیک چت ]**](url)`.
 - Signature button inserts exactly these four lines:
   ```
   **🛒 USE CODE : FNLS ❤️‍🩹**
@@ -34,6 +35,7 @@ Read this whole file before changing anything in this repo.
 - Copying from Telegram or from this site and pasting again keeps the formats: in the editor they come back as markdown, in the preview as formats. This works for Ctrl+V / long-press Paste in the editor, paste in the preview, and the «پیست» button.
 - Sources: Telegram Desktop's clipboard HTML (`<b> <i> <u> <s> <tg-spoiler> <code> <pre> <blockquote> <a>`, line breaks as `<br>`, also right before/after a quote), «کپی برای تلگرام», text selected in the preview, Telegram Web (`strong/em/del`, `.spoiler`, `data-entity-type`, monospace fonts, emoji pictures → the emoji), and web pages / Google Docs (bold/italic styles, paragraphs, blank lines).
 - «کپی برای تلگرام» then paste gives back exactly the same caption (a 400-caption random round-trip test checks this).
+- Formats turned back into markdown nest the tidy way (a link inside a bold line stays inside one bold pair); every line is read back to check it, and the plain fixed order is used whenever the tidy one would read differently.
 - Direction marks are stripped (the editor never has them); a line of only ZWNJ becomes an empty line.
 - A link stays `[text](url)` only when its text is not the address itself; bare URLs, `@handles` and `#tags` stay plain text (Telegram links them itself).
 - In a normal caption, headings become bold lines, lists get `•` / `◦` / `1.`, tables become `a | b` lines, `<hr>` becomes `———`, pictures are dropped.
@@ -83,6 +85,14 @@ Read this whole file before changing anything in this repo.
 - Editing tables, lists and headings inside the rich preview writes clean markdown back (table rows with their separator, `- ` / `1. ` prefixes, `#` levels).
 - A hashtag needs its word right after `#`; `# title` is a heading, not a hashtag line.
 
+### Motion (approved)
+- Short and light: only `transform` / `opacity` animate (nothing re-lays out the page), nothing loops while you work except the logo's slow glow, and `prefers-reduced-motion: reduce` turns all of it off (no opening at all).
+- Opening, under a second and never blocking: the logo pops in the middle, its bolt draws itself, a ring flashes, the curtain fades while the header and the three glass panes rise into place (`.app.boot` delays). JS removes the curtain and `boot` when the animations end (fallback 4 s).
+- A press sends a soft glow out from the finger (`.rip`). Done buttons (copy, download, پیست…) turn green, a light sweeps over them and a check draws itself; their width is held and a second click never loses the label.
+- Downloads, ارسال and image copies show a REAL progress bar on the quality row: bytes counted from the response stream, percent when the size is known, megabytes when not; green when done, then the check.
+- Typing: the editor's glass glows a little and the bubble's second tick waits for a pause. «کپی برای تلگرام» = sent: the bubble's time is now, the ticks turn blue, a light passes over the bubble.
+- The caption counter fills as the caption grows. Toasts show a thin line that runs out while they stay. The معمولی / ریچ switch is one pill that glides. Media thumbnails settle in once loaded; the media panel rises in when it appears.
+
 ### Look
 - Liquid glass: soft colour fields behind (volt, blue, violet), three floating glass panes (tint + `backdrop-filter: blur saturate` + a light rim brightest at the top corner), a glass toolbar capsule, glass chips for secondary buttons, a glossy volt drop for the main button, glass toast / sheet / mode switch, springy presses. No flat outlines. The preview is a Telegram dark-theme screen set into its glass pane. One bright button per panel; the media bar's main button is tinted.
 - Logo: volt rounded square with a dark speech bubble and a volt lightning bolt (inline SVG in the header; the same design is the 180×180 PNG home-screen/tab icon).
@@ -101,7 +111,7 @@ Do NOT add, remove, rename or move any feature or button on your own. I have bee
 
 ## Before you commit
 
-- `cd tests && npm install && npm test` — all tests must pass (Node text-pipeline tests + Playwright browser tests; the tweet APIs are mocked).
+- `cd tests && npm install && npm test` — all tests must pass (Node text-pipeline tests + Playwright browser tests; the tweet APIs are mocked). Browser tests run with "reduce motion" so nothing is mid-animation; `motion.test.js` and `screens.js` run with every animation on.
 - `node screens.js <out-dir>` — screenshots + layout audit at 390×844, 507×449, 800×600, 1440×900, 1920×1080 and more, each in classic AND rich mode. Look at every screenshot yourself.
 - Writing `\u200F`-style escapes through some tools turns them into the invisible characters themselves; keep RLM/LRM/ZWNJ/FE0F as `\u` escapes in code.
 - GitHub Pages deploys `main` (root) through Jekyll: keep test tooling inside `tests/`, never commit `node_modules`, and don't add root files that Jekyll would choke on.
