@@ -68,10 +68,23 @@ Read this whole file before changing anything in this repo.
 - On a touch screen no button pulls the keyboard up (پاک, پیست, اصلاح, امضا, toolbar): the caret only moves into the editor if the keyboard is already open. Toolbar and action buttons don't take the focus (`mousedown` is prevented), so an open keyboard stays open.
 - Messages (toast) drop in at the top, centred in the header band, with a coloured dot (green = done, yellow = warning). They never sit on a button and the phone keyboard can't hide them.
 - «پیست»: reads the clipboard (with its formats via `clipboard.read()`, else `readText`); if the browser blocks it, the editor gets focus and a toast says exactly what to do (Ctrl+V / long-press / allow clipboard for the site).
-- Caption counter (approved): `N / 1024` in the preview's bottom row; yellow above 900, red above 1024 with a toast. The row is sticky so a long caption never hides it.
+- Caption counter (approved): `N / 1024` in the preview's bottom row; yellow above 900. The row is sticky so a long caption never hides it. Writing is never limited; the counter only shows the limit.
+  - Above 1024 (approved): the caption needs Premium — the counter turns violet, shows `N / 4096` (with ✦ where there is room), the ✂ chip lights up, and a toast says it needs Premium (up to 4096) or can be split with ✂. Above 4096 it turns red with a toast (not even Premium).
   - It counts what Telegram counts: the text of the post once its formats are applied. Format markers and the ADDRESS behind a link don't count (a link counts its text only); the direction marks and the ZWNJ of blank lines are real characters of the post and do; units are UTF-16 (an emoji is 2). «ساده» still copies links as "text url".
-  - Telegram's caption limit is 1024 for normal accounts and (per 2024 reports) 4096 with Premium; the counter shows 1024 unless the user asks otherwise.
+  - Telegram's caption limit is 1024 for normal accounts and (per 2024 reports) 4096 with Premium.
 - Draft (approved): the editor text is saved to `localStorage` and restored after a refresh or iOS closing the home-screen app. «پاک» clears it.
+
+### Split post (approved)
+- A small ✂ chip sits beside the counter (classic mode only; hidden in rich mode). It opens a sheet that splits the post into parts that each fit, without touching the editor text.
+- The sheet: the caption's count and the limits; a limit switch «سقف عادی 1024» / «پریمیوم 4096» (Latin digits, saved in `localStorage` as `caption-studio-cut-limit`; switching starts again from the fewest parts); part-count buttons (2, 3, 4…; counts with a part over the limit are disabled); each part as a small Telegram preview with its own `N / limit` and a «کپی قسمت N» button.
+- Smart cuts: a cut never goes through a quote or a code block; it prefers blank lines, then sentence ends, and avoids a line ending in ":" (it opens what follows), the inside of a list and the line right after the title; parts come out about the same size. `Link:` / `Media:` lines are in no part.
+- Between two parts, ▲ / ▼ move that cut one line up / down (blank lines are stepped over, no part can become empty).
+- Part 1 keeps the post's own full signature (found from its «USE CODE» line near the end); every other part ends, after a blank line, with the short signature — the first two lines of the signature:
+  ```
+  **🛒 USE CODE : FNLS ❤️‍🩹**
+  **📣 TG | @LolSmash**
+  ```
+- «کپی قسمت N» copies that part exactly like «کپی برای تلگرام» (direction fixing, per-app HTML / iPhone markdown); the toast says which part was copied. Esc or ✕ closes the sheet; on a phone the keyboard stays down.
 
 ### Editing in the preview (approved)
 - The preview is `contenteditable`. Typing inside bold stays bold; Enter, Backspace, Ctrl+B/I/U work there and every edit writes back into the editor as markdown.

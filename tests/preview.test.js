@@ -177,7 +177,7 @@ test("the preview shows exactly what gets copied", async () => {
 
 /* ---------- approved features ---------- */
 
-test("caption counter: counts the copied text, turns yellow near 1024 and red above it", async () => {
+test("caption counter: counts the copied text, yellow near 1024, Premium above it, red above 4096", async () => {
   const { ctx, page } = await open();
   await typeCaption(page, "سلام");
   assert.equal(await page.textContent("#count"), "4 / 1024");
@@ -186,9 +186,16 @@ test("caption counter: counts the copied text, turns yellow near 1024 and red ab
   assert.equal(await page.textContent("#count"), "9 / 1024");
   await typeCaption(page, "ا".repeat(950));
   assert.equal(await page.$eval("#count", (c) => c.className), "cnt near");
+  // over 1024: only Telegram Premium sends it — the counter switches to Premium's 4096
   await typeCaption(page, "ا".repeat(1100));
+  assert.equal(await page.$eval("#count", (c) => c.className), "cnt prem");
+  assert.equal(await page.textContent("#count"), "1100 / 4096");
+  assert.match(await page.textContent("#toast"), /پریمیوم/);
+  assert.ok(await page.$("#bCut.hot"), "✂ lights up");
+  // over 4096: too long even for Premium
+  await typeCaption(page, "ا".repeat(4200));
   assert.equal(await page.$eval("#count", (c) => c.className), "cnt over");
-  assert.match(await page.textContent("#toast"), /1024/);
+  assert.match(await page.textContent("#toast"), /۴۰۹۶/);
   await ctx.close();
 });
 
