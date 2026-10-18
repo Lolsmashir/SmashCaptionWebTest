@@ -35,18 +35,18 @@ test("download: a real progress bar fills the quality row as the bytes arrive, t
   const { ctx, page, errors } = await open();
   await typeCaption(page, CAPTION);
   await waitForMedia(page, 4);
-  // the file arrives slowly, in six pieces of a known total size
+  // the file arrives slowly, in eight pieces of a known total size (slow enough to watch on a busy machine)
   await page.evaluate(() => {
     const real = window.fetch;
     window.fetch = (u, o) => {
       if (!/video\.twimg\.com/.test(u) || (o && o.method === "HEAD")) return real(u, o);
       const body = new ReadableStream({
         async start(c) {
-          for (let i = 0; i < 6; i++) { await new Promise((r) => setTimeout(r, 140)); c.enqueue(new Uint8Array(1000)); }
+          for (let i = 0; i < 8; i++) { await new Promise((r) => setTimeout(r, 250)); c.enqueue(new Uint8Array(1000)); }
           c.close();
         },
       });
-      return Promise.resolve(new Response(body, { headers: { "content-length": "6000", "content-type": "video/mp4" } }));
+      return Promise.resolve(new Response(body, { headers: { "content-length": "8000", "content-type": "video/mp4" } }));
     };
     window.__seen = [];
     const btn = document.querySelector(".mcard .qitem.rec button[data-act='dl']");
@@ -57,8 +57,11 @@ test("download: a real progress bar fills the quality row as the bytes arrive, t
   const width = await page.$eval(btn, (b) => b.offsetWidth);
   await page.click(btn);
   await page.waitForSelector(".mcard .qitem.rec .qbar");
-  await page.waitForFunction((s) => /\d+%/.test(document.querySelector(s).textContent), btn);
-  const mid = await page.$eval(".mcard .qitem.rec .qbar", (b) => b.style.transform);
+  // the percentage and the bar, read at the same moment (the download may finish right after)
+  const mid = await (await page.waitForFunction((s) => {
+    const b = document.querySelector(s), bar = document.querySelector(".mcard .qitem.rec .qbar");
+    return /\d+%/.test(b.textContent) && bar && bar.style.transform ? bar.style.transform : false;
+  }, btn, { polling: 40 })).jsonValue();
   assert.match(mid, /^scaleX\(0?\.\d+\)$/, "the bar is part-way: " + mid);
   assert.ok(await page.$eval(btn, (b) => b.offsetWidth) >= width, "the button keeps its width while it counts");
   await download;
