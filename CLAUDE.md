@@ -30,6 +30,16 @@ Read this whole file before changing anything in this repo.
   **#Fortnite | #فورتنایت**
   ```
 
+### Paste with formats (approved)
+- Copying from Telegram or from this site and pasting again keeps the formats: in the editor they come back as markdown, in the preview as formats. This works for Ctrl+V / long-press Paste in the editor, paste in the preview, and the «پیست» button.
+- Sources: Telegram Desktop's clipboard HTML (`<b> <i> <u> <s> <tg-spoiler> <code> <pre> <blockquote> <a>`, line breaks as `<br>`, also right before/after a quote), «کپی برای تلگرام», text selected in the preview, Telegram Web (`strong/em/del`, `.spoiler`, `data-entity-type`, monospace fonts, emoji pictures → the emoji), and web pages / Google Docs (bold/italic styles, paragraphs, blank lines).
+- «کپی برای تلگرام» then paste gives back exactly the same caption (a 400-caption random round-trip test checks this).
+- Direction marks are stripped (the editor never has them); a line of only ZWNJ becomes an empty line.
+- A link stays `[text](url)` only when its text is not the address itself; bare URLs, `@handles` and `#tags` stay plain text (Telegram links them itself).
+- In a normal caption, headings become bold lines, lists get `•` / `◦` / `1.`, tables become `a | b` lines, `<hr>` becomes `———`, pictures are dropped.
+- Clipboard HTML with no format at all is pasted as plain text, exactly as the browser does it. Inside a code block, paste is always plain text.
+- Pasting into the preview inside bold/spoiler/link closes the format before the paste and opens it again after it; the pasted text keeps only its own formats. Pasted lines inside a quote stay in the quote; a pasted quote or code block gets its own lines. The caret ends up right after the paste, and one undo step takes the paste back.
+
 ### Media panel
 - Tweet links are resolved by calling api.fxtwitter.com AND api.vxtwitter.com in parallel (`Promise.allSettled`), merged by media ORDER (the two APIs return different URL shapes for the same clip — never create two cards for one video).
 - Video renditions: deduped, sorted high→low, `.m3u8` excluded. Images get orig/large/medium/small variants.
@@ -51,7 +61,7 @@ Read this whole file before changing anything in this repo.
 - No zoom on phones: viewport has `maximum-scale=1.0`, `html` has `touch-action: manipulation`.
 - On a touch screen no button pulls the keyboard up (پاک, پیست, اصلاح, امضا, toolbar): the caret only moves into the editor if the keyboard is already open. Toolbar and action buttons don't take the focus (`mousedown` is prevented), so an open keyboard stays open.
 - Messages (toast) drop in at the top, centred in the header band, with a coloured dot (green = done, yellow = warning). They never sit on a button and the phone keyboard can't hide them.
-- «پیست»: reads the clipboard; if the browser blocks it, the editor gets focus and a toast says exactly what to do (Ctrl+V / long-press / allow clipboard for the site).
+- «پیست»: reads the clipboard (with its formats via `clipboard.read()`, else `readText`); if the browser blocks it, the editor gets focus and a toast says exactly what to do (Ctrl+V / long-press / allow clipboard for the site).
 - Caption counter (approved): `N / 1024` in the preview's bottom row, counting the COPIED plain text; yellow above 900, red above 1024 with a toast. The row is sticky so a long caption never hides it.
 - Draft (approved): the editor text is saved to `localStorage` and restored after a refresh or iOS closing the home-screen app. «پاک» clears it.
 
@@ -59,7 +69,7 @@ Read this whole file before changing anything in this repo.
 - The preview is `contenteditable`. Typing inside bold stays bold; Enter, Backspace, Ctrl+B/I/U work there and every edit writes back into the editor as markdown.
 - The toolbar works on whichever side has the focus; while it works on the preview it shows a volt edge. Inline formats use the browser's commands, spoiler wraps via `<sup>` → `span.spoiler`, link asks for the URL, bullets/quote/code are applied to the editor lines and the preview redraws.
 - Blocks the user did not edit give back their EXACT editor lines. `Link:` / `Media:` lines (and blank edges) the preview hides are put back where they were, so media cards never disappear.
-- Pasted or dropped text arrives as plain text only. Emptying the whole preview starts a clean unformatted line.
+- Pasted text keeps its Telegram formats and nothing else: dropped text is ignored, and colours, fonts and sizes of the source never come in. Emptying the whole preview starts a clean unformatted line.
 - Leaving the preview redraws it (direction marks); undo/redo while in the preview keep the caret.
 - Don't redraw the preview while the user types in it (it breaks the iPhone keyboard); it redraws on the next animation frame when the editor changes.
 
