@@ -181,6 +181,9 @@ test("caption counter: counts the copied text, turns yellow near 1024 and red ab
   const { ctx, page } = await open();
   await typeCaption(page, "سلام");
   assert.equal(await page.textContent("#count"), "4 / 1024");
+  // stars and the address behind a link are not part of the post Telegram counts
+  await typeCaption(page, "**سلام** [لینک](https://www.fortnite.com/item-shop?creator-code=FNLS)");
+  assert.equal(await page.textContent("#count"), "9 / 1024");
   await typeCaption(page, "ا".repeat(950));
   assert.equal(await page.$eval("#count", (c) => c.className), "cnt near");
   await typeCaption(page, "ا".repeat(1100));

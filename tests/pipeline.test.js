@@ -404,6 +404,31 @@ test("round trip with [brackets] around and inside links (2000 random lines)", (
   }
 });
 
+test("caption length is counted the way Telegram counts it", () => {
+  const len = (text) => { app.input.value = text; return app.captionLength(); };
+  // format markers don't count
+  assert.equal(len("**سلام** __دنیا__ ||راز||"), "سلام دنیا راز".length);
+  // a link counts its text only — the address behind it is not part of the post
+  assert.equal(len("سلام [لینک](https://www.fortnite.com/item-shop?creator-code=FNLS)"), "سلام لینک".length);
+  // direction marks around English words and the ZWNJ of a blank line are real characters of the post
+  assert.equal(len("سلام Fortnite"), ("سلام " + R + "Fortnite" + R).length);
+  assert.equal(len("a\n\nb"), ("a\n" + Z + "\nb").length);
+  // UTF-16 units, like Telegram's own lengths: an emoji is 2
+  assert.equal(len("🔥"), 2);
+  // Link: lines (and the blank line above them) are not copied, so they don't count either
+  assert.equal(len("سلام\n\nLink: https://x.com/a/status/1"), 4);
+  // «ساده» still copies a readable "text url"
+  app.input.value = "سلام [لینک](https://x.com/1)";
+  assert.equal(app.output().plain, "سلام لینک https://x.com/1");
+  // a real post: 133 characters of link addresses used to be counted
+  app.input.value = [
+    "***[ [آیتم شاپ | ITEM SHOP](https://www.fortnite.com/item-shop?creator-code=FNLS) ]***",
+    "***[ [آیدی های گیفتینگ](https://deftgame.com/gifting-id/) | [خرید گیفت](https://deftgame.com/product-category/gifting/) ]***",
+  ].join("\n");
+  assert.equal(app.captionLength(), ("[ آیتم شاپ | " + R + "ITEM SHOP" + R + " ]\n[ آیدی های گیفتینگ | خرید گیفت ]").length);
+  app.input.value = "";
+});
+
 /* ---------- embedded assets ---------- */
 
 test("the five IRANSans fonts are byte-for-byte the originals; the icon is a 180×180 PNG", () => {
