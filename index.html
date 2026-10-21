@@ -965,8 +965,9 @@ function say(m,k){
 /* ---------- text helpers ---------- */
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
 // an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
-// otherwise the mark lands inside the name and Telegram stops linking it
-var LATIN_RUN_RE=/[@#]?[A-Za-z][A-Za-z0-9_]*(?:[ ×&'’.:\/\-]+[A-Za-z0-9][A-Za-z0-9_]*)*/g;
+// otherwise the mark lands inside the name and Telegram stops linking it.
+// Signs glued to a name stay in it too (A$AP Rocky, P!nk, LEGO®, C++), or the name is cut in two
+var LATIN_RUN_RE=/[@#$]?[A-Za-z][A-Za-z0-9_]*(?:[ ×&'’.:\/\-$!+®™©]+[A-Za-z0-9][A-Za-z0-9_]*)*[$+®™©]*/g;
 // a number at the very end of a latin run belongs to the persian sentence
 // ("The Final Reckoning 29 شهریور"), so it is left outside the isolation
 var TRAIL_NUM_RE=/^([\s\S]*?[A-Za-z][A-Za-z0-9]*)(\s+[\d][\d.,]*)$/;
@@ -1041,13 +1042,16 @@ function isolateLatin(line){
     u=u.slice(0,u.length-tail.length);
     return (u? hold(RLM+u+RLM) : "")+tail;
   });
+  // a sign at the edge of a run (@handle, #tag, LEGO®, C++) would take the Persian side and
+  // jump to the other end of the name: an LRM inside the marks holds it to the name
+  function isolate(s){ return RLM+(/^[@#$]/.test(s)? LRM : "")+s+(/[$+®™©]$/.test(s)? LRM : "")+RLM; }
   line=line.replace(LATIN_RUN_RE,function(mm){
     // a trailing "__" is an underline marker, not part of the word
     var end=(mm.match(/_+$/)||[""])[0];
     mm=mm.slice(0,mm.length-end.length);
     var t=TRAIL_NUM_RE.exec(mm);
-    if(t && !NAME_NUM_RE.test(t[1])) return RLM+t[1]+RLM+t[2]+end;
-    return RLM+mm+RLM+end;
+    if(t && !NAME_NUM_RE.test(t[1])) return isolate(t[1])+t[2]+end;
+    return isolate(mm)+end;
   });
   return line.replace(/\u0002(\d+)\u0003/g,function(m,i){ return held[i]; });
 }
