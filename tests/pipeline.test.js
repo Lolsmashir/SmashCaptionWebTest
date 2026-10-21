@@ -247,9 +247,23 @@ test("URLs on a Persian line stay whole; a markdown link target gets no marks", 
 });
 
 test("@handles and #tags inside a Persian line keep their sign and underscores", () => {
-  assert.equal(fix("منبع: @Fortnite_Leaks"), `منبع: ${R}@Fortnite_Leaks${R}`);
-  assert.equal(fix("متن #Fortnite جدید"), `متن ${R}#Fortnite${R} جدید`);
+  // the LRM holds the sign beside the name (without it the line shows "Fortnite_Leaks@")
+  assert.equal(fix("منبع: @Fortnite_Leaks"), `منبع: ${R}${L}@Fortnite_Leaks${R}`);
+  assert.equal(fix("متن #Fortnite جدید"), `متن ${R}${L}#Fortnite${R} جدید`);
   assert.equal(fix("__Fortnite Chapter 7__ شروع شد"), `__${R}Fortnite Chapter 7${R}__ شروع شد`);
+});
+
+test("signs glued to a name stay in it: A$AP Rocky, P!nk, LEGO® Fortnite, C++", () => {
+  assert.equal(fix("اسکین A$AP Rocky که قراره بیاد!"), `اسکین ${R}A$AP Rocky${R} که قراره بیاد!`);
+  assert.equal(fix("اسکین P!nk و Ke$ha"), `اسکین ${R}P!nk${R} و ${R}Ke$ha${R}`);
+  assert.equal(fix("پک LEGO® Fortnite جدید"), `پک ${R}LEGO® Fortnite${R} جدید`);
+  assert.equal(fix("اسکین Marvel™ اومد"), `اسکین ${R}Marvel™${L}${R} اومد`);
+  assert.equal(fix("زبان C++ و Galaxy S24+"), `زبان ${R}C++${L}${R} و ${R}Galaxy S24+${L}${R}`);
+  assert.equal(fix("اسکین $uicideboy$ اومد"), `اسکین ${R}${L}$uicideboy$${L}${R} اومد`);
+  // the end of a Persian sentence is not part of the name
+  assert.equal(fix("این Fortnite! خیلی خوبه"), `این ${R}Fortnite${R}! خیلی خوبه`);
+  assert.equal(fix("بازی Fortnite."), `بازی ${R}Fortnite${R}.`);
+  assert.equal(fix("قیمت $9.99 برای Crew"), `قیمت $9.99 برای ${R}Crew${R}`);
 });
 
 test("a line starting with the #️⃣ button is fixed like any other line", () => {

@@ -18,6 +18,7 @@ Read this whole file before changing anything in this repo.
   - EXCEPTION (approved): a number right after Season / Chapter / Part / Vol / Volume / Episode / Ep / Act / Week / Day / Level / Tier / Phase / Round / Stage / Wave / Mission / Book is part of the name and stays inside (`Chapter 7 Season 1`, `Part 2`);
   - a URL is isolated as ONE run (never a mark inside it); a markdown link target `](url)` gets no marks at all;
   - `@handle` and inline `#tag` keep their sign inside the run, and inner underscores stay (`@Fortnite_Leaks`), so Telegram still links them;
+  - signs glued to a name stay in its run, so the name is never cut in two: `A$AP Rocky`, `Ke$ha`, `P!nk`, `LEGO® Fortnite`, `Marvel™`, `C++`, `Galaxy S24+`. A sign at the very start or end of a run (`@`, `#`, `$`, `+`, `®`, `™`, `©`) gets an LRM (U+200E) inside the RLM pair so it shows beside the name (`@LolSmash`, not `LolSmash@`). A `!` or `.` that ends the Persian sentence is not part of the name. `tests/preview.test.js` checks how these names actually look on screen;
   - a line starting with the `#️⃣` keycap emoji is a normal line, not a hashtag line;
   - lines with `➥` and no Persian get a leading LRM;
   - blank lines become a single ZWNJ (U+200C);

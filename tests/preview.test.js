@@ -175,6 +175,34 @@ test("the preview shows exactly what gets copied", async () => {
   await ctx.close();
 });
 
+test("English names inside a Persian line read the right way round in the preview", async () => {
+  const { ctx, page } = await open();
+  const names = ["A$AP Rocky", "Ke$ha", "P!nk", "LEGO® Fortnite", "Marvel™", "C++", "Galaxy S24+", "@LolSmash", "#Fortnite", "@Fortnite_Leaks"];
+  await typeCaption(page, names.map((n) => "**اسکین " + n + " که قراره بیاد!**").join("\n"));
+  // the characters of each line in the order they sit on screen, left to right
+  const shown = await page.evaluate(() => {
+    document.getElementById("preview").style.whiteSpace = "nowrap";
+    return [...document.getElementById("preview").children].map((line) => {
+      const chars = [];
+      const w = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+      for (let n; (n = w.nextNode());) {
+        for (let i = 0; i < n.data.length;) {
+          const len = n.data.codePointAt(i) > 0xffff ? 2 : 1, ch = n.data.slice(i, i + len);
+          if (!/[\u200c\u200e\u200f]/.test(ch)) {
+            const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + len);
+            const b = r.getBoundingClientRect();
+            chars.push({ ch, x: b.left + b.width / 2 });
+          }
+          i += len;
+        }
+      }
+      return chars.sort((a, b) => a.x - b.x).map((c) => c.ch).join("");
+    });
+  });
+  names.forEach((n, i) => assert.ok(shown[i].includes(n), n + " shows as: " + shown[i]));
+  await ctx.close();
+});
+
 /* ---------- approved features ---------- */
 
 test("caption counter: counts the copied text, yellow near 1024, Premium above it, red above 4096", async () => {
