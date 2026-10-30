@@ -1062,8 +1062,9 @@ var URL_RE=/https?:\/\/[^\s<>"']+/gi;
 var LAT="A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF";
 // an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
 // otherwise the mark lands inside the name and Telegram stops linking it.
-// Signs glued to a name stay in it too (A$AP Rocky, P!nk, LEGO®, C++), or the name is cut in two
-var LATIN_RUN_RE=new RegExp("[@#$]?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+)*[$+®™©]*","g");
+// Signs glued to a name stay in it too (A$AP Rocky, P!nk, LEGO®, C++), or the name is cut in two,
+// and so do digits it starts with (3D, 4K, 1-Up Token)
+var LATIN_RUN_RE=new RegExp("[@#$]?(?:[0-9]+[-.]?)?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+)*[$+®™©]*","g");
 // a number at the very end of a latin run is part of the name ("GTA 6", "FIFA 25")...
 var TRAIL_NUM_RE=new RegExp("^([\\s\\S]*?["+LAT+"]["+LAT+"0-9]*)(\\s+\\d[\\d.,]*)$");
 // ...except when a date, time or count word follows it: then it belongs to the persian sentence
@@ -1163,9 +1164,9 @@ function isolateLatin(line){
     u=u.slice(0,u.length-tail.length);
     return (u? hold(RLM+u+RLM) : "")+tail;
   });
-  // a sign at the edge of a run (@handle, #tag, LEGO®, C++) would take the Persian side and
+  // a sign or digit at the edge of a run (@handle, #tag, 1-Up, LEGO®, C++) would take the Persian side and
   // jump to the other end of the name: an LRM inside the marks holds it to the name
-  function isolate(s){ return RLM+(/^[@#$]/.test(s)? LRM : "")+s+(/[$+®™©]$/.test(s)? LRM : "")+RLM; }
+  function isolate(s){ return RLM+(/^[@#$0-9]/.test(s)? LRM : "")+s+(/[$+®™©]$/.test(s)? LRM : "")+RLM; }
   line=line.replace(LATIN_RUN_RE,function(mm,at,all){
     var after=all.slice(at+mm.length);
     // a trailing "__" is an underline marker, not part of the word
@@ -3256,6 +3257,17 @@ function paintDust(ctx,r){
     ctx.fillRect(x,y,0.9,0.9);
   }
 }
+function shotRuns(w){
+  var out=[], cur=null, i=0;
+  for(var ch of w){
+    var k=/[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(ch)? "fa" : /[A-Za-z0-9\u00C0-\u024F\u1E00-\u1EFF]/.test(ch)? "en" : "";
+    if(!cur || (k && cur.kind && k!==cur.kind)){ cur={ text:"", at:i, kind:"" }; out.push(cur); }
+    if(k) cur.kind=k;
+    cur.text+=ch; i+=ch.length;
+  }
+  out.forEach(function(r){ r.fa=r.kind==="fa"; });
+  return out;
+}
 async function renderTweetImage(info,mode){
   var body= mode==="ours"? ourBody() : info.text;
   var imgs=await Promise.all([info.avatar].concat(info.media.map(function(m){ return m.src; })).map(shotImage));
@@ -3264,6 +3276,19 @@ async function renderTweetImage(info,mode){
   card.className="shot"; card.setAttribute("dir","ltr"); card.setAttribute("aria-hidden","true");
   card.innerHTML=shotHtml(info,mode,body,imgs);
   document.body.appendChild(card);
+  [].forEach.call(card.querySelectorAll(".shot-text"),function(box){
+    var w=document.createTreeWalker(box,NodeFilter.SHOW_TEXT), list=[], t;
+    while((t=w.nextNode())) if(/[0-9A-Za-z]-[0-9A-Za-z]/.test(t.data)) list.push(t);
+    list.forEach(function(t){
+      var f=document.createDocumentFragment();
+      t.data.split(/([0-9A-Za-z\u00C0-\u024F]+(?:-[0-9A-Za-z\u00C0-\u024F]+)+)/).forEach(function(x,k){
+        if(!x) return;
+        if(k%2){ var n=document.createElement("span"); n.style.whiteSpace="nowrap"; n.textContent=x; f.appendChild(n); }
+        else f.appendChild(document.createTextNode(x));
+      });
+      t.parentNode.replaceChild(f,t);
+    });
+  });
   try{
     var cr=card.getBoundingClientRect(), cv=document.createElement("canvas"), ctx=cv.getContext("2d");
     var rel=function(b){ return { x:b.left-cr.left, y:b.top-cr.top, w:b.width, h:b.height }; };
@@ -3315,35 +3340,50 @@ async function renderTweetImage(info,mode){
       }
       ctx.font=cs.fontStyle+" "+cs.fontWeight+" "+cs.fontSize+" "+cs.fontFamily;
       ctx.fillStyle=cs.color;
-      var deco=cs.textDecorationLine||"", size=parseFloat(cs.fontSize), re=/\S+/g, m;
+      var deco=cs.textDecorationLine||"", size=parseFloat(cs.fontSize), asc=ctx.measureText("x").fontBoundingBoxAscent||size*0.9, re=/\S+/g, m;
+      var lineRtl=cs.direction==="rtl";
       var draw=function(text,b){
-        var rtl=/[֐-ࣿיִ-ﻼ]/.test(text), r=rel(b), mt=ctx.measureText(text);
-        var asc=mt.fontBoundingBoxAscent||size*0.9;
+        // English letters run left to right, Persian right to left; emoji, digits and signs follow
+        // their line (two emoji at the end of a Persian line keep the browser's order)
+        var r=rel(b), rtl=/[A-Za-z\u00C0-\u024F\u1E00-\u1EFF]/.test(text)? false : /[\u0590-\u08FF\uFB1D-\uFEFC]/.test(text)? true : lineRtl;
         ctx.direction=rtl? "rtl" : "ltr"; ctx.textAlign=rtl? "right" : "left"; ctx.textBaseline="alphabetic";
         ctx.fillText(text,rtl? r.x+r.w : r.x,r.y+asc);
-        if(/underline/.test(deco)) ctx.fillRect(r.x,r.y+asc+2,r.w,1);
-        if(/line-through/.test(deco)) ctx.fillRect(r.x,r.y+asc-size*0.3,r.w,1);
+      };
+      var rectsOf=function(a,z){
+        range.setStart(node,a); range.setEnd(node,z);
+        return [].filter.call(range.getClientRects(),function(b){ return b.width>0.5; });
       };
       while((m=re.exec(node.data))){
-        range.setStart(node,m.index); range.setEnd(node,m.index+m[0].length);
-        var rects=[].filter.call(range.getClientRects(),function(b){ return b.width>0.5; });
-        if(rects.length===1){ draw(m[0],rects[0]); continue; }
-        if(!rects.length) continue;
-        // a Persian word in pieces on one line (a ZWNJ inside it): drawn whole over all of them,
-        // so its letters still join
-        if(/[\u0600-\u06FF]/.test(m[0]) && rects.every(function(b){ return Math.abs(b.top-rects[0].top)<2; })){
-          var x0=Math.min.apply(null,rects.map(function(b){ return b.left; })), x1=Math.max.apply(null,rects.map(function(b){ return b.right; }));
-          draw(m[0],{ left:x0, top:rects[0].top, width:x1-x0, height:rects[0].height });
-          continue;
-        }
-        // a word the browser split (across lines, or into two directions): letter by letter
-        for(var i=m.index;i<m.index+m[0].length;){
-          var len=node.data.codePointAt(i)>0xffff? 2 : 1;
-          range.setStart(node,i); range.setEnd(node,i+len);
-          var cb=[].filter.call(range.getClientRects(),function(b){ return b.width>0.5; })[0];
-          if(cb) draw(node.data.slice(i,i+len),cb);
-          i+=len;
-        }
+        // a word that mixes Persian and English ("Chest" ZWNJ "ها", "اسکین«Mastering") is drawn a script at a
+        // time: the browser may put its parts far apart
+        shotRuns(m[0]).forEach(function(part){
+          var a=m.index+part.at, z=a+part.text.length, rects=rectsOf(a,z);
+          if(!rects.length) return;
+          if(rects.length===1){ draw(part.text,rects[0]); return; }
+          // Persian in pieces on one line (a ZWNJ inside it): drawn whole over all of them, so its letters join
+          if(part.fa && rects.every(function(b){ return Math.abs(b.top-rects[0].top)<2; })){
+            var x0=Math.min.apply(null,rects.map(function(b){ return b.left; })), x1=Math.max.apply(null,rects.map(function(b){ return b.right; }));
+            draw(part.text,{ left:x0, top:rects[0].top, width:x1-x0, height:rects[0].height });
+            return;
+          }
+          // split by the browser (across lines, or into two directions): letter by letter
+          for(var i=a;i<z;){
+            var len=node.data.codePointAt(i)>0xffff? 2 : 1, cb=rectsOf(i,i+len)[0];
+            if(cb) draw(node.data.slice(i,i+len),cb);
+            i+=len;
+          }
+        });
+      }
+      // underline and strike-through run under the whole text, spaces too
+      if(/underline|line-through/.test(deco)){
+        range.selectNodeContents(node);
+        var th=Math.max(1,size/16);
+        [].forEach.call(range.getClientRects(),function(b){
+          if(b.width<1) return;
+          var r=rel(b);
+          if(/underline/.test(deco)) ctx.fillRect(r.x,r.y+asc+size*0.1,r.w,th);
+          if(/line-through/.test(deco)) ctx.fillRect(r.x,r.y+asc-size*0.28,r.w,th);
+        });
       }
     }
     return await new Promise(function(ok,no){ cv.toBlob(function(b){ b? ok(b) : no(new Error("no picture")); },"image/png"); });
