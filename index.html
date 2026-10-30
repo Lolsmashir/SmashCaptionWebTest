@@ -596,6 +596,58 @@ body.rich .cutb{display:none;}
 }
 .hist-none{text-align:center;color:var(--muted);}
 
+/* the tweet as a picture: the sheet */
+.shot-in{max-width:640px;}
+.shot-box{
+  display:grid;place-items:center;min-height:150px;margin:0 0 12px;
+  background:#000;border-radius:14px;overflow:hidden;box-shadow:var(--chip-edge);
+}
+.shot-box img{display:block;width:100%;height:auto;max-height:60vh;object-fit:contain;transition:opacity .2s;}
+.shot-box.wait img{opacity:.3;}
+.shot-acts{display:flex;gap:8px;margin-bottom:10px;}
+.sheet .shot-acts .act{flex:1;width:auto;margin:0;}
+.act[aria-disabled="true"]{opacity:.45;}
+/* ...and the card it is drawn from: X's dark look, laid out out of sight, then painted */
+.shot{
+  position:fixed;left:0;top:0;z-index:-1;visibility:hidden;pointer-events:none;
+  width:560px;box-sizing:border-box;padding:12px 16px 2px;background:#000;color:#e7e9ea;
+  font:400 15px/20px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  text-align:start;
+}
+.shot *{box-sizing:border-box;}
+.shot-head{display:flex;align-items:center;gap:8px;}
+.shot-av{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#333639;color:#e7e9ea;font-weight:700;font-size:17px;}
+.shot-id{flex:1;min-width:0;}
+.shot-name{display:flex;align-items:center;font-weight:700;}
+.shot-badge{flex:0 0 auto;width:18.75px;height:18.75px;margin-inline-start:2px;color:#1d9bf0;}
+.shot-badge.gold{color:#e2b719;} .shot-badge.gray{color:#829aab;}
+.shot-user{color:#71767b;}
+.shot-mark{display:flex;align-items:center;gap:5px;color:#71767b;font-size:13px;font-weight:600;}
+.shot-mark i{width:15px;height:15px;}
+.shot-text{margin-top:12px;font-size:17px;line-height:24px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.shot-text.fa{font-family:'IRANSans',-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,Arial,sans-serif;line-height:30px;}
+.shot-link,.shot-text a{color:#1d9bf0;text-decoration:none;}
+.shot-text code,.shot-text pre{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;}
+.shot-text pre{margin:4px 0;padding:8px 10px;border-radius:8px;background:#16181c;white-space:pre-wrap;}
+.shot-text blockquote{margin:4px 0;padding-inline-start:10px;border-inline-start:3px solid #2f3336;}
+.shot-media{position:relative;display:grid;gap:2px;margin-top:12px;border:1px solid #2f3336;border-radius:16px;overflow:hidden;}
+.shot-media.n2{grid-template-columns:1fr 1fr;}
+.shot-media.n3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
+.shot-media.n3 .shot-m:first-child{grid-row:1 / span 2;}
+.shot-media.n4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;}
+.shot-wm{
+  position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:5px;
+  padding:4px 10px 4px 6px;border-radius:999px;background:rgba(0,0,0,.6);
+  color:rgba(255,255,255,.94);font-size:12.5px;font-weight:600;line-height:16px;
+}
+.shot-wm i{width:15px;height:15px;}
+.shot-time{margin:16px 0;color:#71767b;}
+.shot-time b{color:#e7e9ea;font-weight:700;}
+.shot-stats{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 4px;border-top:1px solid #2f3336;color:#71767b;font-size:13px;}
+.shot-stats span{display:flex;align-items:center;gap:4px;min-width:48px;}
+.shot-stats span:last-child{min-width:0;}
+.shot-stats i{width:19px;height:19px;}
+
 /* ---------- states: hover, keyboard focus, pressed ---------- */
 .tb,.act,.iconbtn,.qitem button,.mretry,.mt-copy{
   transition:transform .32s var(--spring),background-color .2s,border-color .2s,color .2s,filter .2s,opacity .2s,box-shadow .2s;
@@ -913,6 +965,16 @@ body.rich .cutb{display:none;}
   </div>
 </div>
 
+<div class="sheet" id="shotSheet" role="dialog" aria-label="عکس توییت">
+  <div class="sheet-in shot-in">
+    <h2>عکس توییت</h2>
+    <div class="cut-ctl"><div class="seg"><button class="seg-b on" data-shot="orig">اصلی</button><button class="seg-b" data-shot="ours">با متن ما</button></div></div>
+    <div class="shot-box" id="shotBox"><img id="shotImg" alt=""></div>
+    <div class="shot-acts"><button class="act tint" id="bShotDl">دانلود</button><button class="act" id="bShotCopy">کپی</button><button class="act" id="bShotShare">ارسال</button></div>
+    <button class="act" id="bCloseShot">بستن</button>
+  </div>
+</div>
+
 <div class="sheet" id="histSheet" role="dialog" aria-label="تاریخچه">
   <div class="sheet-in cut-in">
     <h2>تاریخچه</h2>
@@ -931,7 +993,7 @@ body.rich .cutb{display:none;}
     <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![](لینک عکس)</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن و با «کپی برای تلگرام» همراه متن کپی می‌شن (ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
     <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
     <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
-    <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه).</p>
+    <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی؛ دانلود، کپی یا ارسالش کن.</p>
     <p><b>تاریخچه:</b> دکمه‌ی ساعت بالای صفحه ۱۰ کپشن آخری رو که کپی یا پاک کردی نشون می‌ده؛ «بیار تو ادیتور» برش می‌گردونه و ↶ متن قبلی رو.</p>
     <p><b>موقع کپی:</b> «ي» و «ك» عربی خودکار فارسی می‌شن و فاصله‌های اضافه حذف می‌شن (خود متن ادیتور دست نمی‌خوره). اگه امضا نداشته باشه، لینکی آدرس درست نداشته باشه یا یه <span class="syn">**</span> بسته نشده باشه، کپی انجام می‌شه ولی پیام زرد می‌گه.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
@@ -2351,13 +2413,23 @@ async function resolveTweet(id){
     videos.push(clip);
   }
 
-  // the tweet's own words (fxtwitter first, vxtwitter if it is the only one that answered),
-  // without the t.co link twitter puts at the end for the media
-  var ft=(fx&&fx.tweet)||{}, au=ft.author||{};
-  var words=String(ft.text||(ft.raw_text&&ft.raw_text.text)||(vx&&vx.text)||"").replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim();
-  tweetText[id]= words? { text:words, name:au.name||(vx&&vx.user_name)||"", user:au.screen_name||(vx&&vx.user_screen_name)||"" } : null;
-
   var got=photos.concat(videos);
+
+  // the tweet's own words (fxtwitter first, vxtwitter if it is the only one that answered),
+  // without the t.co link twitter puts at the end for the media; and what its picture needs
+  var ft=(fx&&fx.tweet)||{}, au=ft.author||{}, vf=au.verification||{}, v=vx||{};
+  var words=String(ft.text||(ft.raw_text&&ft.raw_text.text)||v.text||"").replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim();
+  var num=function(){ for(var k=0;k<arguments.length;k++) if(typeof arguments[k]==="number" && isFinite(arguments[k])) return arguments[k]; return null; };
+  tweetText[id]= words? {
+    id:id, text:words, name:au.name||v.user_name||"", user:au.screen_name||v.user_screen_name||"",
+    avatar:au.avatar_url||v.user_profile_image_url||"",
+    verified:!!(vf.verified||au.verified), vtype:String(vf.type||""),
+    time:(ft.created_timestamp? ft.created_timestamp*1000 : 0)||(v.date_epoch? v.date_epoch*1000 : 0),
+    replies:num(ft.replies,v.replies), retweets:num(ft.retweets,v.retweets), likes:num(ft.likes,v.likes),
+    bookmarks:num(ft.bookmarks), views:num(ft.views),
+    media:got.map(function(m){ return { src:m.kind==="image"? m.url : (m.poster||"") }; }).filter(function(m){ return m.src; }).slice(0,4)
+  } : null;
+
   busyIds[id]=false; cache[id]=got;
   if(got.length){
     var q=videos.reduce(function(s,v){ return s+v.variants.length; },0);
@@ -2419,7 +2491,7 @@ function textCards(texts){
   return texts.map(function(t,i){
     return '<div class="mcard mtweet"><div class="mt-top"><span class="mt-x">𝕏</span>'
       + '<span class="mt-who" dir="auto">'+(t.name? '<b>'+esc(t.name)+'</b> ' : '')+(t.user? '@'+esc(t.user) : '')+'</span>'
-      + '<button class="mt-copy" data-tcopy="'+i+'">کپی متن</button></div>'
+      + '<button class="mt-copy" data-tshot="'+i+'">عکس توییت</button><button class="mt-copy" data-tcopy="'+i+'">کپی متن</button></div>'
       + '<div class="mt-text" dir="auto" title="برای دیدن همه‌ش بزن">'+esc(t.text)+'</div></div>';
   }).join("");
 }
@@ -2532,6 +2604,8 @@ function paint(found,waiting,failed,texts){
 mgrid.addEventListener("click",function(e){
   var t=e.target.closest && e.target.closest("[data-tcopy]");
   if(t){ copyTweetText(paintedTexts[+t.getAttribute("data-tcopy")],t); return; }
+  var ts=e.target.closest && e.target.closest("[data-tshot]");
+  if(ts){ openShot(paintedTexts[+ts.getAttribute("data-tshot")]); return; }
   var w=e.target.closest && e.target.closest(".mt-text");
   if(w){ w.classList.toggle("open"); return; }
   var b=e.target.closest && e.target.closest("[data-retry]");
@@ -3080,6 +3154,261 @@ cutSheet.addEventListener("click",function(e){
 });
 document.getElementById("bCut").onclick=openCut;
 
+/* ---------- the tweet as a picture ---------- */
+// the tweet the way X shows it (dark), with the tweet's words or with the caption's: the browser
+// lays it out in a hidden card, then it is painted onto a canvas piece by piece (every word at
+// the place the browser gave it), so wrapping, Persian/English direction, fonts and emoji come
+// out right and the picture can be saved, copied or shared, on an iPhone too
+var SHOT_SCALE=2;
+var SHOT_ICONS={
+  reply:{ d:"M4.5 11.2c0-3.8 3.1-6.7 7-6.7h1c3.9 0 7 2.9 7 6.7 0 3.9-3.2 6.8-7.2 6.8h-.6l-4.1 2.6v-3.4c-2-1.2-3.1-3.3-3.1-6z" },
+  retweet:{ d:"M3.8 8.6 7 5.4l3.2 3.2M7 5.6v9.2c0 1.2.9 2.1 2.1 2.1h4.2M20.2 15.4 17 18.6l-3.2-3.2M17 18.4V9.2c0-1.2-.9-2.1-2.1-2.1h-4.2" },
+  like:{ d:"M12 19.6c-.4 0-6.9-3.9-7.9-8.4-.6-2.9 1.1-5.7 4-5.7 1.7 0 3 .9 3.9 2.3.9-1.4 2.2-2.3 3.9-2.3 2.9 0 4.6 2.8 4 5.7-1 4.5-7.5 8.4-7.9 8.4z" },
+  bookmark:{ d:"M6.8 4.2h10.4c.5 0 .8.3.8.8v15.1l-6-4.4-6 4.4V5c0-.5.3-.8.8-.8z" },
+  share:{ d:"M12 15.2V4.4M7.8 8.5 12 4.3l4.2 4.2M4.6 14.2v4.2c0 1 .8 1.8 1.8 1.8h11.2c1 0 1.8-.8 1.8-1.8v-4.2" },
+  badge:{ fill:true, d:"M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z",
+          inner:"M10.54 16.2 6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" },
+  // Telegram's mark: a disc with the plane cut out of it
+  plane:{ fill:true, evenodd:true, d:"M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zM5.6 11.7l11.9-4.6c.6-.2.9.1.7.8l-2.1 9.1c-.2.7-.7.8-1.2.5l-3.3-2.5-1.6 1.5c-.2.2-.5.1-.5-.2l.2-2.8 5.3-4.8-6.5 4.1-2.8-.4c-.6-.2-.6-.5-.1-.7z" }
+};
+function shortNum(n){
+  if(n<1000) return String(n);
+  var u=n<1e6? [1e3,"K"] : n<1e9? [1e6,"M"] : [1e9,"B"], v=n/u[0];
+  return (v<10? v.toFixed(1) : v<100? v.toFixed(1) : Math.round(v).toString()).replace(/\.0$/,"")+u[1];
+}
+function shotIcon(name,cls){ return '<i data-ico="'+name+'"'+(cls? ' class="'+cls+'"' : '')+'></i>'; }
+// the caption's own words for the picture: no signature, no Link: lines
+function ourBody(){
+  return cutPlan(input.value,CAPTION_LIMIT).units.map(unitText).join("\n").replace(/^\n+|\n+$/g,"");
+}
+function shotHtml(info,mode,body,imgs){
+  var av=imgs[0], media=[];
+  info.media.forEach(function(m,i){ if(imgs[i+1]) media.push(i+1); });
+  var mark='<div class="shot-'+(media.length? "wm" : "mark")+'">'+shotIcon("plane")+'<span>@LolSmash</span></div>';
+  var h='<div class="shot-head"><div class="shot-av" data-img="0">'+(av? "" : esc((info.name||info.user||"?").trim().charAt(0).toUpperCase()))+'</div>'
+    + '<div class="shot-id"><div class="shot-name"><span>'+esc(info.name||info.user)+'</span>'
+    + (info.verified? shotIcon("badge","shot-badge"+(/business|organi[sz]ation/i.test(info.vtype)? " gold" : /government/i.test(info.vtype)? " gray" : "")) : "")+'</div>'
+    + (info.user? '<div class="shot-user">@'+esc(info.user)+'</div>' : "")+'</div>'+(media.length? "" : mark)+'</div>';
+  if(mode==="ours"){
+    h+='<div class="shot-text fa" dir="rtl">'+parse(autoFix(body),false).map(function(x){
+      var t= x.t==="blank"? "<br>" : x.t==="pre"? "<pre>"+esc(x.lines.join("\n"))+"</pre>"
+        : x.t==="quote"? "<blockquote>"+x.lines.map(function(y){ return inline(y); }).join("<br>")+"</blockquote>" : inline(x.text);
+      return '<div dir="auto">'+t.replace(/tg-spoiler/g,"shot-sp")+"</div>";
+    }).join("")+"</div>";
+  } else {
+    h+='<div class="shot-text" dir="auto">'+esc(body).replace(/(^|[\s(])((?:@|#)[A-Za-z0-9_؀-ۿ]+|https?:\/\/[^\s<]+)/g,'$1<span class="shot-link">$2</span>')+"</div>";
+  }
+  if(media.length){
+    // one picture keeps its shape (between wide and a little tall); several share a 16:9 grid
+    var one=media.length===1 && imgs[media[0]], ratio=one? Math.min(1.25,Math.max(0.5,one.img.naturalHeight/one.img.naturalWidth)) : 0.5625;
+    h+='<div class="shot-media n'+media.length+'" style="aspect-ratio:'+(1/ratio).toFixed(4)+'">'
+      + media.map(function(k){ return '<div class="shot-m" data-img="'+k+'"></div>'; }).join("")+mark+"</div>";
+  }
+  var when=[];
+  if(info.time){
+    var d=new Date(info.time);
+    when.push(esc(d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+" · "+d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})));
+  }
+  if(info.views!=null) when.push("<b>"+shortNum(info.views)+"</b> Views");
+  if(when.length) h+='<div class="shot-time">'+when.join(" · ")+"</div>";
+  else h+='<div class="shot-time"></div>';
+  h+='<div class="shot-stats">'+[["reply",info.replies],["retweet",info.retweets],["like",info.likes],["bookmark",info.bookmarks],["share",null]].map(function(x){
+    return "<span>"+shotIcon(x[0])+(x[1]? shortNum(x[1]) : "")+"</span>";
+  }).join("")+"</div>";
+  return h;
+}
+// a picture from twitter as a same-origin image, so the canvas stays readable
+async function shotImage(url){
+  if(!url) return null;
+  try{
+    url=url.replace(/([?&]name=)orig\b/,"$1large").replace(/_(normal|bigger|mini|200x200)(\.\w+)(\?|$)/,"_400x400$2$3");
+    var res=await fetch(url,{mode:"cors",referrerPolicy:"no-referrer"});
+    if(!res.ok) return null;
+    var u=URL.createObjectURL(await res.blob()), img=new Image();
+    img.src=u;
+    if(img.decode) await img.decode(); else await new Promise(function(ok,no){ img.onload=ok; img.onerror=no; });
+    return { img:img, url:u };
+  }catch(e){ return null; }
+}
+function roundRect(ctx,r,rad){
+  rad=Math.max(0,Math.min(rad,r.w/2,r.h/2));
+  ctx.beginPath();
+  ctx.moveTo(r.x+rad,r.y); ctx.arcTo(r.x+r.w,r.y,r.x+r.w,r.y+r.h,rad); ctx.arcTo(r.x+r.w,r.y+r.h,r.x,r.y+r.h,rad);
+  ctx.arcTo(r.x,r.y+r.h,r.x,r.y,rad); ctx.arcTo(r.x,r.y,r.x+r.w,r.y,rad); ctx.closePath();
+}
+function radiusOf(cs,r){ var v=cs.borderTopLeftRadius||"0"; return /%$/.test(v)? parseFloat(v)/100*Math.min(r.w,r.h) : parseFloat(v)||0; }
+function paintIcon(ctx,name,r,color){
+  var ic=SHOT_ICONS[name];
+  if(!ic) return;
+  ctx.save(); ctx.translate(r.x,r.y); ctx.scale(r.w/24,r.h/24);
+  if(ic.fill){ ctx.fillStyle=color; ctx.fill(new Path2D(ic.d),ic.evenodd? "evenodd" : "nonzero"); }
+  else{ ctx.strokeStyle=color; ctx.lineWidth=1.75; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.stroke(new Path2D(ic.d)); }
+  if(ic.inner){ ctx.fillStyle="#fff"; ctx.fill(new Path2D(ic.inner)); }
+  ctx.restore();
+}
+// a hidden spoiler: Telegram's dust, not the words
+function paintDust(ctx,r){
+  var seed=(Math.round(r.x*31+r.y*17)%2147483646)+1, n=Math.round(r.w*r.h/7);
+  ctx.fillStyle="rgba(231,233,234,.8)";
+  for(var i=0;i<n;i++){
+    seed=seed*16807%2147483647; var x=r.x+seed%1000/1000*r.w;
+    seed=seed*16807%2147483647; var y=r.y+2+seed%1000/1000*(r.h-4);
+    ctx.fillRect(x,y,0.9,0.9);
+  }
+}
+async function renderTweetImage(info,mode){
+  var body= mode==="ours"? ourBody() : info.text;
+  var imgs=await Promise.all([info.avatar].concat(info.media.map(function(m){ return m.src; })).map(shotImage));
+  try{ await Promise.all([document.fonts.load("400 17px IRANSans"),document.fonts.load("700 17px IRANSans")]); }catch(e){}
+  var card=document.createElement("div");
+  card.className="shot"; card.setAttribute("dir","ltr"); card.setAttribute("aria-hidden","true");
+  card.innerHTML=shotHtml(info,mode,body,imgs);
+  document.body.appendChild(card);
+  try{
+    var cr=card.getBoundingClientRect(), cv=document.createElement("canvas"), ctx=cv.getContext("2d");
+    var rel=function(b){ return { x:b.left-cr.left, y:b.top-cr.top, w:b.width, h:b.height }; };
+    cv.width=Math.round(cr.width*SHOT_SCALE); cv.height=Math.round(cr.height*SHOT_SCALE);
+    ctx.scale(SHOT_SCALE,SHOT_SCALE);
+    ctx.fillStyle="#000"; ctx.fillRect(0,0,cr.width,cr.height);
+    var els=[].slice.call(card.querySelectorAll("*"));
+    // 1. backgrounds, pictures and icons, a parent before its children
+    els.forEach(function(el){
+      var cs=getComputedStyle(el), r=rel(el.getBoundingClientRect());
+      if(!/^(transparent|rgba\(0, 0, 0, 0\))$/.test(cs.backgroundColor) && !el.hasAttribute("data-img")){
+        ctx.fillStyle=cs.backgroundColor; roundRect(ctx,r,radiusOf(cs,r)); ctx.fill();
+      }
+      if(el.hasAttribute("data-img")){
+        var im=imgs[+el.getAttribute("data-img")], box=el.closest(".shot-media");
+        ctx.save();
+        if(box){ var br=rel(box.getBoundingClientRect()); roundRect(ctx,br,radiusOf(getComputedStyle(box),br)); ctx.clip(); }
+        roundRect(ctx,r,radiusOf(cs,r)); ctx.clip();
+        if(im){
+          // cover: fill the box, cut what is over
+          var iw=im.img.naturalWidth, ih=im.img.naturalHeight, k=Math.max(r.w/iw,r.h/ih);
+          ctx.drawImage(im.img,r.x+(r.w-iw*k)/2,r.y+(r.h-ih*k)/2,iw*k,ih*k);
+        } else { ctx.fillStyle=cs.backgroundColor; ctx.fillRect(r.x,r.y,r.w,r.h); }
+        ctx.restore();
+      }
+      if(el.hasAttribute("data-ico")) paintIcon(ctx,el.getAttribute("data-ico"),r,cs.color);
+    });
+    // 2. borders and dividers, over the pictures
+    els.forEach(function(el){
+      var cs=getComputedStyle(el), r=rel(el.getBoundingClientRect());
+      var t=parseFloat(cs.borderTopWidth)||0, rt=parseFloat(cs.borderRightWidth)||0, b=parseFloat(cs.borderBottomWidth)||0, l=parseFloat(cs.borderLeftWidth)||0;
+      if(!(t||rt||b||l)) return;
+      var rad=radiusOf(cs,r);
+      if(t&&rt&&b&&l&&rad){ ctx.strokeStyle=cs.borderTopColor; ctx.lineWidth=t; roundRect(ctx,{x:r.x+t/2,y:r.y+t/2,w:r.w-t,h:r.h-t},rad-t/2); ctx.stroke(); return; }
+      if(t){ ctx.fillStyle=cs.borderTopColor; ctx.fillRect(r.x,r.y,r.w,t); }
+      if(b){ ctx.fillStyle=cs.borderBottomColor; ctx.fillRect(r.x,r.y+r.h-b,r.w,b); }
+      if(l){ ctx.fillStyle=cs.borderLeftColor; ctx.fillRect(r.x,r.y,l,r.h); }
+      if(rt){ ctx.fillStyle=cs.borderRightColor; ctx.fillRect(r.x+r.w-rt,r.y,rt,r.h); }
+    });
+    // 3. the words, each where the browser put it
+    var walk=document.createTreeWalker(card,NodeFilter.SHOW_TEXT), node;
+    while((node=walk.nextNode())){
+      if(!node.data.trim()) continue;
+      var pe=node.parentElement, cs=getComputedStyle(pe), range=document.createRange();
+      if(pe.closest(".shot-sp")){
+        range.selectNodeContents(node);
+        [].forEach.call(range.getClientRects(),function(b){ if(b.width>1) paintDust(ctx,rel(b)); });
+        continue;
+      }
+      ctx.font=cs.fontStyle+" "+cs.fontWeight+" "+cs.fontSize+" "+cs.fontFamily;
+      ctx.fillStyle=cs.color;
+      var deco=cs.textDecorationLine||"", size=parseFloat(cs.fontSize), re=/\S+/g, m;
+      var draw=function(text,b){
+        var rtl=/[֐-ࣿיִ-ﻼ]/.test(text), r=rel(b), mt=ctx.measureText(text);
+        var asc=mt.fontBoundingBoxAscent||size*0.9;
+        ctx.direction=rtl? "rtl" : "ltr"; ctx.textAlign=rtl? "right" : "left"; ctx.textBaseline="alphabetic";
+        ctx.fillText(text,rtl? r.x+r.w : r.x,r.y+asc);
+        if(/underline/.test(deco)) ctx.fillRect(r.x,r.y+asc+2,r.w,1);
+        if(/line-through/.test(deco)) ctx.fillRect(r.x,r.y+asc-size*0.3,r.w,1);
+      };
+      while((m=re.exec(node.data))){
+        range.setStart(node,m.index); range.setEnd(node,m.index+m[0].length);
+        var rects=[].filter.call(range.getClientRects(),function(b){ return b.width>0.5; });
+        if(rects.length===1){ draw(m[0],rects[0]); continue; }
+        if(!rects.length) continue;
+        // a Persian word in pieces on one line (a ZWNJ inside it): drawn whole over all of them,
+        // so its letters still join
+        if(/[\u0600-\u06FF]/.test(m[0]) && rects.every(function(b){ return Math.abs(b.top-rects[0].top)<2; })){
+          var x0=Math.min.apply(null,rects.map(function(b){ return b.left; })), x1=Math.max.apply(null,rects.map(function(b){ return b.right; }));
+          draw(m[0],{ left:x0, top:rects[0].top, width:x1-x0, height:rects[0].height });
+          continue;
+        }
+        // a word the browser split (across lines, or into two directions): letter by letter
+        for(var i=m.index;i<m.index+m[0].length;){
+          var len=node.data.codePointAt(i)>0xffff? 2 : 1;
+          range.setStart(node,i); range.setEnd(node,i+len);
+          var cb=[].filter.call(range.getClientRects(),function(b){ return b.width>0.5; })[0];
+          if(cb) draw(node.data.slice(i,i+len),cb);
+          i+=len;
+        }
+      }
+    }
+    return await new Promise(function(ok,no){ cv.toBlob(function(b){ b? ok(b) : no(new Error("no picture")); },"image/png"); });
+  } finally {
+    card.remove();
+    imgs.forEach(function(im){ if(im) URL.revokeObjectURL(im.url); });
+  }
+}
+var shotSheet=document.getElementById("shotSheet"), shotImg=document.getElementById("shotImg"), shotBox=document.getElementById("shotBox"), shotState=null;
+function openShot(info){
+  if(!info) return;
+  if(shotState && shotState.url) URL.revokeObjectURL(shotState.url);
+  shotState={ info:info, mode:"orig", blob:null, url:"" };
+  shotImg.removeAttribute("src"); shotImg.alt="";
+  document.getElementById("bShotShare").setAttribute("aria-disabled",navigator.canShare&&navigator.share? "false" : "true");
+  shotSheet.classList.add("on");
+  drawShot();
+}
+async function drawShot(){
+  var s=shotState, token={}, body=ourBody();
+  s.token=token; s.blob=null;
+  if(s.mode==="ours" && !body.trim()) s.mode="orig";
+  shotSheet.querySelectorAll("[data-shot]").forEach(function(b){
+    var m=b.getAttribute("data-shot");
+    b.classList.toggle("on",m===s.mode);
+    if(m==="ours"){ b.disabled=!body.trim(); b.title=b.disabled? "اول کپشن رو تو ادیتور بنویس" : ""; }
+  });
+  shotBox.classList.add("wait","shim");
+  try{
+    var blob=await renderTweetImage(s.info,s.mode);
+    if(s.token!==token) return;
+    s.blob=blob;
+    if(s.url) URL.revokeObjectURL(s.url);
+    s.url=URL.createObjectURL(blob);
+    shotImg.src=s.url;
+    shotImg.alt=s.mode==="ours"? toPlain(parse(autoFix(body),false),true).replace(MARKS_RE,"") : s.info.text;
+  }catch(e){ if(s.token===token) say("عکس ساخته نشد — دوباره امتحان کن","warn"); }
+  finally{ if(s.token===token) shotBox.classList.remove("wait","shim"); }
+}
+shotSheet.addEventListener("click",async function(e){
+  if(e.target===shotSheet){ shotSheet.classList.remove("on"); return; }
+  var b=e.target.closest && e.target.closest("button"), s=shotState;
+  if(!b || !s) return;
+  if(b.id==="bCloseShot"){ shotSheet.classList.remove("on"); return; }
+  if(b.hasAttribute("data-shot")){
+    if(!b.disabled && s.mode!==b.getAttribute("data-shot")){ s.mode=b.getAttribute("data-shot"); drawShot(); }
+    return;
+  }
+  if(!s.blob){ say("یه لحظه — عکس داره ساخته می‌شه","warn"); return; }
+  var name="LolSmash-"+(s.info.user||"tweet")+"-"+s.info.id+(s.mode==="ours"? "-fa" : "")+".png";
+  if(b.id==="bShotDl"){
+    var a=document.createElement("a");
+    a.href=s.url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    flash(b,""); say("عکس ذخیره شد","ok");
+  } else if(b.id==="bShotCopy"){
+    try{ await navigator.clipboard.write([new ClipboardItem({"image/png":s.blob})]); flash(b,""); say("عکس کپی شد","ok"); }
+    catch(err){ say("کپی نشد — دانلودش کن","warn"); }
+  } else if(b.id==="bShotShare"){
+    var f=new File([s.blob],name,{type:"image/png"});
+    if(!(navigator.canShare&&navigator.share&&navigator.canShare({files:[f]}))){ say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn"); return; }
+    try{ await navigator.share({files:[f]}); }
+    catch(err){ if(!err || err.name!=="AbortError") say("ارسال نشد — دانلود کن","warn"); }
+  }
+});
+
 /* --- history: the last captions copied (or cleared), to bring one back --- */
 var HIST_KEY="caption-studio-history", HIST_MAX=10;
 function loadHistory(){
@@ -3155,8 +3484,8 @@ document.getElementById("bCloseSheet").onclick=function(){ sheet.classList.remov
 sheet.onclick=function(e){ if(e.target===sheet) sheet.classList.remove("on"); };
 
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape" && (sheet.classList.contains("on") || cutSheet.classList.contains("on") || histSheet.classList.contains("on"))){
-    sheet.classList.remove("on"); cutSheet.classList.remove("on"); histSheet.classList.remove("on"); return;
+  if(e.key==="Escape" && (sheet.classList.contains("on") || cutSheet.classList.contains("on") || histSheet.classList.contains("on") || shotSheet.classList.contains("on"))){
+    sheet.classList.remove("on"); cutSheet.classList.remove("on"); histSheet.classList.remove("on"); shotSheet.classList.remove("on"); return;
   }
   var mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
