@@ -604,6 +604,7 @@ body.rich .cutb{display:none;}
 }
 .shot-box img{display:block;width:100%;height:auto;max-height:60vh;object-fit:contain;transition:opacity .2s;}
 .shot-box.wait img{opacity:.3;}
+.shot-box.light{background:#fff;}
 .shot-acts{display:flex;gap:8px;margin-bottom:10px;}
 .sheet .shot-acts .act{flex:1;width:auto;margin:0;}
 .act[aria-disabled="true"]{opacity:.45;}
@@ -667,7 +668,28 @@ body.rich .cutb{display:none;}
 .shot-qbadge.gold{color:#e2b719;} .shot-qbadge.gray{color:#829aab;}
 .shot-qhead .shot-user{margin-inline-start:2px;}
 .shot-qtext{padding:2px 12px 12px;white-space:pre-wrap;overflow-wrap:anywhere;}
-.shot-qmedia{aspect-ratio:16/9;border-top:1px solid #2f3336;}
+.shot-qmedia{position:relative;aspect-ratio:16/9;border-top:1px solid #2f3336;}
+/* a video's picture: X's play button in the middle */
+.shot-m{position:relative;}
+.shot-play{
+  position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;
+  display:grid;place-items:center;border-radius:50%;background:#1d9bf0;border:4px solid #fff;color:#fff;
+}
+.shot-play i{width:26px;height:26px;margin-left:3px;}
+.shot-play.small{width:44px;height:44px;margin:-22px 0 0 -22px;border-width:3px;}
+.shot-play.small i{width:19px;height:19px;margin-left:2px;}
+/* X's light look */
+.shot.light{background:#fff;color:#0f1419;}
+.shot.light .shot-user,.shot.light .shot-time,.shot.light .shot-stats,.shot.light .shot-from,.shot.light .shot-pmeta,.shot.light .shot-more,.shot.light .shot-mark{color:#536471;}
+.shot.light .shot-time b{color:#0f1419;}
+.shot.light .shot-av,.shot.light .shot-qav{background:#cfd9de;color:#0f1419;}
+.shot.light .shot-media,.shot.light .shot-quote,.shot.light .shot-cbox{border-color:#cfd9de;}
+.shot.light .shot-qmedia{border-top-color:#cfd9de;}
+.shot.light .shot-stats{border-top-color:#eff3f4;}
+.shot.light .shot-pc i{background:#eff3f4;}
+.shot.light .shot-pc.win i{background:rgba(29,155,240,.35);}
+.shot.light .shot-text pre{background:#f7f9f9;}
+.shot.light .shot-text blockquote{border-inline-start-color:#cfd9de;}
 .shot-time{margin:16px 0;color:#71767b;}
 .shot-time b{color:#e7e9ea;font-weight:700;}
 .shot-stats{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 4px;border-top:1px solid #2f3336;color:#71767b;font-size:13px;}
@@ -995,7 +1017,7 @@ body.rich .cutb{display:none;}
 <div class="sheet" id="shotSheet" role="dialog" aria-label="عکس توییت">
   <div class="sheet-in shot-in">
     <h2>عکس توییت</h2>
-    <div class="cut-ctl"><div class="seg"><button class="seg-b on" data-shot="orig">اصلی</button><button class="seg-b" data-shot="ours">با متن ما</button></div></div>
+    <div class="cut-ctl"><div class="seg"><button class="seg-b on" data-shot="orig">اصلی</button><button class="seg-b" data-shot="ours">با متن ما</button></div><div class="seg"><button class="seg-b on" data-theme="dark">تیره</button><button class="seg-b" data-theme="light">روشن</button></div></div>
     <div class="shot-box" id="shotBox"><img id="shotImg" alt=""></div>
     <div class="shot-acts"><button class="act tint" id="bShotDl">دانلود</button><button class="act" id="bShotCopy">کپی</button><button class="act" id="bShotShare">ارسال</button></div>
     <button class="act" id="bCloseShot">بستن</button>
@@ -1020,7 +1042,7 @@ body.rich .cutb{display:none;}
     <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![](لینک عکس)</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن و با «کپی برای تلگرام» همراه متن کپی می‌شن (ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
     <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
     <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
-    <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی؛ دانلود، کپی یا ارسالش کن.</p>
+    <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی، با رنگ «تیره» یا «روشن» X؛ دانلود، کپی یا ارسالش کن.</p>
     <p><b>تاریخچه:</b> دکمه‌ی ساعت بالای صفحه ۱۰ کپشن آخری رو که کپی یا پاک کردی نشون می‌ده؛ «بیار تو ادیتور» برش می‌گردونه و ↶ متن قبلی رو.</p>
     <p><b>موقع کپی:</b> «ي» و «ك» عربی خودکار فارسی می‌شن و فاصله‌های اضافه حذف می‌شن (خود متن ادیتور دست نمی‌خوره). اگه امضا نداشته باشه، لینکی آدرس درست نداشته باشه یا یه <span class="syn">**</span> بسته نشده باشه، کپی انجام می‌شه ولی پیام زرد می‌گه.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
@@ -2462,13 +2484,14 @@ async function resolveTweet(id){
     time:(ft.created_timestamp? ft.created_timestamp*1000 : 0)||(v.date_epoch? v.date_epoch*1000 : 0),
     replies:num(ft.replies,v.replies), retweets:num(ft.reposts,ft.retweets,v.retweets), likes:num(ft.likes,v.likes),
     bookmarks:num(ft.bookmarks), views:num(ft.views),
-    media: card? [] : got.map(function(m){ return { src:m.kind==="image"? m.url : (m.poster||"") }; }).filter(function(m){ return m.src; }).slice(0,4),
+    media: card? [] : got.map(function(m){ return { src:m.kind==="image"? m.url : (m.poster||""), video:m.kind!=="image" }; }).filter(function(m){ return m.src; }).slice(0,4),
     card:card,
     quote: q? {
       name:qa.name||"", user:qa.screen_name||"", avatar:qa.avatar_url||"",
       verified:!!(qa.verification && qa.verification.verified), vtype:String((qa.verification && qa.verification.type)||""),
       text:String(q.text).replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim(), time:q.created_timestamp? q.created_timestamp*1000 : 0,
-      media:((qm.photos||[])[0]||{}).url||((qm.videos||[])[0]||{}).thumbnail_url||""
+      media:((qm.photos||[])[0]||{}).url||((qm.videos||[])[0]||{}).thumbnail_url||"",
+      video:!((qm.photos||[])[0]||{}).url && !!((qm.videos||[])[0]||{}).thumbnail_url
     } : null,
     poll: poll? { choices:poll.choices.map(function(c){ return { label:String(c.label||""), pct:+c.percentage||0 }; }), votes:num(poll.total_votes), left:String(poll.time_left_en||"") } : null
   } : null;
@@ -3211,6 +3234,7 @@ var SHOT_ICONS={
   share:{ d:"M12 15.2V4.4M7.8 8.5 12 4.3l4.2 4.2M4.6 14.2v4.2c0 1 .8 1.8 1.8 1.8h11.2c1 0 1.8-.8 1.8-1.8v-4.2" },
   badge:{ fill:true, d:"M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z",
           inner:"M10.54 16.2 6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" },
+  play:{ fill:true, d:"M8.6 5.6v12.8c0 .8.9 1.3 1.6.8l9.4-6.4c.6-.4.6-1.2 0-1.6L10.2 4.8c-.7-.5-1.6 0-1.6.8z" },
   more:{ fill:true, d:"M3.6 12a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0zm6.8 0a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0zm6.8 0a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0z" },
   // Telegram's mark: a disc with the plane cut out of it
   plane:{ fill:true, evenodd:true, d:"M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zM5.6 11.7l11.9-4.6c.6-.2.9.1.7.8l-2.1 9.1c-.2.7-.7.8-1.2.5l-3.3-2.5-1.6 1.5c-.2.2-.5.1-.5-.2l.2-2.8 5.3-4.8-6.5 4.1-2.8-.4c-.6-.2-.6-.5-.1-.7z" }
@@ -3254,7 +3278,9 @@ function shotHtml(info,mode,body,imgs){
     // one picture keeps its shape (between wide and a little tall); several share a 16:9 grid
     var one=media.length===1 && imgs[media[0]], ratio=one? Math.min(1.25,Math.max(0.5,one.img.naturalHeight/one.img.naturalWidth)) : 0.5625;
     h+='<div class="shot-media n'+media.length+'" style="aspect-ratio:'+(1/ratio).toFixed(4)+'">'
-      + media.map(function(k){ return '<div class="shot-m" data-img="'+k+'"></div>'; }).join("")+mark+"</div>";
+      + media.map(function(k){
+        return '<div class="shot-m" data-img="'+k+'">'+(info.media[+k.slice(1)].video? '<div class="shot-play'+(media.length>1? " small" : "")+'">'+shotIcon("play")+"</div>" : "")+"</div>";
+      }).join("")+mark+"</div>";
   } else if(card){
     if(imgs.card) h+='<div class="shot-media shot-card"><div class="shot-m" data-img="card"></div>'
       + (card.title? '<div class="shot-ctitle" data-fit="1">'+esc(card.title)+'</div>' : "")+mark+'</div>'
@@ -3276,7 +3302,7 @@ function shotHtml(info,mode,body,imgs){
       + '<b>'+esc(q.name||q.user)+'</b>'+shotBadge(q,"shot-qbadge")
       + '<span class="shot-user">'+(q.user? "@"+esc(q.user) : "")+(qd? " · "+esc(qd.toLocaleDateString("en-US",{month:"short",day:"numeric"})) : "")+'</span></div>'
       + (q.text? '<div class="shot-qtext" dir="auto">'+shotWords(q.text)+'</div>' : "")
-      + (imgs.qm? '<div class="shot-qmedia" data-img="qm"></div>' : "")+"</div>";
+      + (imgs.qm? '<div class="shot-qmedia" data-img="qm">'+(q.video? '<div class="shot-play small">'+shotIcon("play")+"</div>" : "")+"</div>" : "")+"</div>";
   }
   var when=[];
   if(info.time){
@@ -3320,9 +3346,9 @@ function paintIcon(ctx,name,r,color){
   ctx.restore();
 }
 // a hidden spoiler: Telegram's dust, not the words
-function paintDust(ctx,r){
+function paintDust(ctx,r,color){
   var seed=(Math.round(r.x*31+r.y*17)%2147483646)+1, n=Math.round(r.w*r.h/7);
-  ctx.fillStyle="rgba(231,233,234,.8)";
+  ctx.fillStyle=color;
   for(var i=0;i<n;i++){
     seed=seed*16807%2147483647; var x=r.x+seed%1000/1000*r.w;
     seed=seed*16807%2147483647; var y=r.y+2+seed%1000/1000*(r.h-4);
@@ -3340,7 +3366,7 @@ function shotRuns(w){
   out.forEach(function(r){ r.fa=r.kind==="fa"; });
   return out;
 }
-async function renderTweetImage(info,mode){
+async function renderTweetImage(info,mode,theme){
   var body= mode==="ours"? ourBody() : info.text;
   var want={ av:info.avatar, qav:info.quote && info.quote.avatar, qm:info.quote && info.quote.media, card:info.card && info.card.image }, imgs={};
   info.media.forEach(function(m,i){ want["m"+i]=m.src; });
@@ -3348,7 +3374,7 @@ async function renderTweetImage(info,mode){
   names.forEach(function(k,i){ imgs[k]=loaded[i]; });
   try{ await Promise.all([document.fonts.load("400 17px IRANSans"),document.fonts.load("700 17px IRANSans")]); }catch(e){}
   var card=document.createElement("div");
-  card.className="shot"; card.setAttribute("dir","ltr"); card.setAttribute("aria-hidden","true");
+  card.className="shot"+(theme==="light"? " light" : ""); card.setAttribute("dir","ltr"); card.setAttribute("aria-hidden","true");
   card.innerHTML=shotHtml(info,mode,body,imgs);
   document.body.appendChild(card);
   [].forEach.call(card.querySelectorAll(".shot-text"),function(box){
@@ -3373,7 +3399,7 @@ async function renderTweetImage(info,mode){
     var rel=function(b){ return { x:b.left-cr.left, y:b.top-cr.top, w:b.width, h:b.height }; };
     cv.width=Math.round(cr.width*SHOT_SCALE); cv.height=Math.round(cr.height*SHOT_SCALE);
     ctx.scale(SHOT_SCALE,SHOT_SCALE);
-    ctx.fillStyle="#000"; ctx.fillRect(0,0,cr.width,cr.height);
+    ctx.fillStyle=getComputedStyle(card).backgroundColor; ctx.fillRect(0,0,cr.width,cr.height);
     var els=[].slice.call(card.querySelectorAll("*"));
     // 1. backgrounds, pictures and icons, a parent before its children
     els.forEach(function(el){
@@ -3414,7 +3440,8 @@ async function renderTweetImage(info,mode){
       var pe=node.parentElement, cs=getComputedStyle(pe), range=document.createRange();
       if(pe.closest(".shot-sp")){
         range.selectNodeContents(node);
-        [].forEach.call(range.getClientRects(),function(b){ if(b.width>1) paintDust(ctx,rel(b)); });
+        var dust=theme==="light"? "rgba(15,20,25,.7)" : "rgba(231,233,234,.8)";
+        [].forEach.call(range.getClientRects(),function(b){ if(b.width>1) paintDust(ctx,rel(b),dust); });
         continue;
       }
       ctx.font=cs.fontStyle+" "+cs.fontWeight+" "+cs.fontSize+" "+cs.fontFamily;
@@ -3472,10 +3499,12 @@ async function renderTweetImage(info,mode){
   }
 }
 var shotSheet=document.getElementById("shotSheet"), shotImg=document.getElementById("shotImg"), shotBox=document.getElementById("shotBox"), shotState=null;
+var SHOT_THEME_KEY="caption-studio-shot-theme";
+function shotTheme(){ var v=null; try{ v=localStorage.getItem(SHOT_THEME_KEY); }catch(e){} return v==="light"? "light" : "dark"; }
 function openShot(info){
   if(!info) return;
   if(shotState && shotState.url) URL.revokeObjectURL(shotState.url);
-  shotState={ info:info, mode:"orig", blob:null, url:"" };
+  shotState={ info:info, mode:"orig", theme:shotTheme(), blob:null, url:"" };
   shotImg.removeAttribute("src"); shotImg.alt="";
   document.getElementById("bShotShare").setAttribute("aria-disabled",navigator.canShare&&navigator.share? "false" : "true");
   shotSheet.classList.add("on");
@@ -3490,9 +3519,11 @@ async function drawShot(){
     b.classList.toggle("on",m===s.mode);
     if(m==="ours"){ b.disabled=!body.trim(); b.title=b.disabled? "اول کپشن رو تو ادیتور بنویس" : ""; }
   });
+  shotSheet.querySelectorAll("[data-theme]").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-theme")===s.theme); });
+  shotBox.classList.toggle("light",s.theme==="light");
   shotBox.classList.add("wait","shim");
   try{
-    var blob=await renderTweetImage(s.info,s.mode);
+    var blob=await renderTweetImage(s.info,s.mode,s.theme);
     if(s.token!==token) return;
     s.blob=blob;
     if(s.url) URL.revokeObjectURL(s.url);
@@ -3511,8 +3542,16 @@ shotSheet.addEventListener("click",async function(e){
     if(!b.disabled && s.mode!==b.getAttribute("data-shot")){ s.mode=b.getAttribute("data-shot"); drawShot(); }
     return;
   }
+  if(b.hasAttribute("data-theme")){
+    if(s.theme!==b.getAttribute("data-theme")){
+      s.theme=b.getAttribute("data-theme");
+      try{ localStorage.setItem(SHOT_THEME_KEY,s.theme); }catch(e){}
+      drawShot();
+    }
+    return;
+  }
   if(!s.blob){ say("یه لحظه — عکس داره ساخته می‌شه","warn"); return; }
-  var name="LolSmash-"+(s.info.user||"tweet")+"-"+s.info.id+(s.mode==="ours"? "-fa" : "")+".png";
+  var name="LolSmash-"+(s.info.user||"tweet")+"-"+s.info.id+(s.mode==="ours"? "-fa" : "")+(s.theme==="light"? "-light" : "")+".png";
   if(b.id==="bShotDl"){
     var a=document.createElement("a");
     a.href=s.url; a.download=name; document.body.appendChild(a); a.click(); a.remove();

@@ -164,3 +164,39 @@ test("what X shows besides the words: square picture for organisations, link car
     await ctx.close();
   }
 });
+
+test("a video's picture has X's play button; the light look is white and is remembered", async () => {
+  const { ctx, page, errors } = await openWithShotKept();
+  await typeCaption(page);   // the mock tweet has one video
+  await openPicture(page, "orig");
+  // the colour of the finished picture at a point of the hidden card (the picture is twice its size)
+  const colourAt = (sel, fx = 0.5, fy = 0.5) => page.evaluate(async ({ sel, fx, fy }) => {
+    const c = window.__shot, cr = c.getBoundingClientRect(), r = c.querySelector(sel).getBoundingClientRect();
+    const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = document.getElementById("shotImg").src; });
+    const cv = document.createElement("canvas"); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    const g = cv.getContext("2d"); g.drawImage(img, 0, 0);
+    return [...g.getImageData(Math.round((r.left - cr.left + r.width * fx) * 2), Math.round((r.top - cr.top + r.height * fy) * 2), 1, 1).data].slice(0, 3);
+  }, { sel, fx, fy });
+  assert.equal(await page.evaluate(() => window.__shot.querySelectorAll(".shot-m .shot-play").length), 1);
+  const [r, g, b] = await colourAt(".shot-play", 0.2, 0.5);   // the blue disc, beside the white triangle
+  assert.ok(r < 80 && g > 120 && b > 200, "X blue: " + [r, g, b]);
+  const dark = await colourAt(".shot-time", 0.98, 0.5);
+  assert.ok(dark.every((v) => v < 30), "dark background: " + dark);
+
+  // light: white background, remembered, and named so in the file
+  const src = await page.$eval("#shotImg", (i) => i.src);
+  await page.click("[data-theme='light']");
+  await page.waitForFunction((s) => document.getElementById("shotImg").src !== s, src);
+  await page.waitForFunction(() => !document.getElementById("shotBox").classList.contains("wait"));
+  assert.ok(await page.evaluate(() => window.__shot.classList.contains("light")));
+  const light = await colourAt(".shot-time", 0.98, 0.5);
+  assert.ok(light.every((v) => v > 240), "white background: " + light);
+  const dl = page.waitForEvent("download");
+  await page.click("#bShotDl");
+  assert.match((await dl).suggestedFilename(), /-light\.png$/);
+  await page.keyboard.press("Escape");
+  await page.click(".mtweet [data-tshot]");
+  await page.waitForFunction(() => document.querySelector("[data-theme='light']").classList.contains("on"));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
