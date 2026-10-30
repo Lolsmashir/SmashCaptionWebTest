@@ -82,7 +82,7 @@ function audit() {
     });
   }
   // nothing truncated or hidden behind a sideways scroll
-  document.querySelectorAll(".act,.tb,.qname,.qitem button,.top h1,.mbadge,.mnum,.iconbtn,.seg-b").forEach((el) => {
+  document.querySelectorAll(".act,.tb,.qname,.qitem button,.mt-copy,.mt-who,.top h1,.mbadge,.mnum,.iconbtn,.seg-b").forEach((el) => {
     if (!visible(el)) return;
     if (el.scrollWidth > el.clientWidth + 1) problems.push(`${name(el)} is truncated (${el.scrollWidth}>${el.clientWidth})`);
   });
@@ -94,7 +94,12 @@ function audit() {
     if (el.scrollWidth > el.clientWidth + 1) problems.push(`action bar hides buttons (${el.scrollWidth}>${el.clientWidth}) in ${el.closest(".pane").id}`);
   });
   // media cards: preview beside the list, rows and buttons inside the card
-  document.querySelectorAll(".mcard").forEach((c, i) => {
+  // the tweet's words: name, button and text inside their card, the button not cut
+  document.querySelectorAll(".mtweet").forEach((c) => {
+    const cb = r(c);
+    c.querySelectorAll(".mt-top,.mt-top *,.mt-text").forEach((el) => { if (visible(el) && !inside(r(el), cb)) problems.push(`tweet text: ${name(el)} overflows its card`); });
+  });
+  document.querySelectorAll(".mcard:not(.mtweet)").forEach((c, i) => {
     const cb = r(c), th = r(c.querySelector(".mthumb")), ql = r(c.querySelector(".qlist"));
     if (!(th.left >= ql.right - 1 || th.right <= ql.left + 1)) problems.push(`card ${i + 1}: preview is not beside the list`);
     c.querySelectorAll(".qitem,.qitem *").forEach((el) => { if (visible(el) && !inside(r(el), cb)) problems.push(`card ${i + 1}: ${name(el)} overflows card`); });
@@ -105,7 +110,7 @@ function audit() {
     });
   });
   // tap targets / text that became unreadably small
-  document.querySelectorAll(".act,.qitem button").forEach((el) => {
+  document.querySelectorAll(".act,.qitem button,.mt-copy").forEach((el) => {
     if (visible(el) && parseFloat(getComputedStyle(el).fontSize) < 8) problems.push(`${name(el)} font < 8px`);
   });
   const ta = document.getElementById("input");

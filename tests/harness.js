@@ -64,8 +64,9 @@ const POSTER = "https://pbs.twimg.com/amplify_video_thumb/18/img/poster.jpg";
 const SIZES = { "1920x1080": 25804800, "1280x720": 10276044, "640x360": 3250585, "480x270": 1258291 };
 
 // fxtwitter and vxtwitter describe the same single clip with different URL shapes
+const TWEET_TEXT = "LEGO Fortnite x Batman is coming!\n\nThe Dark Knight drops on Nov 2 with 3 new skins and a glider.";
 const FX = {
-  tweet: { media: { videos: [{
+  tweet: { text: TWEET_TEXT, author: { name: "Fortnite", screen_name: "FortniteGame" }, media: { videos: [{
     url: vid("1920x1080"), thumbnail_url: POSTER,
     variants: [
       { content_type: "application/x-mpegURL", url: "https://video.twimg.com/amplify_video/18/pl/clip.m3u8?tag=16" },
@@ -76,7 +77,11 @@ const FX = {
     ],
   }] } },
 };
-const VX = { media_extended: [{ type: "video", url: vid("1920x1080", ""), thumbnail_url: POSTER }] };
+const VX = { text: TWEET_TEXT + " https://t.co/AbC123", user_name: "Fortnite", user_screen_name: "FortniteGame",
+  media_extended: [{ type: "video", url: vid("1920x1080", ""), thumbnail_url: POSTER }] };
+// a tweet with words and no media at all
+const FX_TEXT = { tweet: { text: TWEET_TEXT, author: { name: "Fortnite", screen_name: "FortniteGame" } } };
+const VX_TEXT = { text: TWEET_TEXT, user_name: "Fortnite", user_screen_name: "FortniteGame", media_extended: [] };
 
 function startServer() {
   return new Promise((resolve) => {
@@ -105,7 +110,7 @@ async function makePoster(browser) {
   return posterPng;
 }
 
-// opts.apis: "ok" | "fail" | "slow" ; opts.share: stub navigator.share like iPhone Safari
+// opts.apis: "ok" | "fail" | "slow" | "text" (a tweet with only words) ; opts.share: stub navigator.share like iPhone Safari
 // opts.motion: play the animations (by default the page runs as with "reduce motion", so
 // nothing is mid-animation while a test measures or clicks)
 async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false } = {}) {
@@ -137,13 +142,13 @@ async function openApp(browser, base, { viewport, mobile = false, apis = "ok", s
     if (apis === "slow") await gate;
     if (fxDelay) await new Promise((r) => setTimeout(r, fxDelay));
     if (apis === "fail") return route.fulfill({ status: 503, headers: cors, body: "" });
-    route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(FX) });
+    route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(apis === "text" ? FX_TEXT : FX) });
   });
   await ctx.route("https://api.vxtwitter.com/**", async (route) => {
     log.push(route.request().url());
     if (apis === "slow") await gate;
     if (apis === "fail") return route.abort("connectionrefused");
-    route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(VX) });
+    route.fulfill({ status: 200, headers: { ...cors, "content-type": "application/json" }, body: JSON.stringify(apis === "text" ? VX_TEXT : VX) });
   });
   await ctx.route("https://video.twimg.com/**", (route) => {
     const u = route.request().url();
@@ -190,4 +195,4 @@ function launch() {
   return chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 }
 
-module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, RICH_CAPTION, TWEET_ID, SIZES, FX, VX };
+module.exports = { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, RICH_CAPTION, TWEET_ID, SIZES, FX, VX, TWEET_TEXT };
