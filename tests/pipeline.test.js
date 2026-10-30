@@ -263,7 +263,6 @@ test("signs glued to a name stay in it: A$AP Rocky, P!nk, LEGO® Fortnite, C++",
   // the end of a Persian sentence is not part of the name
   assert.equal(fix("این Fortnite! خیلی خوبه"), `این ${R}Fortnite${R}! خیلی خوبه`);
   assert.equal(fix("بازی Fortnite."), `بازی ${R}Fortnite${R}.`);
-  assert.equal(fix("قیمت $9.99 برای Crew"), `قیمت $9.99 برای ${R}Crew${R}`);
 });
 
 test("accented names stay whole: Día de Muertos, Pokémon, Señor Jalapeño", () => {
@@ -295,6 +294,27 @@ test("in a Persian post, an English-only list item sits on the right like the re
   assert.equal(fix("سلام\n**📣 TG | @LolSmash**"), "سلام\n**📣 TG | @LolSmash**");
   // a price line with ➥ keeps its own rule
   assert.equal(fix(`سلام\n⟡ 1,200 ➥ 1,000`), `سلام\n${L}⟡ 1,200 ➥ 1,000`);
+});
+
+test("a sign stuck to a number keeps its side, as typed: $9.99, 50%, +50, 2026-10-30", () => {
+  assert.equal(fix("قیمت $9.99 برای Crew"), `قیمت ${R}${L}$9.99${R} برای ${R}Crew${R}`);
+  assert.equal(fix("قیمت 9.99$ شد"), `قیمت ${R}${L}9.99$${L}${R} شد`);
+  assert.equal(fix("تخفیف 50% روی پک"), `تخفیف ${R}${L}50%${L}${R} روی پک`);
+  assert.equal(fix("تاریخ 2026-10-30 و بین 10-20 نفر"), `تاریخ ${R}${L}2026-10-30${R} و بین ${R}${L}10-20${R} نفر`);
+  assert.equal(fix("رتبه #1 و +50 اسکین"), `رتبه ${R}${L}#1${R} و ${R}${L}+50${R} اسکین`);
+  // plain numbers, times and prices with ➥ are as before
+  assert.equal(fix("ساعت 3:30 صبح"), "ساعت 3:30 صبح");
+  assert.equal(fix(`⟡ قیمت: 1,200 ➥ 1,000 وی${Z}باکس`), `⟡ قیمت: 1,200 ➥ 1,000 وی${Z}باکس`);
+  // inside an English name nothing changes
+  assert.equal(fix("قیمت US$20 شد"), `قیمت ${R}US$20${R} شد`);
+});
+
+test("preview and copy tidy the text: Arabic ي ى ك become Persian ی ک, extra spaces go; code stays", () => {
+  assert.equal(fix("فورتنايت  و  كلاب   جديد  "), "فورتنایت و کلاب جدید");
+  assert.equal(fix("**#فورتنايت | #Fortnite**"), "**#فورتنایت | #Fortnite**");
+  assert.equal(fix("```\nكد   داخل\n```"), "```\nكد   داخل\n```");
+  assert.equal(fix("کد `a  b` تست"), `کد \`${R}a  b${R}\` تست`);
+  assert.equal(fix("  - nested  item"), "  - nested item", "the spaces a line starts with stay");
 });
 
 test("a line starting with the #️⃣ button is fixed like any other line", () => {

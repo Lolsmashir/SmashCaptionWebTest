@@ -3,7 +3,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION } = require("./harness");
+const { startServer, openApp, typeCaption, waitForMedia, launch, settle, CAPTION, TWEET_TEXT } = require("./harness");
 
 const R = "‏";
 const DESKTOP = { width: 1440, height: 900 };
@@ -170,7 +170,7 @@ test("media: both APIs, one card, 4 qualities high→low, 3 buttons per row, ★
   await typeCaption(page);
   await waitForMedia(page, 4);
   assert.ok(log.some((u) => u.includes("api.fxtwitter.com")) && log.some((u) => u.includes("api.vxtwitter.com")));
-  assert.equal(await page.locator(".mcard").count(), 1);
+  assert.equal(await page.locator(".mcard:not(.mtweet)").count(), 1);
   const rows = await page.$$eval(".mcard .qitem", (rs) => rs.map((r) => ({
     name: r.querySelector(".qname").innerText.replace(/\s+/g, " ").trim(),
     rec: r.classList.contains("rec"),
@@ -211,6 +211,41 @@ test("media: video 'کپی' copies the link on desktop and opens the share sheet
   await phone.ctx.close();
 });
 
+test("media: the tweet's words come after its media with «کپی متن»; a tweet with only words shows them", async () => {
+  const { ctx, page } = await open();
+  await typeCaption(page);
+  await waitForMedia(page, 4);
+  await page.waitForSelector(".mtweet");
+  assert.equal(await page.locator(".mtweet").count(), 1);
+  assert.equal(await page.$eval("#mgrid", (g) => g.lastElementChild.classList.contains("mtweet")), true, "after the media");
+  assert.match(await page.locator(".mtweet .mt-who").innerText(), /Fortnite\s+@FortniteGame/);
+  assert.equal(await page.locator(".mtweet .mt-text").textContent(), TWEET_TEXT);
+  assert.equal(await page.textContent("#mBadge"), "1", "the badge counts files, not the words");
+  await recordClipboard(page);
+  await page.click(".mtweet [data-tcopy]");
+  await page.waitForFunction(() => window.__clip.writeText.length === 1);
+  assert.equal(await page.evaluate(() => window.__clip.writeText[0]), TWEET_TEXT);
+  await page.waitForSelector(".mtweet .mt-copy.done");
+  assert.match(await page.textContent("#toast"), /متن توییت کپی شد/);
+  // a tap on the words opens all of them
+  await page.click(".mtweet .mt-text");
+  assert.ok(await page.$(".mtweet .mt-text.open"));
+  await ctx.close();
+
+  // only words, and only vxtwitter answered: no "nothing found" card, and twitter's t.co link is gone
+  const t = await open({ apis: "text" });
+  await t.ctx.route("https://api.fxtwitter.com/**", (r) => r.fulfill({ status: 503, headers: { "access-control-allow-origin": "*" }, body: "" }));
+  await t.ctx.route("https://api.vxtwitter.com/**", (r) => r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "application/json" },
+    body: JSON.stringify({ text: TWEET_TEXT + " https://t.co/AbC123", user_name: "Fortnite", user_screen_name: "FortniteGame", media_extended: [] }) }));
+  await typeCaption(t.page);
+  await t.page.waitForSelector(".mtweet");
+  assert.equal(await t.page.locator(".mfail").count(), 0);
+  assert.equal(await t.page.locator(".mtweet .mt-text").textContent(), TWEET_TEXT);
+  assert.ok(await t.page.isVisible("#pMedia"));
+  assert.match(await t.page.textContent("#toast"), /فقط متن/);
+  await t.ctx.close();
+});
+
 test("media: a loading card shows while the tweet resolves, then the real card replaces it", async () => {
   const { ctx, page, releaseApis } = await open({ apis: "slow" });
   await typeCaption(page);
@@ -239,6 +274,84 @@ test("media: a tweet API answer in an unexpected shape ends in the friendly card
   await typeCaption(page);
   await page.waitForSelector(".mcard.mfail");
   assert.equal(await page.locator(".mskel").count(), 0);
+  await ctx.close();
+});
+
+test("copy warns but still copies: no signature, a link without an address, an unclosed **", async () => {
+  const { ctx, page } = await open();
+  await typeCaption(page, "**تیتر خبر\n[سایت اپیک](\nمتن خبر");
+  await recordClipboard(page);
+  await page.click("#bCopy");
+  await page.waitForFunction(() => window.__clip.write.length === 1);
+  const toast = await page.textContent("#toast");
+  assert.match(toast, /^با فرمت کامل کپی شد — ولی امضا نداره/);
+  assert.match(toast, /لینک «سایت اپیک» آدرس درست نداره/);
+  assert.match(toast, /«\*\*» بسته نشده/);
+  assert.ok(await page.$("#toast.warn"), "a yellow message");
+  // a good caption: no warning; handles and addresses with "__" are not open markers
+  await typeCaption(page, CAPTION + "\nمنبع: @Fortnite__Leaks و https://x.com/a__b");
+  await page.click("#bCopy");
+  await page.waitForFunction(() => window.__clip.write.length === 2);
+  assert.equal(await page.textContent("#toast"), "با فرمت کامل کپی شد");
+  await ctx.close();
+});
+
+test("history: the last 10 captions copied or cleared; one comes back into the editor, and ↶ undoes that", async () => {
+  const { ctx, page } = await open();
+  await recordClipboard(page);
+  await typeCaption(page, "کپشن اول **بولد**\n\n" + "**🛒 USE CODE : FNLS ❤️‍🩹**");
+  await page.click("#bCopy");
+  await typeCaption(page, "کپشن دوم که پاک شد");
+  await page.click("#bClear");
+  assert.equal(await page.inputValue("#input"), "");
+  await page.click("#bHist");
+  await page.waitForSelector("#histSheet.on");
+  const items = () => page.$$eval("#histList .cpart .hist-view", (els) => els.map((e) => e.textContent));
+  assert.deepEqual(await items(), ["کپشن دوم که پاک شد", "کپشن اول بولد\n🛒 USE CODE : FNLS ❤️‍🩹"]);
+  await page.click("#histList [data-hload='1']");
+  assert.equal(await page.$("#histSheet.on"), null);
+  assert.equal(await page.inputValue("#input"), "کپشن اول **بولد**\n\n**🛒 USE CODE : FNLS ❤️‍🩹**");
+  await page.keyboard.press("Control+z");
+  assert.equal(await page.inputValue("#input"), "", "one undo brings back what was there");
+  // a copy from the history copies that caption, and doesn't add it again
+  await page.click("#bHist");
+  await page.click("#histList [data-hcopy='1']");
+  await page.waitForFunction(() => window.__clip.write.length === 2);
+  assert.match(await page.evaluate(() => window.__clip.write[1]["text/html"]), /<b>بولد<\/b>/);
+  assert.equal((await items()).length, 2);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.$("#histSheet.on"), null);
+  // only the last 10, kept after a reload
+  for (let i = 0; i < 12; i++) { await page.fill("#input", "کپشن " + i); await page.click("#bPlain"); }
+  await page.reload();
+  await page.click("#bHist");
+  const kept = await items();
+  assert.equal(kept.length, 10);
+  assert.equal(kept[0], "کپشن 11");
+  await ctx.close();
+});
+
+test("on a phone the history button doesn't pull the keyboard up, and the sheet fits", async () => {
+  const { ctx, page } = await open({ viewport: { width: 390, height: 844 }, mobile: true });
+  await typeCaption(page, "یه کپشن");
+  await page.click("#bCopy");
+  await page.evaluate(() => document.getElementById("input").blur());
+  await page.tap("#bHist");
+  await page.waitForSelector("#histSheet.on");
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), "");
+  const bad = await page.evaluate(() => {
+    const out = [], box = document.querySelector("#histSheet .sheet-in"), b = box.getBoundingClientRect();
+    if (box.scrollWidth > box.clientWidth + 1) out.push("sheet scrolls sideways");
+    document.querySelectorAll("#histSheet button").forEach((el) => {
+      const r = el.getBoundingClientRect();
+      if (el.scrollWidth > el.clientWidth + 1) out.push("truncated: " + el.textContent);
+      if (r.left < b.left - 1 || r.right > b.right + 1) out.push("outside: " + el.textContent);
+    });
+    return out;
+  });
+  assert.deepEqual(bad, []);
+  await page.tap("#bCloseHist");
+  assert.equal(await page.$("#histSheet.on"), null);
   await ctx.close();
 });
 

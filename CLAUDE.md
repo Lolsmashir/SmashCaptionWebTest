@@ -19,11 +19,13 @@ Read this whole file before changing anything in this repo.
   - a URL is isolated as ONE run (never a mark inside it); a markdown link target `](url)` gets no marks at all;
   - `@handle` and inline `#tag` keep their sign inside the run, and inner underscores stay (`@Fortnite_Leaks`), so Telegram still links them;
   - signs glued to a name stay in its run, so the name is never cut in two: `A$AP Rocky`, `Ke$ha`, `P!nk`, `LEGO® Fortnite`, `Marvel™`, `C++`, `Galaxy S24+`. A sign at the very start or end of a run (`@`, `#`, `$`, `+`, `®`, `™`, `©`) gets an LRM (U+200E) inside the RLM pair so it shows beside the name (`@LolSmash`, not `LolSmash@`). A `!` or `.` that ends the Persian sentence is not part of the name. `tests/preview.test.js` checks how these names (and `Día de Muertos`, `GTA 6`) actually look on screen;
+  - a number with a sign stuck to it (`$9.99`, `9.99$`, `50%`, `+50`, `€5`, `#1`) or a dash inside it (`2026-10-30`, `10-20`, `3-1`) shows as typed: it gets `RLM LRM … RLM` (and an LRM after a trailing sign), otherwise a Persian line flips it (`9.99$`). Plain numbers, times (`3:30`), `1,200 ➥ 1,000` and Persian digits are untouched; inside an English name nothing changes (`US$20`);
   - a line starting with the `#️⃣` keycap emoji is a normal line, not a hashtag line;
   - lines with `➥` and no Persian get a leading LRM;
   - blank lines become a single ZWNJ (U+200C);
   - hashtag lines, fully-English lines and code fences are never touched — EXCEPT an English-only list item in a post that has Persian (a line starting with a bullet `•` `◦` `◇` `✦` `✧` `⟡` `▸` `-` … , also inside a quote): its Latin run gets its RLM pair like in a Persian line, so the item sits on the right with the rest of the list (`• A$AP Rocky` under Persian items). The signature and other English lines that are not list items stay as they are;
   - existing RLM/LRM are stripped first; ZWNJ inside Persian words is NEVER removed.
+- Tidy text (approved), in the preview and everything copied, not in the editor: Arabic `ي` `ى` `ك` become Persian `ی` `ک`; a run of spaces inside a line becomes one; no spaces at a line's end. Code (spans and fences), URLs and link addresses are untouched, and the spaces a line starts with stay (rich lists nest by them).
 - Lines labelled `Link:` / `Media:` / `Source:` and bare media-file URLs (pbs.twimg.com, video.twimg.com, image/video extensions) are removed from preview and copy. Plain URLs and markdown links stay.
 - Leading/trailing blank lines are trimmed AFTER media lines are removed (otherwise a stray blank appears under the signature). A removed line between two blank lines leaves ONE blank line, not two.
 - Formats are parsed with a stack (CommonMark-style delimiter matching, including the "rule of 3"), so nested and back-to-back formats like `***x***`, `**a *b***`, `*a***b**`, `**x ||y|| z**` come out well-formed. Markers inside a bare URL are not formats.
@@ -57,12 +59,13 @@ Read this whole file before changing anything in this repo.
 - "720p" means the short side: a 720x1280 portrait clip is 720p and gets the ★.
 - While a tweet resolves, a shimmering loading card shows. A tweet that gives nothing (or an API answer in an unknown shape) shows a friendly card with a «دوباره امتحان کن» button that retries.
 - Cards are not rebuilt on every keystroke (no flashing while typing).
+- Tweet text (approved): after a tweet's media comes one glass card with its words (from fxtwitter, or vxtwitter when only it answers; twitter's trailing `t.co` link removed): 𝕏, name and @handle, the text (3 lines, a tap opens all of it) and a «کپی متن» button. A tweet with only words shows that card instead of the «پیدا نشد» card. The media badge counts files only.
 
 ### UI
 - Toolbar is a single vertical column on the right edge of the editor. When it doesn't fit it pans by mouse drag (like touch scrolling) and mouse wheel, with no visible scrollbar. A click after a drag must not trigger a button.
 - Toolbar buttons: undo, redo, B, I, U, S, spoiler, quote, code block, link, `•` `◦` `⟡` `✦` `✧` `▸` `➥`, `⏱️` `⏰` `🗓️` `🌐` `🎁` `🏅` `#️⃣` `🎮`.
 - Editor actions: پیست (primary), اصلاح متن ادیتور, امضا, پاک. Preview: کپی برای تلگرام, ساده. Media: حذف لینک‌ها, باز کردن همه.
-- Shortcuts: Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y, Ctrl+B/I/U, Ctrl+Enter = fix + copy, Esc closes the help sheet. Undo history of 120 steps; undo never skips typing that wasn't committed yet.
+- Shortcuts: Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y, Ctrl+B/I/U, Ctrl+Enter = fix + copy, Esc closes the help, ✂ and history sheets. Undo history of 120 steps; undo never skips typing that wasn't committed yet.
 - Preview looks like a Telegram bubble, each line `dir="auto"`.
 - PWA meta for "Add to Home Screen" on iPhone, safe-area insets respected (all four sides).
 - No zoom on phones: viewport has `maximum-scale=1.0`, `html` has `touch-action: manipulation`.
@@ -74,6 +77,8 @@ Read this whole file before changing anything in this repo.
   - It counts what Telegram counts: the text of the post once its formats are applied. Format markers and the ADDRESS behind a link don't count (a link counts its text only); the direction marks and the ZWNJ of blank lines are real characters of the post and do; units are UTF-16 (an emoji is 2). «ساده» still copies links as "text url".
   - Telegram's caption limit is 1024 for normal accounts and (per 2024 reports) 4096 with Premium.
 - Draft (approved): the editor text is saved to `localStorage` and restored after a refresh or iOS closing the home-screen app. «پاک» clears it.
+- History (approved): a clock button in the header, beside ؟, opens a sheet with the last 10 captions copied («کپی برای تلگرام», Ctrl+Enter, «ساده») or cleared («پاک»), newest first, saved in `localStorage` as `caption-studio-history` (the same text is kept once). Each shows its date and time, its count, its first lines as the post shows them, «کپی» (copies that caption) and «بیار تو ادیتور» (puts it in the editor, keeping what was there in the history; one ↶ brings that back). Its button doesn't take the focus.
+- Copy warnings (approved): «کپی برای تلگرام» and «ساده» always copy, but the message turns yellow and adds «— ولی …» when the caption has no signature («USE CODE»), a link without a proper address (`[text](` / `[text]()`), or (classic mode) a `**` `__` `~~` `||` the parser could not pair, which would show in the post as it is. Handles, URLs and code don't count.
 
 ### Split post (approved)
 - A small ✂ chip sits beside the counter (classic mode only; hidden in rich mode). It opens a sheet that splits the post into parts that each fit, without touching the editor text.
