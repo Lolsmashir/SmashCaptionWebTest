@@ -246,6 +246,61 @@ test("media: the tweet's words come after its media with «کپی متن»; a tw
   await t.ctx.close();
 });
 
+test("tweet picture: X-style, with the tweet's words or with our caption; download, copy; Esc closes", async () => {
+  const { ctx, page, errors } = await open();
+  await typeCaption(page);
+  await page.waitForSelector(".mtweet [data-tshot]");
+  await page.click(".mtweet [data-tshot]");
+  await page.waitForSelector("#shotSheet.on");
+  const ready = () => page.waitForFunction(() => {
+    const i = document.getElementById("shotImg");
+    return i.src && i.complete && i.naturalWidth > 0 && !document.getElementById("shotBox").classList.contains("wait");
+  });
+  await ready();
+  const orig = await page.$eval("#shotImg", (i) => ({ w: i.naturalWidth, h: i.naturalHeight, alt: i.alt, src: i.src }));
+  assert.equal(orig.w, 1120, "twice the card's width, sharp on a phone");
+  assert.equal(orig.alt, TWEET_TEXT);
+  assert.ok(await page.$("[data-shot='orig'].on"));
+  // with our caption: our words, without the signature and the Link: line, on the same tweet
+  await page.click("[data-shot='ours']");
+  await page.waitForFunction((src) => document.getElementById("shotImg").src !== src, orig.src);
+  await ready();
+  const ours = await page.$eval("#shotImg", (i) => ({ w: i.naturalWidth, h: i.naturalHeight, alt: i.alt }));
+  assert.equal(ours.w, 1120);
+  assert.match(ours.alt, /کلاب ماه بعد/);
+  assert.doesNotMatch(ours.alt, /USE CODE|Link:|\*\*/);
+  const dl = page.waitForEvent("download");
+  await page.click("#bShotDl");
+  assert.match((await dl).suggestedFilename(), /^LolSmash-FortniteGame-\d+-fa\.png$/);
+  await recordClipboard(page);
+  await page.click("#bShotCopy");
+  await page.waitForFunction(() => window.__clip.write.length === 1);
+  assert.deepEqual(await page.evaluate(() => Object.keys(window.__clip.write[0])), ["image/png"]);
+  assert.match(await page.textContent("#toast"), /عکس کپی شد/);
+  await page.keyboard.press("Escape");
+  assert.equal(await page.$("#shotSheet.on"), null);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test("tweet picture on a phone: «ارسال» shares a PNG; «با متن ما» waits for a caption", async () => {
+  const { ctx, page } = await open({ viewport: { width: 390, height: 844 }, mobile: true });
+  await typeCaption(page, "Link: https://x.com/FortniteGame/status/1834567890123456789");
+  await page.waitForSelector(".mtweet [data-tshot]");
+  await page.evaluate(() => document.getElementById("input").blur());
+  await page.tap(".mtweet [data-tshot]");
+  await page.waitForFunction(() => { const i = document.getElementById("shotImg"); return i.src && i.complete && i.naturalWidth > 0; });
+  assert.equal(await page.$eval("[data-shot='ours']", (b) => b.disabled), true, "nothing written yet");
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), "", "the keyboard stays down");
+  await page.tap("#bShotShare");
+  await page.waitForFunction(() => window.__shared.length === 1);
+  assert.deepEqual(await page.evaluate(() => [window.__shared[0].files[0].name, window.__shared[0].files[0].type]),
+    ["LolSmash-FortniteGame-1834567890123456789.png", "image/png"]);
+  await page.tap("#bCloseShot");
+  assert.equal(await page.$("#shotSheet.on"), null);
+  await ctx.close();
+});
+
 test("media: a loading card shows while the tweet resolves, then the real card replaces it", async () => {
   const { ctx, page, releaseApis } = await open({ apis: "slow" });
   await typeCaption(page);
