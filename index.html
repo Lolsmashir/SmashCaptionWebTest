@@ -964,15 +964,26 @@ function say(m,k){
 
 /* ---------- text helpers ---------- */
 var URL_RE=/https?:\/\/[^\s<>"']+/gi;
+// latin letters, accented ones too (Día de Muertos, Pokémon, Señor), or the name is cut at the accent
+var LAT="A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF";
 // an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
 // otherwise the mark lands inside the name and Telegram stops linking it.
 // Signs glued to a name stay in it too (A$AP Rocky, P!nk, LEGO®, C++), or the name is cut in two
-var LATIN_RUN_RE=/[@#$]?[A-Za-z][A-Za-z0-9_]*(?:[ ×&'’.:\/\-$!+®™©]+[A-Za-z0-9][A-Za-z0-9_]*)*[$+®™©]*/g;
-// a number at the very end of a latin run belongs to the persian sentence
-// ("The Final Reckoning 29 شهریور"), so it is left outside the isolation
-var TRAIL_NUM_RE=/^([\s\S]*?[A-Za-z][A-Za-z0-9]*)(\s+[\d][\d.,]*)$/;
-// ...unless the word before it makes the number part of the name ("Season 1", "Chapter 7")
-var NAME_NUM_RE=/(?:^|[^A-Za-z])(?:season|chapter|part|vol|volume|episode|ep|act|week|day|level|tier|phase|round|stage|wave|mission|book)$/i;
+var LATIN_RUN_RE=new RegExp("[@#$]?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+)*[$+®™©]*","g");
+// a number at the very end of a latin run is part of the name ("GTA 6", "FIFA 25")...
+var TRAIL_NUM_RE=new RegExp("^([\\s\\S]*?["+LAT+"]["+LAT+"0-9]*)(\\s+\\d[\\d.,]*)$");
+// ...except when a date, time or count word follows it: then it belongs to the persian sentence
+// ("The Final Reckoning 29 شهریور", "Fortnite 2 ساعت", "Crew 1,000 وی‌باکس"), or a persian letter
+// is glued to it ("3م"), and it is left outside the isolation
+var NUM_WORD_RE=new RegExp("^[*_~|]*(?:[\\u0620-\\u064A\\u0671-\\u06D3]|\\s+(?:"+[
+  "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند",
+  "ژانویه","فوریه","مارس","آوریل","مه","ژوئن","ژوئیه","جولای","اوت","آگوست","سپتامبر","اکتبر","نوامبر","دسامبر",
+  "ثانیه","دقیقه","ساعت","روز","شب","هفته","ماه","سال","قرن",
+  "تا","عدد","نفر","بار","درصد","دلار","تومان","تومن","ریال","یورو","وی[\\u200c ]?باکس","امتیاز","سکه","کیل",
+  "گیگ","گیگابایت","مگ","مگابایت","متر","کیلومتر","اسکین","آیتم","ایموت","جایزه","چالش","کوئست","بازیکن","قسمت"
+].join("|")+")(?:ه|ی|یی|ای)?(?=$|[\\s\\u200c.,،؛:!?؟)»*_~|]))");
+// a word before the number that makes it part of the name in any case ("Season 1", "Chapter 7")
+var NAME_NUM_RE=new RegExp("(?:^|[^"+LAT+"])(?:season|chapter|part|vol|volume|episode|ep|act|week|day|level|tier|phase|round|stage|wave|mission|book)$","i");
 var LABEL_RE=/^\s*(media|link|links|source|assets?)\s*:?\s*$/i;
 var LABELED_RE=/^\s*(media|link|links|source|assets?)\s*:/i;
 var ASSET_RE=/\.(jpe?g|png|gif|webp|avif|mp4|mov|webm|m4v)(\?|$)|pbs\.twimg\.com|video\.twimg\.com/i;
@@ -1045,12 +1056,13 @@ function isolateLatin(line){
   // a sign at the edge of a run (@handle, #tag, LEGO®, C++) would take the Persian side and
   // jump to the other end of the name: an LRM inside the marks holds it to the name
   function isolate(s){ return RLM+(/^[@#$]/.test(s)? LRM : "")+s+(/[$+®™©]$/.test(s)? LRM : "")+RLM; }
-  line=line.replace(LATIN_RUN_RE,function(mm){
+  line=line.replace(LATIN_RUN_RE,function(mm,at,all){
+    var after=all.slice(at+mm.length);
     // a trailing "__" is an underline marker, not part of the word
     var end=(mm.match(/_+$/)||[""])[0];
     mm=mm.slice(0,mm.length-end.length);
     var t=TRAIL_NUM_RE.exec(mm);
-    if(t && !NAME_NUM_RE.test(t[1])) return isolate(t[1])+t[2]+end;
+    if(t && !NAME_NUM_RE.test(t[1]) && NUM_WORD_RE.test(end+after)) return isolate(t[1])+t[2]+end;
     return isolate(mm)+end;
   });
   return line.replace(/\u0002(\d+)\u0003/g,function(m,i){ return held[i]; });
