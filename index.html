@@ -617,6 +617,8 @@ body.rich .cutb{display:none;}
 .shot *{box-sizing:border-box;}
 .shot-head{display:flex;align-items:center;gap:8px;}
 .shot-av{flex:0 0 40px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#333639;color:#e7e9ea;font-weight:700;font-size:17px;}
+.shot-av.sq{border-radius:6px;}
+.shot-more{flex:0 0 auto;width:18.75px;height:18.75px;margin-inline-start:6px;color:#71767b;align-self:flex-start;margin-top:2px;}
 .shot-id{flex:1;min-width:0;}
 .shot-name{display:flex;align-items:center;font-weight:700;}
 .shot-badge{flex:0 0 auto;width:18.75px;height:18.75px;margin-inline-start:2px;color:#1d9bf0;}
@@ -641,6 +643,31 @@ body.rich .cutb{display:none;}
   color:rgba(255,255,255,.94);font-size:12.5px;font-weight:600;line-height:16px;
 }
 .shot-wm i{width:15px;height:15px;}
+.shot-wm.right{left:auto;right:10px;}
+.shot-card{aspect-ratio:1.91;}
+.shot-ctitle{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 24px - 120px);
+  padding:0 4px;border-radius:4px;background:rgba(0,0,0,.77);color:#fff;
+  font-size:13px;line-height:20px;white-space:nowrap;overflow:hidden;
+}
+.shot-from{margin-top:4px;color:#71767b;font-size:13px;}
+.shot-cbox{margin-top:12px;padding:12px;border:1px solid #2f3336;border-radius:16px;}
+.shot-poll{margin-top:12px;}
+.shot-pc{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;height:32px;margin-bottom:6px;padding:0 12px;}
+.shot-pc i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#333639;}
+.shot-pc.win i{background:rgba(29,155,240,.6);}
+.shot-pc span,.shot-pc b{position:relative;}
+.shot-pc.win span,.shot-pc b{font-weight:700;}
+.shot-pmeta{color:#71767b;font-size:15px;}
+.shot-quote{position:relative;margin-top:12px;border:1px solid #2f3336;border-radius:16px;overflow:hidden;}
+.shot-qhead{display:flex;align-items:center;gap:4px;padding:12px 12px 0;}
+.shot-qav{flex:0 0 20px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#333639;font-size:10px;font-weight:700;margin-inline-end:2px;}
+.shot-qav.sq{border-radius:4px;}
+.shot-qbadge{flex:0 0 auto;width:16px;height:16px;color:#1d9bf0;}
+.shot-qbadge.gold{color:#e2b719;} .shot-qbadge.gray{color:#829aab;}
+.shot-qhead .shot-user{margin-inline-start:2px;}
+.shot-qtext{padding:2px 12px 12px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.shot-qmedia{aspect-ratio:16/9;border-top:1px solid #2f3336;}
 .shot-time{margin:16px 0;color:#71767b;}
 .shot-time b{color:#e7e9ea;font-weight:700;}
 .shot-stats{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 4px;border-top:1px solid #2f3336;color:#71767b;font-size:13px;}
@@ -2421,14 +2448,29 @@ async function resolveTweet(id){
   var ft=(fx&&fx.tweet)||{}, au=ft.author||{}, vf=au.verification||{}, v=vx||{};
   var words=String(ft.text||(ft.raw_text&&ft.raw_text.text)||v.text||"").replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim();
   var num=function(){ for(var k=0;k<arguments.length;k++) if(typeof arguments[k]==="number" && isFinite(arguments[k])) return arguments[k]; return null; };
+  // a link card is what X shows for a link when the post has no media of its own: the picture with
+  // the page's title over it and "From site" under it, and the link itself is not shown in the words
+  var fm=ft.media||{}, ownMedia=(fm.photos||[]).length+(fm.videos||[]).length, cd=ft.card||null;
+  var card= cd && !ownMedia && (cd.title || (cd.image && cd.image.url))? { title:String(cd.title||""), domain:String(cd.domain||""), image:(cd.image && cd.image.url)||"" } : null;
+  if(card) words=words.replace(/\s*https?:\/\/\S+$/,"").trim()||words;
+  var q=ft.quote && ft.quote.author && typeof ft.quote.text==="string"? ft.quote : null, qa=q? q.author : {}, qm=(q && q.media)||{};
+  var poll=ft.poll && Array.isArray(ft.poll.choices) && ft.poll.choices.length? ft.poll : null;
   tweetText[id]= words? {
     id:id, text:words, name:au.name||v.user_name||"", user:au.screen_name||v.user_screen_name||"",
     avatar:au.avatar_url||v.user_profile_image_url||"",
     verified:!!(vf.verified||au.verified), vtype:String(vf.type||""),
     time:(ft.created_timestamp? ft.created_timestamp*1000 : 0)||(v.date_epoch? v.date_epoch*1000 : 0),
-    replies:num(ft.replies,v.replies), retweets:num(ft.retweets,v.retweets), likes:num(ft.likes,v.likes),
+    replies:num(ft.replies,v.replies), retweets:num(ft.reposts,ft.retweets,v.retweets), likes:num(ft.likes,v.likes),
     bookmarks:num(ft.bookmarks), views:num(ft.views),
-    media:got.map(function(m){ return { src:m.kind==="image"? m.url : (m.poster||"") }; }).filter(function(m){ return m.src; }).slice(0,4)
+    media: card? [] : got.map(function(m){ return { src:m.kind==="image"? m.url : (m.poster||"") }; }).filter(function(m){ return m.src; }).slice(0,4),
+    card:card,
+    quote: q? {
+      name:qa.name||"", user:qa.screen_name||"", avatar:qa.avatar_url||"",
+      verified:!!(qa.verification && qa.verification.verified), vtype:String((qa.verification && qa.verification.type)||""),
+      text:String(q.text).replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim(), time:q.created_timestamp? q.created_timestamp*1000 : 0,
+      media:((qm.photos||[])[0]||{}).url||((qm.videos||[])[0]||{}).thumbnail_url||""
+    } : null,
+    poll: poll? { choices:poll.choices.map(function(c){ return { label:String(c.label||""), pct:+c.percentage||0 }; }), votes:num(poll.total_votes), left:String(poll.time_left_en||"") } : null
   } : null;
 
   busyIds[id]=false; cache[id]=got;
@@ -3169,6 +3211,7 @@ var SHOT_ICONS={
   share:{ d:"M12 15.2V4.4M7.8 8.5 12 4.3l4.2 4.2M4.6 14.2v4.2c0 1 .8 1.8 1.8 1.8h11.2c1 0 1.8-.8 1.8-1.8v-4.2" },
   badge:{ fill:true, d:"M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34z",
           inner:"M10.54 16.2 6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" },
+  more:{ fill:true, d:"M3.6 12a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0zm6.8 0a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0zm6.8 0a1.6 1.6 0 1 0 3.2 0 1.6 1.6 0 1 0-3.2 0z" },
   // Telegram's mark: a disc with the plane cut out of it
   plane:{ fill:true, evenodd:true, d:"M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zM5.6 11.7l11.9-4.6c.6-.2.9.1.7.8l-2.1 9.1c-.2.7-.7.8-1.2.5l-3.3-2.5-1.6 1.5c-.2.2-.5.1-.5-.2l.2-2.8 5.3-4.8-6.5 4.1-2.8-.4c-.6-.2-.6-.5-.1-.7z" }
 };
@@ -3182,28 +3225,58 @@ function shotIcon(name,cls){ return '<i data-ico="'+name+'"'+(cls? ' class="'+cl
 function ourBody(){
   return cutPlan(input.value,CAPTION_LIMIT).units.map(unitText).join("\n").replace(/^\n+|\n+$/g,"");
 }
+// organisations (gold badge) have a rounded-square picture on X, everyone else a round one
+function shotSquare(vtype){ return /organi[sz]ation|business/i.test(vtype||""); }
+function shotBadge(p,cls){
+  return p.verified? shotIcon("badge",cls+(shotSquare(p.vtype)? " gold" : /government/i.test(p.vtype)? " gray" : "")) : "";
+}
+function shotInitial(p){ return esc((p.name||p.user||"?").trim().charAt(0).toUpperCase()); }
+function shotWords(t){
+  return esc(t).replace(/(^|[\s(])((?:@|#)[A-Za-z0-9_\u0600-\u06FF]+|https?:\/\/[^\s<]+)/g,'$1<span class="shot-link">$2</span>');
+}
 function shotHtml(info,mode,body,imgs){
-  var av=imgs[0], media=[];
-  info.media.forEach(function(m,i){ if(imgs[i+1]) media.push(i+1); });
-  var mark='<div class="shot-'+(media.length? "wm" : "mark")+'">'+shotIcon("plane")+'<span>@LolSmash</span></div>';
-  var h='<div class="shot-head"><div class="shot-av" data-img="0">'+(av? "" : esc((info.name||info.user||"?").trim().charAt(0).toUpperCase()))+'</div>'
-    + '<div class="shot-id"><div class="shot-name"><span>'+esc(info.name||info.user)+'</span>'
-    + (info.verified? shotIcon("badge","shot-badge"+(/business|organi[sz]ation/i.test(info.vtype)? " gold" : /government/i.test(info.vtype)? " gray" : "")) : "")+'</div>'
-    + (info.user? '<div class="shot-user">@'+esc(info.user)+'</div>' : "")+'</div>'+(media.length? "" : mark)+'</div>';
+  var media=[];
+  info.media.forEach(function(m,i){ if(imgs["m"+i]) media.push("m"+i); });
+  var card=!media.length && info.card && (imgs.card || info.card.title)? info.card : null;
+  var pictured=media.length || (card && imgs.card);
+  var mark='<div class="shot-'+(pictured? "wm"+(card? " right" : "") : "mark")+'">'+shotIcon("plane")+'<span>@LolSmash</span></div>';
+  var h='<div class="shot-head"><div class="shot-av'+(shotSquare(info.vtype)? " sq" : "")+'" data-img="av">'+(imgs.av? "" : shotInitial(info))+'</div>'
+    + '<div class="shot-id"><div class="shot-name"><span>'+esc(info.name||info.user)+'</span>'+shotBadge(info,"shot-badge")+'</div>'
+    + (info.user? '<div class="shot-user">@'+esc(info.user)+'</div>' : "")+'</div>'+(pictured? "" : mark)+shotIcon("more","shot-more")+'</div>';
   if(mode==="ours"){
     h+='<div class="shot-text fa" dir="rtl">'+parse(autoFix(body),false).map(function(x){
       var t= x.t==="blank"? "<br>" : x.t==="pre"? "<pre>"+esc(x.lines.join("\n"))+"</pre>"
         : x.t==="quote"? "<blockquote>"+x.lines.map(function(y){ return inline(y); }).join("<br>")+"</blockquote>" : inline(x.text);
       return '<div dir="auto">'+t.replace(/tg-spoiler/g,"shot-sp")+"</div>";
     }).join("")+"</div>";
-  } else {
-    h+='<div class="shot-text" dir="auto">'+esc(body).replace(/(^|[\s(])((?:@|#)[A-Za-z0-9_؀-ۿ]+|https?:\/\/[^\s<]+)/g,'$1<span class="shot-link">$2</span>')+"</div>";
-  }
+  } else h+='<div class="shot-text" dir="auto">'+shotWords(body)+"</div>";
   if(media.length){
     // one picture keeps its shape (between wide and a little tall); several share a 16:9 grid
     var one=media.length===1 && imgs[media[0]], ratio=one? Math.min(1.25,Math.max(0.5,one.img.naturalHeight/one.img.naturalWidth)) : 0.5625;
     h+='<div class="shot-media n'+media.length+'" style="aspect-ratio:'+(1/ratio).toFixed(4)+'">'
       + media.map(function(k){ return '<div class="shot-m" data-img="'+k+'"></div>'; }).join("")+mark+"</div>";
+  } else if(card){
+    if(imgs.card) h+='<div class="shot-media shot-card"><div class="shot-m" data-img="card"></div>'
+      + (card.title? '<div class="shot-ctitle" data-fit="1">'+esc(card.title)+'</div>' : "")+mark+'</div>'
+      + (card.domain? '<div class="shot-from">From '+esc(card.domain)+'</div>' : "");
+    else h+='<div class="shot-cbox">'+(card.domain? '<div class="shot-user">'+esc(card.domain)+'</div>' : "")+'<div>'+esc(card.title)+'</div></div>';
+  }
+  if(info.poll){
+    var top=Math.max.apply(null,info.poll.choices.map(function(c){ return c.pct; }));
+    h+='<div class="shot-poll">'+info.poll.choices.map(function(c){
+      return '<div class="shot-pc'+(c.pct===top? " win" : "")+'"><i style="width:'+Math.max(1,Math.min(100,c.pct)).toFixed(1)+'%"></i>'
+        + '<span dir="auto">'+esc(c.label)+'</span><b>'+(Math.round(c.pct*10)/10)+'%</b></div>';
+    }).join("")+'<div class="shot-pmeta">'+(info.poll.votes!=null? esc(info.poll.votes.toLocaleString("en-US"))+" votes" : "")
+      + (info.poll.left? (info.poll.votes!=null? " · " : "")+esc(info.poll.left) : "")+"</div></div>";
+  }
+  var q=info.quote;
+  if(q){
+    var qd=q.time? new Date(q.time) : null;
+    h+='<div class="shot-quote"><div class="shot-qhead"><div class="shot-qav'+(shotSquare(q.vtype)? " sq" : "")+'" data-img="qav">'+(imgs.qav? "" : shotInitial(q))+'</div>'
+      + '<b>'+esc(q.name||q.user)+'</b>'+shotBadge(q,"shot-qbadge")
+      + '<span class="shot-user">'+(q.user? "@"+esc(q.user) : "")+(qd? " · "+esc(qd.toLocaleDateString("en-US",{month:"short",day:"numeric"})) : "")+'</span></div>'
+      + (q.text? '<div class="shot-qtext" dir="auto">'+shotWords(q.text)+'</div>' : "")
+      + (imgs.qm? '<div class="shot-qmedia" data-img="qm"></div>' : "")+"</div>";
   }
   var when=[];
   if(info.time){
@@ -3211,8 +3284,7 @@ function shotHtml(info,mode,body,imgs){
     when.push(esc(d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"})+" · "+d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})));
   }
   if(info.views!=null) when.push("<b>"+shortNum(info.views)+"</b> Views");
-  if(when.length) h+='<div class="shot-time">'+when.join(" · ")+"</div>";
-  else h+='<div class="shot-time"></div>';
+  h+='<div class="shot-time">'+when.join(" · ")+"</div>";
   h+='<div class="shot-stats">'+[["reply",info.replies],["retweet",info.retweets],["like",info.likes],["bookmark",info.bookmarks],["share",null]].map(function(x){
     return "<span>"+shotIcon(x[0])+(x[1]? shortNum(x[1]) : "")+"</span>";
   }).join("")+"</div>";
@@ -3270,7 +3342,10 @@ function shotRuns(w){
 }
 async function renderTweetImage(info,mode){
   var body= mode==="ours"? ourBody() : info.text;
-  var imgs=await Promise.all([info.avatar].concat(info.media.map(function(m){ return m.src; })).map(shotImage));
+  var want={ av:info.avatar, qav:info.quote && info.quote.avatar, qm:info.quote && info.quote.media, card:info.card && info.card.image }, imgs={};
+  info.media.forEach(function(m,i){ want["m"+i]=m.src; });
+  var names=Object.keys(want), loaded=await Promise.all(names.map(function(k){ return shotImage(want[k]); }));
+  names.forEach(function(k,i){ imgs[k]=loaded[i]; });
   try{ await Promise.all([document.fonts.load("400 17px IRANSans"),document.fonts.load("700 17px IRANSans")]); }catch(e){}
   var card=document.createElement("div");
   card.className="shot"; card.setAttribute("dir","ltr"); card.setAttribute("aria-hidden","true");
@@ -3289,6 +3364,10 @@ async function renderTweetImage(info,mode){
       t.parentNode.replaceChild(f,t);
     });
   });
+  [].forEach.call(card.querySelectorAll("[data-fit]"),function(el){
+    var t=el.textContent;
+    while(el.scrollWidth>el.clientWidth+1 && t.length>4){ t=t.slice(0,-2).replace(/\s+$/,""); el.textContent=t+"…"; }
+  });
   try{
     var cr=card.getBoundingClientRect(), cv=document.createElement("canvas"), ctx=cv.getContext("2d");
     var rel=function(b){ return { x:b.left-cr.left, y:b.top-cr.top, w:b.width, h:b.height }; };
@@ -3303,7 +3382,7 @@ async function renderTweetImage(info,mode){
         ctx.fillStyle=cs.backgroundColor; roundRect(ctx,r,radiusOf(cs,r)); ctx.fill();
       }
       if(el.hasAttribute("data-img")){
-        var im=imgs[+el.getAttribute("data-img")], box=el.closest(".shot-media");
+        var im=imgs[el.getAttribute("data-img")], box=el.closest(".shot-media,.shot-quote");
         ctx.save();
         if(box){ var br=rel(box.getBoundingClientRect()); roundRect(ctx,br,radiusOf(getComputedStyle(box),br)); ctx.clip(); }
         roundRect(ctx,r,radiusOf(cs,r)); ctx.clip();
@@ -3389,7 +3468,7 @@ async function renderTweetImage(info,mode){
     return await new Promise(function(ok,no){ cv.toBlob(function(b){ b? ok(b) : no(new Error("no picture")); },"image/png"); });
   } finally {
     card.remove();
-    imgs.forEach(function(im){ if(im) URL.revokeObjectURL(im.url); });
+    Object.keys(imgs).forEach(function(k){ if(imgs[k]) URL.revokeObjectURL(imgs[k].url); });
   }
 }
 var shotSheet=document.getElementById("shotSheet"), shotImg=document.getElementById("shotImg"), shotBox=document.getElementById("shotBox"), shotState=null;

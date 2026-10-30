@@ -48,15 +48,15 @@ async function openPicture(page, mode) {
   }
 }
 // the worst 24px block: pixels of text in one picture with nothing like them within 2px in the other
-async function worstBlock(page) {
-  const crop = await page.evaluate(() => {
+async function worstBlock(page, part = ".shot-text") {
+  const crop = await page.evaluate((part) => {
     const c = window.__shot;
     c.style.visibility = "visible"; c.style.zIndex = "99999";
     document.querySelectorAll(".sheet").forEach((s) => s.classList.remove("on"));
-    const cr = c.getBoundingClientRect(), tr = c.querySelector(".shot-text").getBoundingClientRect();
+    const cr = c.getBoundingClientRect(), tr = c.querySelector(part).getBoundingClientRect();
     return { x: Math.round((tr.left - cr.left) * 2), y: Math.round((tr.top - cr.top) * 2) };
-  });
-  const dom = (await (await page.evaluateHandle(() => window.__shot.querySelector(".shot-text"))).screenshot()).toString("base64");
+  }, part);
+  const dom = (await (await page.evaluateHandle((part) => window.__shot.querySelector(part), part)).screenshot()).toString("base64");
   return page.evaluate(async ({ dom, crop }) => {
     const load = (s) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = s; });
     const a = await load(document.getElementById("shotImg").src), b = await load("data:image/png;base64," + dom);
@@ -115,4 +115,52 @@ test("«اصلی»: a Persian tweet with English, emoji and numbers is drawn whe
   assert.ok(r.worst < 110, "words out of place near " + JSON.stringify(r.at) + " (" + r.worst + " px)");
   assert.deepEqual(errors, []);
   await ctx.close();
+});
+
+test("what X shows besides the words: square picture for organisations, link card, poll, quoted post, ⋯", async () => {
+  const org = { name: "Fortnite Status", screen_name: "FortniteStatus", avatar_url: "https://pbs.twimg.com/profile_images/9/f_normal.png", verification: { verified: true, type: "organization" } };
+  const tweets = {
+    card: { tweet: { text: "Downtime for v43.00 begins November 1 at 1 AM ET\n\nhttps://fn.gg/treasure-hunters", author: org, created_timestamp: 1793418900, reposts: 156, likes: 768, media: {},
+      card: { url: "https://t.co/abc", title: "Fortnite Treasure Hunters: The Greatest Adventure of All Time is finally here for everyone", domain: "fortnite.com", image: { url: "https://pbs.twimg.com/card_img/1/c.jpg" } } } },
+    quotepoll: { tweet: { text: "Which One Piece skin are you getting first?", author: { name: "HYPEX", screen_name: "HYPEX", verification: { verified: true, type: "individual" } }, created_timestamp: 1793391600,
+      poll: { choices: [{ label: "Luffy", count: 900, percentage: 62.4 }, { label: "Zoro", count: 300, percentage: 20.8 }, { label: "Nami", count: 242, percentage: 16.8 }], total_votes: 1442, ends_at: "", time_left_en: "Final results" },
+      quote: { text: "One Piece x Fortnite is OFFICIAL. Luffy, Zoro and Nami arrive November 1! https://t.co/xyz", author: org, created_timestamp: 1793380000, media: { photos: [{ url: "https://pbs.twimg.com/media/Q1.jpg" }] } } } },
+  };
+  for (const [name, fx] of Object.entries(tweets)) {
+    const { ctx, page, errors } = await openWithShotKept({ apis: "text" });
+    await ctx.route("https://api.fxtwitter.com/**", (r) => r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "application/json" }, body: JSON.stringify(fx) }));
+    await ctx.route("https://api.vxtwitter.com/**", (r) => r.fulfill({ status: 503, headers: { "access-control-allow-origin": "*" }, body: "" }));
+    await typeCaption(page, "Link: https://x.com/a/status/1834567890123456789");
+    await page.waitForSelector(".mtweet [data-tshot]");
+    await openPicture(page, "orig");
+    const card = await page.evaluate(() => {
+      const c = window.__shot, q = (s) => c.querySelector(s);
+      return { square: !!q(".shot-av.sq"), more: !!q(".shot-more"), text: q(".shot-text").textContent,
+        title: q(".shot-ctitle") && q(".shot-ctitle").textContent, from: q(".shot-from") && q(".shot-from").textContent,
+        poll: [...c.querySelectorAll(".shot-pc")].map((x) => x.textContent), winner: q(".shot-pc.win span") && q(".shot-pc.win span").textContent,
+        votes: q(".shot-pmeta") && q(".shot-pmeta").textContent, quote: q(".shot-qtext") && q(".shot-qtext").textContent,
+        quoteSquare: !!q(".shot-qav.sq"), quotePicture: !!q(".shot-qmedia"), mark: q(".shot-wm,.shot-mark").className };
+    });
+    assert.ok(card.more, "⋯ in the corner");
+    if (name === "card") {
+      assert.ok(card.square, "an organisation's picture is a rounded square");
+      assert.equal(card.text, "Downtime for v43.00 begins November 1 at 1 AM ET", "the card's link is not in the words");
+      assert.match(card.title, /^Fortnite Treasure Hunters: .+…$/, "a long title ends in …");
+      assert.equal(card.from, "From fortnite.com");
+      assert.equal(card.mark, "shot-wm right", "the watermark keeps off the title");
+    } else {
+      assert.ok(!card.square, "a person's picture is round");
+      assert.deepEqual(card.poll, ["Luffy62.4%", "Zoro20.8%", "Nami16.8%"]);
+      assert.equal(card.winner, "Luffy");
+      assert.equal(card.votes, "1,442 votes · Final results");
+      assert.equal(card.quote, "One Piece x Fortnite is OFFICIAL. Luffy, Zoro and Nami arrive November 1!");
+      assert.ok(card.quoteSquare && card.quotePicture);
+      for (const part of [".shot-poll", ".shot-qtext"]) {
+        const r = await worstBlock(page, part);
+        assert.ok(r.worst < 110, part + ": out of place near " + JSON.stringify(r.at) + " (" + r.worst + " px)");
+      }
+    }
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  }
 });
