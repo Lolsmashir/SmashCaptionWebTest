@@ -317,6 +317,13 @@ test("preview and copy tidy the text: Arabic ي ى ك become Persian ی ک, extr
   assert.equal(fix("  - nested  item"), "  - nested item", "the spaces a line starts with stay");
 });
 
+test("digits a name starts with stay in front of it: 1-Up Token, 3D, 4K", () => {
+  assert.equal(fix("احتمال دراپ 1-Up Token و Portable Extractor"), `احتمال دراپ ${R}${L}1-Up Token${R} و ${R}Portable Extractor${R}`);
+  assert.equal(fix("پک 3D و کیفیت 4K برای"), `پک ${R}${L}3D${R} و کیفیت ${R}${L}4K${R} برای`);
+  // a number and a name with a space between them are not one name
+  assert.equal(fix("تعداد: 4 Squad"), `تعداد: 4 ${R}Squad${R}`);
+});
+
 test("a line starting with the #️⃣ button is fixed like any other line", () => {
   assert.equal(fix("#️⃣ تعداد: 4 Squad"), `#️⃣ تعداد: 4 ${R}Squad${R}`);
 });

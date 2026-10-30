@@ -114,12 +114,13 @@ async function makePoster(browser) {
 }
 
 // opts.apis: "ok" | "fail" | "slow" | "text" (a tweet with only words) ; opts.share: stub navigator.share like iPhone Safari
+// opts.scale: device pixels per CSS pixel (default 3 on a phone, 1 on a computer)
 // opts.motion: play the animations (by default the page runs as with "reduce motion", so
 // nothing is mid-animation while a test measures or clicks)
-async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false } = {}) {
+async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false, scale = 0 } = {}) {
   const poster = await makePoster(browser);
   const ctx = await browser.newContext({
-    viewport, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile,
+    viewport, deviceScaleFactor: scale || (mobile ? 3 : 1), isMobile: mobile, hasTouch: mobile,
     reducedMotion: motion ? "no-preference" : "reduce",
     userAgent: mobile
       ? "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"

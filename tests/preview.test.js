@@ -178,7 +178,7 @@ test("the preview shows exactly what gets copied", async () => {
 test("English names inside a Persian line read the right way round in the preview", async () => {
   const { ctx, page } = await open();
   const names = ["A$AP Rocky", "Ke$ha", "P!nk", "LEGO® Fortnite", "Marvel™", "C++", "Galaxy S24+", "@LolSmash", "#Fortnite", "@Fortnite_Leaks",
-    "Día de Muertos", "Pokémon", "GTA 6", "FIFA 25", "$9.99", "50%", "+50", "2026-10-30"];
+    "Día de Muertos", "Pokémon", "GTA 6", "FIFA 25", "$9.99", "50%", "+50", "2026-10-30", "1-Up Token", "3D", "4K"];
   await typeCaption(page, names.map((n) => "**اسکین " + n + " که قراره بیاد!**").join("\n"));
   // the characters of each line in the order they sit on screen, left to right
   const shown = await page.evaluate(() => {
