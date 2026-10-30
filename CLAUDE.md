@@ -22,7 +22,7 @@ Read this whole file before changing anything in this repo.
   - a line starting with the `#️⃣` keycap emoji is a normal line, not a hashtag line;
   - lines with `➥` and no Persian get a leading LRM;
   - blank lines become a single ZWNJ (U+200C);
-  - hashtag lines, fully-English lines and code fences are never touched;
+  - hashtag lines, fully-English lines and code fences are never touched — EXCEPT an English-only list item in a post that has Persian (a line starting with a bullet `•` `◦` `◇` `✦` `✧` `⟡` `▸` `-` … , also inside a quote): its Latin run gets its RLM pair like in a Persian line, so the item sits on the right with the rest of the list (`• A$AP Rocky` under Persian items). The signature and other English lines that are not list items stay as they are;
   - existing RLM/LRM are stripped first; ZWNJ inside Persian words is NEVER removed.
 - Lines labelled `Link:` / `Media:` / `Source:` and bare media-file URLs (pbs.twimg.com, video.twimg.com, image/video extensions) are removed from preview and copy. Plain URLs and markdown links stay.
 - Leading/trailing blank lines are trimmed AFTER media lines are removed (otherwise a stray blank appears under the signature). A removed line between two blank lines leaves ONE blank line, not two.

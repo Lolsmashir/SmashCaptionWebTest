@@ -204,6 +204,18 @@ test("English names inside a Persian line read the right way round in the previe
   await ctx.close();
 });
 
+test("a list in a Persian post sits on the right, English-only items too; the signature stays on the left", async () => {
+  const { ctx, page } = await open();
+  await typeCaption(page, ["**تاریخ اومدن اسکین‌های همکاری One Piece**", "", "• **Luffy، Nami و Usopp**", "◇ تاریخ: **11 آبان**", "",
+    "• **A$AP Rocky**", "◇ تاریخ: **15 آبان**", "", "• **Buggy**", "", "**🛒 USE CODE : FNLS ❤️‍🩹**", "**📣 TG | @LolSmash**"].join("\n"));
+  const dirs = await page.$$eval("#preview > *", (els) => els.filter((e) => e.textContent.trim()).map((e) => (e.matches(":dir(rtl)") ? "rtl " : "ltr ") + e.textContent.trim()));
+  for (const d of dirs) {
+    if (/USE CODE|TG \|/.test(d)) assert.match(d, /^ltr /, d);
+    else assert.match(d, /^rtl /, d);
+  }
+  await ctx.close();
+});
+
 /* ---------- approved features ---------- */
 
 test("caption counter: counts the copied text, yellow near 1024, Premium above it, red above 4096", async () => {
