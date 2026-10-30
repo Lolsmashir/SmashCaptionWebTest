@@ -66,8 +66,9 @@ const SIZES = { "1920x1080": 25804800, "1280x720": 10276044, "640x360": 3250585,
 // fxtwitter and vxtwitter describe the same single clip with different URL shapes
 const TWEET_TEXT = "LEGO Fortnite x Batman is coming!\n\nThe Dark Knight drops on Nov 2 with 3 new skins and a glider.";
 const AUTHOR = { name: "Fortnite", screen_name: "FortniteGame", avatar_url: "https://pbs.twimg.com/profile_images/1/avatar_normal.jpg",
-  verification: { verified: true, type: "business" } };
-const STATS = { created_timestamp: 1793391600, replies: 36, retweets: 136, likes: 2200, bookmarks: 155, views: 76300 };
+  verification: { verified: true, type: "organization" } };
+// fxtwitter's own field names (packages/atmosphere/src/types/api-schemas.ts in FxEmbed/FxEmbed)
+const STATS = { created_timestamp: 1793391600, replies: 36, reposts: 136, likes: 2200, bookmarks: 155, views: 76300 };
 const FX = {
   tweet: { text: TWEET_TEXT, author: AUTHOR, ...STATS, media: { videos: [{
     url: vid("1920x1080"), thumbnail_url: POSTER,
