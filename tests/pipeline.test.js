@@ -287,6 +287,16 @@ test("a number ending a name is part of it (GTA 6), unless a date, time or count
   assert.equal(fix("GTA 6 تازه اومده"), `${R}GTA 6${R} تازه اومده`);
 });
 
+test("in a Persian post, an English-only list item sits on the right like the rest of the list", () => {
+  assert.equal(fix("تاریخ اومدن اسکین‌ها:\n• **A$AP Rocky**\n◇ تاریخ: **15 آبان**\n• Lil Uzi Vert\n- Buggy\n> ✦ Kasane Teto"),
+    `تاریخ اومدن اسکین‌ها:\n• **${R}A$AP Rocky${R}**\n◇ تاریخ: **15 آبان**\n• ${R}Lil Uzi Vert${R}\n- ${R}Buggy${R}\n> ✦ ${R}Kasane Teto${R}`);
+  // an English post, and English lines that are not list items (the signature), stay as they are
+  assert.equal(fix("• Batman\n• Robin"), "• Batman\n• Robin");
+  assert.equal(fix("سلام\n**📣 TG | @LolSmash**"), "سلام\n**📣 TG | @LolSmash**");
+  // a price line with ➥ keeps its own rule
+  assert.equal(fix(`سلام\n⟡ 1,200 ➥ 1,000`), `سلام\n${L}⟡ 1,200 ➥ 1,000`);
+});
+
 test("a line starting with the #️⃣ button is fixed like any other line", () => {
   assert.equal(fix("#️⃣ تعداد: 4 Squad"), `#️⃣ تعداد: 4 ${R}Squad${R}`);
 });

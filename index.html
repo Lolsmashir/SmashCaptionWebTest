@@ -1018,8 +1018,10 @@ function trimBlankEdges(text){
 
 /* ---------- direction fix ---------- */
 // one fixed line per editor line (same count), so the preview can map back to the editor
+// a list item: a bullet (•, ◦, ◇, ✦, -, …) and then the item, maybe inside a quote
+var BULLET_LINE_RE=/^\s*(?:>\s*)?[•◦▪▫●○◆◇◈⟡✦✧★☆▸▹►‣⁃·\-–—](?=[\s*_~|])/;
 function fixLines(text){
-  var n=0, fence=false;
+  var n=0, fence=false, faPost=PERSIAN.test(text);
   var lines=text.split("\n").map(function(raw){
     if(/^\s*```/.test(raw)){ fence=!fence; return raw; }
     if(fence) return raw;
@@ -1029,7 +1031,9 @@ function fixLines(text){
     if(isHashtagLine(line)) return line;
     var fa=PERSIAN.test(line);
     if(!fa && line.indexOf("➥")!==-1){ n++; return LRM+line; }
-    if(fa){
+    // an English-only item of a list in a Persian post ("• A$AP Rocky") sits on the right like the
+    // rest of the list: the mark before its name makes the line right-to-left
+    if(fa || (faPost && BULLET_LINE_RE.test(line))){
       var before=line;
       line=isolateLatin(line);
       if(line!==before) n++;
