@@ -266,6 +266,27 @@ test("signs glued to a name stay in it: A$AP Rocky, P!nk, LEGO® Fortnite, C++",
   assert.equal(fix("قیمت $9.99 برای Crew"), `قیمت $9.99 برای ${R}Crew${R}`);
 });
 
+test("accented names stay whole: Día de Muertos, Pokémon, Señor Jalapeño", () => {
+  assert.equal(fix("• ایموت آیکون Día de Muertos"), `• ایموت آیکون ${R}Día de Muertos${R}`);
+  assert.equal(fix("اسکین Pokémon و Señor Jalapeño"), `اسکین ${R}Pokémon${R} و ${R}Señor Jalapeño${R}`);
+});
+
+test("a number ending a name is part of it (GTA 6), unless a date, time or count word follows", () => {
+  assert.equal(fix("بازی GTA 6 رسما معرفی شد"), `بازی ${R}GTA 6${R} رسما معرفی شد`);
+  assert.equal(fix("FIFA 25 و Battlefield 6 اومدن"), `${R}FIFA 25${R} و ${R}Battlefield 6${R} اومدن`);
+  assert.equal(fix("تریلر GTA 6، رسما"), `تریلر ${R}GTA 6${R}، رسما`);
+  assert.equal(fix("مسابقات FNCS 2026"), `مسابقات ${R}FNCS 2026${R}`);
+  // the number belongs to the Persian sentence
+  assert.equal(fix("ایونت Fortnite 9 آبان تموم میشه"), `ایونت ${R}Fortnite${R} 9 آبان تموم میشه`);
+  assert.equal(fix("سرورهای Fortnite 2 ساعت آفلاینن"), `سرورهای ${R}Fortnite${R} 2 ساعت آفلاینن`);
+  assert.equal(fix(`قیمت Crew 1,000 وی${Z}باکس شد`), `قیمت ${R}Crew${R} 1,000 وی${Z}باکس شد`);
+  assert.equal(fix("تو Fortnite 3 اسکین جدید اومد"), `تو ${R}Fortnite${R} 3 اسکین جدید اومد`);
+  assert.equal(fix("نسخه Fortnite 3م"), `نسخه ${R}Fortnite${R} 3م`);
+  assert.equal(fix("**The Final Reckoning 29** شهریور"), `**${R}The Final Reckoning${R} 29** شهریور`);
+  // "تازه" starts like "تا" but is not a count
+  assert.equal(fix("GTA 6 تازه اومده"), `${R}GTA 6${R} تازه اومده`);
+});
+
 test("a line starting with the #️⃣ button is fixed like any other line", () => {
   assert.equal(fix("#️⃣ تعداد: 4 Squad"), `#️⃣ تعداد: 4 ${R}Squad${R}`);
 });
