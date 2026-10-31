@@ -324,6 +324,13 @@ test("digits a name starts with stay in front of it: 1-Up Token, 3D, 4K", () => 
   assert.equal(fix("تعداد: 4 Squad"), `تعداد: 4 ${R}Squad${R}`);
 });
 
+test("a single | between letters is inside a name (Xbox Series X|S); || is still a spoiler", () => {
+  assert.equal(fix("کنسول Xbox Series X|S"), `کنسول ${R}Xbox Series X|S${R}`);
+  assert.equal(fix("سلام\n• Xbox Series X|S"), `سلام\n• ${R}Xbox Series X|S${R}`);
+  assert.equal(fix("اسکین Fortnite||راز|| و"), `اسکین ${R}Fortnite${R}||راز|| و`);
+  assert.equal(fix("منبع A | B"), `منبع ${R}A${R} | ${R}B${R}`);
+});
+
 test("a line starting with the #️⃣ button is fixed like any other line", () => {
   assert.equal(fix("#️⃣ تعداد: 4 Squad"), `#️⃣ تعداد: 4 ${R}Squad${R}`);
 });

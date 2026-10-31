@@ -121,7 +121,10 @@ test("what X shows besides the words: square picture for organisations, link car
   const org = { name: "Fortnite Status", screen_name: "FortniteStatus", avatar_url: "https://pbs.twimg.com/profile_images/9/f_normal.png", verification: { verified: true, type: "organization" } };
   const tweets = {
     card: { tweet: { text: "Downtime for v43.00 begins November 1 at 1 AM ET\n\nhttps://fn.gg/treasure-hunters", author: org, created_timestamp: 1793418900, reposts: 156, likes: 768, media: {},
-      card: { url: "https://t.co/abc", title: "Fortnite Treasure Hunters: The Greatest Adventure of All Time is finally here for everyone", domain: "fortnite.com", image: { url: "https://pbs.twimg.com/card_img/1/c.jpg" } } } },
+      card: { url: "https://t.co/abc", title: "Fortnite Treasure Hunters: The Greatest Adventure of All Time is finally here for everyone", domain: "fortnite.com", image: { url: "https://pbs.twimg.com/card_img/1/c.jpg" } },
+      // a quoted post with a link card of its own: its link is left out of its words too
+      quote: { text: "Set sail for Fortnite Treasure Hunters\n\nhttps://fn.gg/treasure-hunters", author: org, created_timestamp: 1793380000, media: {},
+        card: { url: "https://t.co/def", title: "Treasure Hunters", domain: "fortnite.com" } } } },
     quotepoll: { tweet: { text: "Which One Piece skin are you getting first?", author: { name: "HYPEX", screen_name: "HYPEX", verification: { verified: true, type: "individual" } }, created_timestamp: 1793391600,
       poll: { choices: [{ label: "Luffy", count: 900, percentage: 62.4 }, { label: "Zoro", count: 300, percentage: 20.8 }, { label: "Nami", count: 242, percentage: 16.8 }], total_votes: 1442, ends_at: "", time_left_en: "Final results" },
       quote: { text: "One Piece x Fortnite is OFFICIAL. Luffy, Zoro and Nami arrive November 1! https://t.co/xyz", author: org, created_timestamp: 1793380000, media: { photos: [{ url: "https://pbs.twimg.com/media/Q1.jpg" }] } } } },
@@ -148,6 +151,7 @@ test("what X shows besides the words: square picture for organisations, link car
       assert.match(card.title, /^Fortnite Treasure Hunters: .+…$/, "a long title ends in …");
       assert.equal(card.from, "From fortnite.com");
       assert.equal(card.mark, "shot-wm right", "the watermark keeps off the title");
+      assert.equal(card.quote, "Set sail for Fortnite Treasure Hunters");
     } else {
       assert.ok(!card.square, "a person's picture is round");
       assert.deepEqual(card.poll, ["Luffy62.4%", "Zoro20.8%", "Nami16.8%"]);

@@ -1112,8 +1112,8 @@ var LAT="A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF";
 // an @handle or #tag keeps its sign, and inner underscores (Fortnite_Leaks) stay in the run,
 // otherwise the mark lands inside the name and Telegram stops linking it.
 // Signs glued to a name stay in it too (A$AP Rocky, P!nk, LEGO®, C++), or the name is cut in two,
-// and so do digits it starts with (3D, 4K, 1-Up Token)
-var LATIN_RUN_RE=new RegExp("[@#$]?(?:[0-9]+[-.]?)?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+)*[$+®™©]*","g");
+// and so do digits it starts with (3D, 4K, 1-Up Token) and a single "|" between letters (Xbox Series X|S)
+var LATIN_RUN_RE=new RegExp("[@#$]?(?:[0-9]+[-.]?)?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+|\\|["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*)*[$+®™©]*","g");
 // a number at the very end of a latin run is part of the name ("GTA 6", "FIFA 25")...
 var TRAIL_NUM_RE=new RegExp("^([\\s\\S]*?["+LAT+"]["+LAT+"0-9]*)(\\s+\\d[\\d.,]*)$");
 // ...except when a date, time or count word follows it: then it belongs to the persian sentence
@@ -2476,6 +2476,8 @@ async function resolveTweet(id){
   var card= cd && !ownMedia && (cd.title || (cd.image && cd.image.url))? { title:String(cd.title||""), domain:String(cd.domain||""), image:(cd.image && cd.image.url)||"" } : null;
   if(card) words=words.replace(/\s*https?:\/\/\S+$/,"").trim()||words;
   var q=ft.quote && ft.quote.author && typeof ft.quote.text==="string"? ft.quote : null, qa=q? q.author : {}, qm=(q && q.media)||{};
+  var qWords=q? String(q.text).replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim() : "";
+  if(q && q.card && !((qm.photos||[]).length+(qm.videos||[]).length)) qWords=qWords.replace(/\s*https?:\/\/\S+$/,"").trim()||qWords;
   var poll=ft.poll && Array.isArray(ft.poll.choices) && ft.poll.choices.length? ft.poll : null;
   tweetText[id]= words? {
     id:id, text:words, name:au.name||v.user_name||"", user:au.screen_name||v.user_screen_name||"",
@@ -2489,7 +2491,7 @@ async function resolveTweet(id){
     quote: q? {
       name:qa.name||"", user:qa.screen_name||"", avatar:qa.avatar_url||"",
       verified:!!(qa.verification && qa.verification.verified), vtype:String((qa.verification && qa.verification.type)||""),
-      text:String(q.text).replace(/(\s*https:\/\/t\.co\/\w+)+\s*$/,"").trim(), time:q.created_timestamp? q.created_timestamp*1000 : 0,
+      text:qWords, time:q.created_timestamp? q.created_timestamp*1000 : 0,
       media:((qm.photos||[])[0]||{}).url||((qm.videos||[])[0]||{}).thumbnail_url||"",
       video:!((qm.photos||[])[0]||{}).url && !!((qm.videos||[])[0]||{}).thumbnail_url
     } : null,
