@@ -204,3 +204,47 @@ test("a video's picture has X's play button; the light look is white and is reme
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("a reply: the post it answers above it (X's thread line), its leading @name hidden; a quoted reply says «Replying to»", async () => {
+  const status = { name: "Fortnite Status", screen_name: "FortniteStatus", verification: { verified: true, type: "organization" } };
+  const hypex = { name: "HYPEX", screen_name: "HYPEX", verification: { verified: true, type: "individual" } };
+  const PARENT = "1111111111111111111";
+  const reply = { tweet: { text: "@HYPEX This isn’t true. We are not doing this.", author: status, created_timestamp: 1793822280, media: {}, replying_to: { screen_name: "HYPEX", status: PARENT } } };
+  const parent = { tweet: { text: "Fortnite is working on Finishers!", author: hypex, created_timestamp: 1793815000, media: {} } };
+  const quoting = { tweet: { text: "Turns out Fortnite isn't making Finishers", author: hypex, created_timestamp: 1793822760, media: {},
+    quote: { text: "@HYPEX This isn’t true. We are not doing this.", author: status, created_timestamp: 1793822280, media: {}, replying_to: { screen_name: "HYPEX", status: PARENT } } } };
+  const cases = [["reply", reply, parent], ["parent missing", reply, null], ["quoted reply", quoting, null]];
+  for (const [name, main, par] of cases) {
+    const { ctx, page, errors } = await openWithShotKept({ apis: "text" });
+    await ctx.route("https://api.fxtwitter.com/**", (r) => {
+      const isParent = r.request().url().includes(PARENT);
+      if (isParent && !par) return r.fulfill({ status: 404, headers: { "access-control-allow-origin": "*" }, body: "" });
+      r.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "application/json" }, body: JSON.stringify(isParent ? par : main) });
+    });
+    await ctx.route("https://api.vxtwitter.com/**", (r) => r.fulfill({ status: 503, headers: { "access-control-allow-origin": "*" }, body: "" }));
+    await typeCaption(page, "Link: https://x.com/FortniteStatus/status/1834567890123456789");
+    await page.waitForSelector(".mtweet [data-tshot]");
+    await openPicture(page, "orig");
+    const got = await page.evaluate(() => {
+      const c = window.__shot, q = (sel) => c.querySelector(sel), t = (sel) => q(sel) && q(sel).textContent;
+      return { text: t(".shot-text"), parent: t(".shot-ptext"), parentName: t(".shot-phead b"), line: !!q(".shot-pline"),
+        replying: t(".shot-replying"), quoteReply: t(".shot-qreply"), quote: t(".shot-qtext") };
+    });
+    if (name === "reply") {
+      assert.equal(got.text, "This isn’t true. We are not doing this.", "the leading @name is hidden");
+      assert.equal(got.parent, "Fortnite is working on Finishers!");
+      assert.equal(got.parentName, "HYPEX");
+      assert.ok(got.line, "a line joins the two avatars");
+      assert.equal(got.replying, null, "the post above says who it answers");
+    } else if (name === "parent missing") {
+      assert.equal(got.parent, null);
+      assert.equal(got.replying, "Replying to @HYPEX");
+      assert.equal(got.text, "This isn’t true. We are not doing this.");
+    } else {
+      assert.equal(got.quoteReply, "Replying to @HYPEX");
+      assert.equal(got.quote, "This isn’t true. We are not doing this.");
+    }
+    assert.deepEqual(errors, [], name);
+    await ctx.close();
+  }
+});
