@@ -284,6 +284,17 @@ test("a number ending a name is part of it (GTA 6), unless a date, time or count
   assert.equal(fix("**The Final Reckoning 29** شهریور"), `**${R}The Final Reckoning${R} 29** شهریور`);
   // "تازه" starts like "تا" but is not a count
   assert.equal(fix("GTA 6 تازه اومده"), `${R}GTA 6${R} تازه اومده`);
+  // a dash or colon between the name and the date goes out with the date
+  assert.equal(fix("**رویداد Captain’s Day با حضور Buggy - 21 آبان 💥**"), `**رویداد ${R}Captain’s Day${R} با حضور ${R}Buggy${R} - 21 آبان 💥**`);
+  assert.equal(fix("ایونت Fortnite: 9 آبان"), `ایونت ${R}Fortnite${R}: 9 آبان`);
+  assert.equal(fix("آپدیت Season 3 - 21 آبان میاد"), `آپدیت ${R}Season 3${R} - 21 آبان میاد`);
+  assert.equal(fix("بازی GTA 6 - 21 آبان"), `بازی ${R}GTA 6${R} - 21 آبان`);
+  assert.equal(fix("لایو Event 21:30 ساعت"), `لایو ${R}Event${R} 21:30 ساعت`);
+  assert.equal(fix("حضور Buggy! 21 آبان"), `حضور ${R}Buggy${R}! 21 آبان`);
+  // no date word after it: the name keeps its number; glued numbers never split
+  assert.equal(fix("با حضور Buggy - 21"), `با حضور ${R}Buggy - 21${R}`);
+  assert.equal(fix("نسخه v42.00 تا"), `نسخه ${R}v42.00${R} تا`);
+  assert.equal(fix("فیلم Spider-Man 2 در 21 آبان"), `فیلم ${R}Spider-Man 2${R} در 21 آبان`);
 });
 
 test("in a Persian post, an English-only list item sits on the right like the rest of the list", () => {
