@@ -1130,7 +1130,7 @@ var LAT="A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u024F\u1E00-\u1EFF";
 // and so do digits it starts with (3D, 4K, 1-Up Token) and a single "|" between letters (Xbox Series X|S)
 var LATIN_RUN_RE=new RegExp("[@#$]?(?:[0-9]+[-.]?)?["+LAT+"]["+LAT+"0-9_\u0300-\u036F]*(?:[ ×&'’.:\\/\\-$!+®™©]+["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*|,[0-9]+|\\|["+LAT+"0-9]["+LAT+"0-9_\u0300-\u036F]*)*[$+®™©]*","g");
 // a number at the very end of a latin run is part of the name ("GTA 6", "FIFA 25")...
-var TRAIL_NUM_RE=new RegExp("^([\\s\\S]*?["+LAT+"]["+LAT+"0-9]*)(\\s+\\d[\\d.,]*)$");
+var TRAIL_NUM_RE=new RegExp("^([\\s\\S]*?["+LAT+"0-9])((?:\\s+(?:[-:\\/.!]+\\s*)?|[-:\\/.!]+\\s+)\\d+(?:[.,:]\\d+)*)$");
 // ...except when a date, time or count word follows it: then it belongs to the persian sentence
 // ("The Final Reckoning 29 شهریور", "Fortnite 2 ساعت", "Crew 1,000 وی‌باکس"), or a persian letter
 // is glued to it ("3م"), and it is left outside the isolation

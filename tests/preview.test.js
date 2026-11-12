@@ -204,6 +204,35 @@ test("English names inside a Persian line read the right way round in the previe
   await ctx.close();
 });
 
+test("a date after an English name sits with its month in the preview (Buggy - 21 آبان)", async () => {
+  const { ctx, page } = await open();
+  await typeCaption(page, ["**رویداد Captain’s Day با حضور Buggy - 21 آبان 💥**", "ایونت Fortnite: 9 آبان", "آپدیت Season 3 - 21 آبان میاد"].join("\n"));
+  const shown = await page.evaluate(() => {
+    document.getElementById("preview").style.whiteSpace = "nowrap";
+    return [...document.getElementById("preview").children].map((line) => {
+      const chars = [];
+      const w = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+      for (let n; (n = w.nextNode());) {
+        for (let i = 0; i < n.data.length;) {
+          const len = n.data.codePointAt(i) > 0xffff ? 2 : 1, ch = n.data.slice(i, i + len);
+          if (!/[\u200c\u200e\u200f]/.test(ch)) {
+            const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + len);
+            const b = r.getBoundingClientRect();
+            chars.push({ ch, x: b.left + b.width / 2 });
+          }
+          i += len;
+        }
+      }
+      return chars.sort((a, b) => a.x - b.x).map((c) => c.ch).join("");
+    });
+  });
+  // left to right on screen: the month (its letters reversed), the day, then the name
+  assert.ok(shown[0].includes("نابآ 21 - Buggy"), shown[0]);
+  assert.ok(shown[1].includes("نابآ 9 :Fortnite"), shown[1]);
+  assert.ok(shown[2].includes("نابآ 21 - Season 3"), shown[2]);
+  await ctx.close();
+});
+
 test("a list in a Persian post sits on the right, English-only items too; the signature stays on the left", async () => {
   const { ctx, page } = await open();
   await typeCaption(page, ["**تاریخ اومدن اسکین‌های همکاری One Piece**", "", "• **Luffy، Nami و Usopp**", "◇ تاریخ: **11 آبان**", "",
