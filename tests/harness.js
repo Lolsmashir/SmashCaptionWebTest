@@ -118,7 +118,7 @@ async function makePoster(browser) {
 // opts.scale: device pixels per CSS pixel (default 3 on a phone, 1 on a computer)
 // opts.motion: play the animations (by default the page runs as with "reduce motion", so
 // nothing is mid-animation while a test measures or clicks)
-async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false, scale = 0 } = {}) {
+async function openApp(browser, base, { viewport, mobile = false, apis = "ok", share = mobile, fxDelay = 0, motion = false, scale = 0, dl = "ok" } = {}) {
   const poster = await makePoster(browser);
   const ctx = await browser.newContext({
     viewport, deviceScaleFactor: scale || (mobile ? 3 : 1), isMobile: mobile, hasTouch: mobile,
@@ -166,6 +166,40 @@ async function openApp(browser, base, { viewport, mobile = false, apis = "ok", s
   await ctx.route("https://pbs.twimg.com/**", (route) =>
     route.fulfill({ status: 200, headers: { ...cors, "content-type": "image/png" }, body: poster }));
 
+  // a cobalt download server (YouTube, Instagram, TikTok …): every request is logged in dlLog
+  const dlLog = [];
+  const dlCors = { "access-control-allow-origin": "*", "access-control-allow-methods": "GET,POST",
+    "access-control-allow-headers": "content-type,authorization", "access-control-expose-headers": "Estimated-Content-Length,Content-Disposition" };
+  const cobalt = async (route) => {
+    const req = route.request();
+    if (req.method() === "OPTIONS") return route.fulfill({ status: 204, headers: dlCors, body: "" });
+    const server = new URL(req.url()).origin;
+    if (req.method() === "GET") {
+      // a tunnel: the file itself, with only an estimate of its size
+      return route.fulfill({ status: 200, headers: { ...dlCors, "content-type": /audio/.test(req.url()) ? "audio/mpeg" : "video/mp4", "estimated-content-length": "4096" }, body: Buffer.alloc(4096) });
+    }
+    const body = JSON.parse(req.postData() || "{}");
+    dlLog.push({ server, body, auth: req.headers()["authorization"] || "" });
+    const json = (o) => route.fulfill({ status: 200, headers: { ...dlCors, "content-type": "application/json" }, body: JSON.stringify(o) });
+    if (dl === "down") return route.abort("connectionrefused");
+    if (/tiktok\.com/.test(body.url) || dl === "fail") return json({ status: "error", error: { code: "error.api.fetch.fail", context: { service: "tiktok" } } });
+    if (/instagram\.com/.test(body.url)) return json({ status: "picker", picker: [
+      { type: "photo", url: "https://scontent.cdninstagram.com/v/p1.jpg" }, { type: "photo", url: "https://scontent.cdninstagram.com/v/p2.jpg" }] });
+    if (/youtu/.test(body.url)) {
+      if (body.downloadMode === "audio") return json({ status: "tunnel", url: server + "/tunnel?id=audio", filename: "Fortnite Chapter 7 Trailer - Fortnite (youtube).mp3" });
+      const q = body.videoQuality || "1080";
+      return json({ status: "tunnel", url: server + "/tunnel?id=yt-" + q, filename: `Fortnite Chapter 7 Trailer - Fortnite (${q}p, h264, youtube).mp4` });
+    }
+    if (/vimeo\.com/.test(body.url)) return json({ status: "tunnel", url: server + "/tunnel?id=vimeo", filename: "The Video (vimeo).mp4" });
+    return json({ status: "error", error: { code: "error.api.link.unsupported" } });
+  };
+  await ctx.route("https://cobaltapi.cjs.nz/**", cobalt);
+  await ctx.route("https://my-cobalt.example/**", cobalt);
+  await ctx.route("https://i.ytimg.com/**", (route) =>
+    route.fulfill({ status: 200, headers: { ...cors, "content-type": "image/png" }, body: poster }));
+  await ctx.route("https://scontent.cdninstagram.com/**", (route) =>
+    route.fulfill({ status: 200, headers: { ...cors, "content-type": "image/png" }, body: poster }));
+
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
@@ -173,7 +207,7 @@ async function openApp(browser, base, { viewport, mobile = false, apis = "ok", s
   await page.evaluate(() => document.fonts.ready);
   // the opening has played and cleared itself away
   await page.waitForFunction(() => !document.getElementById("intro") && !document.querySelector(".app.boot"), null, { timeout: 5000 });
-  return { ctx, page, log, errors, releaseApis: () => release() };
+  return { ctx, page, log, errors, dlLog, releaseApis: () => release() };
 }
 
 // the preview is drawn on the next animation frame; wait for it

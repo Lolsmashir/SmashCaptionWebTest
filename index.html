@@ -614,6 +614,57 @@ body.rich .cutb{display:none;}
 .cut-at .iconbtn{flex:0 0 30px;width:30px;height:30px;color:var(--volt);font-size:11px;}
 .iconbtn svg{width:58%;height:58%;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 #histList{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+/* the links sheet: add (or paste) links, see each one with its site and what was found */
+.iconbtn{position:relative;}
+.ibadge{
+  position:absolute;top:-4px;inset-inline-end:0;min-width:15px;height:15px;padding:0 4px;border-radius:8px;
+  background:var(--volt);color:var(--volt-ink);font-size:9.5px;font-weight:700;line-height:15px;text-align:center;
+  font-variant-numeric:tabular-nums;display:none;pointer-events:none;
+}
+.ibadge.show{display:block;}
+.ln-add{display:flex;gap:6px;align-items:stretch;margin:2px 0 12px;}
+.ln-add input{
+  flex:1 1 auto;min-width:0;height:38px;padding:0 12px;border-radius:12px;border:1px solid var(--hair-2);
+  background:rgba(0,0,0,.28);color:var(--text);font:13px/1 ui-monospace,Menlo,Consolas,monospace;outline:none;
+}
+.ln-add input:focus{border-color:var(--volt-line);}
+.sheet .ln-add .act{width:auto;margin:0;flex:0 0 auto;min-height:38px;padding:0 14px;}
+#lnList{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.ln-row{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.04);box-shadow:var(--chip-edge);border-radius:14px;padding:8px 9px;min-width:0;}
+.ln-ic{
+  flex:0 0 30px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:var(--c,#3a3a44);color:#fff;font:700 12px/1 system-ui,sans-serif;text-transform:uppercase;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+}
+.ln-ic.light{color:#111;}
+.ln-mid{flex:1 1 0;min-width:0;}
+.ln-site{font-size:12px;font-weight:700;color:var(--text);display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.ln-from{font-size:10px;font-weight:500;color:var(--muted);background:var(--chip);border-radius:6px;padding:1px 6px;}
+.ln-url{font:11px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--muted);direction:ltr;text-align:left;overflow-wrap:anywhere;}
+.ln-st{font-size:11px;color:var(--muted);white-space:nowrap;}
+.ln-st.ok{color:var(--ok);} .ln-st.fail{color:var(--warn);white-space:normal;}
+.ln-st.busy::after{content:"";display:inline-block;width:8px;height:8px;margin-inline-start:5px;border-radius:50%;border:2px solid var(--volt);border-top-color:transparent;animation:spin .8s linear infinite;vertical-align:-1px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ln-acts{display:flex;gap:4px;flex:0 0 auto;}
+.sheet .ln-acts .act{width:auto;margin:0;min-height:30px;padding:0 10px;font-size:11.5px;}
+.ln-none{text-align:center;color:var(--muted);font-size:12.5px;padding:10px 0;}
+.ln-set{margin:0 0 6px;}
+.ln-set summary{cursor:pointer;font-size:12px;color:var(--muted);padding:6px 2px;}
+.ln-set[open] summary{color:var(--text);}
+@media (max-width:560px){
+  .ln-row{flex-wrap:wrap;}
+  .ln-acts{width:100%;justify-content:flex-end;}
+}
+/* a file from YouTube and the like: its title above its qualities, a site badge on its picture */
+.mtitle{
+  font-size:clamp(9px,min(0.9vw,1.45vh),11.5px);line-height:1.45;color:var(--text);font-weight:700;padding:0 2px;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;
+}
+.msite{
+  position:relative;z-index:1;width:clamp(26px,2.6vw,38px);height:clamp(26px,2.6vw,38px);border-radius:10px;
+  display:grid;place-items:center;background:var(--c,#3a3a44);color:#fff;font:700 clamp(11px,1.1vw,15px)/1 system-ui,sans-serif;
+}
+.msite.light{color:#111;}
 .hist-view{
   color:var(--tg-text);font-size:12.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;padding:0 4px;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
@@ -936,6 +987,7 @@ body.rich .cutb{display:none;}
   <div class="top">
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="9" fill="#d5f53f"/><path d="M16 6.5c5.8 0 10 3.7 10 8.4s-4.2 8.4-10 8.4c-1.1 0-2.2-.1-3.2-.4L8 25.5l1.1-4.3C7.2 19.7 6 17.4 6 14.9 6 10.2 10.2 6.5 16 6.5z" fill="#11130a"/><path d="M17.4 9.8 12.6 15.6h3.3l-1.3 4.6 4.8-5.9h-3.3z" fill="#d5f53f"/></svg></div>
     <h1>Caption <span>Studio</span></h1>
+    <button class="iconbtn" id="bLinks" title="لینک‌ها" aria-label="لینک‌ها"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.1 1.1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.1-1.1"/></svg><span class="ibadge" id="lnBadge"></span></button>
     <button class="iconbtn" id="bHist" title="تاریخچه" aria-label="تاریخچه"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v3.6h3.6"/><path d="M12 8.2V12l2.6 1.7"/></svg></button>
     <button class="iconbtn" id="bHelp" title="راهنما" aria-label="راهنما">؟</button>
   </div>
@@ -1065,6 +1117,29 @@ body.rich .cutb{display:none;}
   </div>
 </div>
 
+<div class="sheet" id="linkSheet" role="dialog" aria-label="لینک‌ها">
+  <div class="sheet-in cut-in">
+    <h2>لینک‌ها</h2>
+    <p>لینک توییت، یوتیوب، اینستاگرام، تیک‌تاک، ردیت، ویمئو، ساندکلاد، توییچ و … رو بذار (چندتا با هم هم می‌شه). فایل‌هاشون با کیفیت‌های مختلف تو پنل مدیا میاد. لینکی که اینجا اضافه می‌کنی تو متن پست نمیاد.</p>
+    <div class="ln-add">
+      <input id="lnInput" type="url" dir="ltr" inputmode="url" autocomplete="off" spellcheck="false" enterkeyhint="done" placeholder="https://youtube.com/…">
+      <button class="act" id="lnPaste">پیست</button>
+      <button class="act tint" id="lnAdd">اضافه کن</button>
+    </div>
+    <div id="lnList"></div>
+    <details class="ln-set">
+      <summary>سرور دانلود (یوتیوب و بقیه‌ی سایت‌ها)</summary>
+      <p>یوتیوب، اینستاگرام و بقیه از راه یه سرور رایگان cobalt دانلود می‌شن. اگه سرور خودت رو داری (یا یکی که بهت آدرس و کلید دادن)، اینجا بذار تا اول از اون استفاده بشه.</p>
+      <div class="ln-add">
+        <input id="lnServer" type="url" dir="ltr" autocomplete="off" spellcheck="false" placeholder="https://…">
+        <input id="lnKey" dir="ltr" autocomplete="off" spellcheck="false" placeholder="API key">
+        <button class="act tint" id="lnSave">ذخیره</button>
+      </div>
+    </details>
+    <button class="act" id="bCloseLinks">بستن</button>
+  </div>
+</div>
+
 <div class="sheet" id="histSheet" role="dialog" aria-label="تاریخچه">
   <div class="sheet-in cut-in">
     <h2>تاریخچه</h2>
@@ -1084,6 +1159,7 @@ body.rich .cutb{display:none;}
     <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
     <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی، با رنگ «تیره» یا «روشن» X؛ دانلود، کپی یا ارسالش کن.</p>
+    <p><b>لینک‌ها 🔗:</b> دکمه‌ی زنجیر بالای صفحه همه‌ی لینک‌های متن رو نشون می‌ده و می‌تونی لینک‌های دیگه هم اضافه کنی (چندتا با هم، یا با «پیست»): توییت، یوتیوب، اینستاگرام، تیک‌تاک، ردیت، ویمئو، ساندکلاد و … — فایل‌هاشون با کیفیت‌های مختلف (یوتیوب: 1080p تا 360p و «فقط صدا») تو پنل مدیا میاد. لینک اضافه‌شده تو متن پست نمیاد؛ «حذف» روی لینک متن، از متن پاکش می‌کنه (↶ برش می‌گردونه). یوتیوب و بقیه از راه یه سرور رایگان دانلود می‌شن که گاهی شلوغه یا قطعه؛ اگه سرور خودت رو داری، تو «سرور دانلود» بذارش.</p>
     <p><b>تاریخچه:</b> دکمه‌ی ساعت بالای صفحه ۱۰ کپشن آخری رو که کپی یا پاک کردی نشون می‌ده؛ «بیار تو ادیتور» برش می‌گردونه و ↶ متن قبلی رو.</p>
     <p><b>موقع کپی:</b> «ي» و «ك» عربی خودکار فارسی می‌شن و فاصله‌های اضافه حذف می‌شن (خود متن ادیتور دست نمی‌خوره). اگه امضا نداشته باشه، لینکی آدرس درست نداشته باشه یا یه <span class="syn">**</span> بسته نشده باشه، کپی انجام می‌شه ولی پیام زرد می‌گه.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
@@ -2580,6 +2656,171 @@ function classify(u){
 }
 var currentMedia=[], cache={}, busyIds={};
 
+/* ---------- links: every link in the caption, and links added by hand ---------- */
+// Links added in «لینک‌ها» are kept on this device and never go into the post.
+// YouTube, Instagram, TikTok and the rest are read by a cobalt server (github.com/imputnet/cobalt,
+// its API: POST / with {url, …} → tunnel / redirect / picker / error). Free public servers come
+// and go; checked 2026-11-12: cobaltapi.cjs.nz answers web pages (CORS) and gave YouTube and Vimeo;
+// api.cobalt.liubquanti.click works but blocks web pages (no CORS); rue-cobalt.xenon.zone was down.
+// The owner's own server (with its key), when set, is tried first.
+var LINKS_KEY="caption-studio-links", DL_KEY="caption-studio-dl-server";
+var DL_SERVERS=["https://cobaltapi.cjs.nz/"];
+var SITES=[
+  {k:"youtube",name:"YouTube",re:/(^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com)$/,c:"#ff0033",g:"▶"},
+  {k:"instagram",name:"Instagram",re:/(^|\.)instagram\.com$/,c:"#d62976",g:"IG"},
+  {k:"tiktok",name:"TikTok",re:/(^|\.)tiktok\.com$/,c:"#111",g:"♪"},
+  {k:"reddit",name:"Reddit",re:/(^|\.)(reddit\.com|redd\.it)$/,c:"#ff4500",g:"R"},
+  {k:"facebook",name:"Facebook",re:/(^|\.)(facebook\.com|fb\.watch|fb\.com)$/,c:"#1877f2",g:"f"},
+  {k:"twitch",name:"Twitch",re:/(^|\.)twitch\.tv$/,c:"#9146ff",g:"T"},
+  {k:"soundcloud",name:"SoundCloud",re:/(^|\.)soundcloud\.com$/,c:"#ff5500",g:"☁"},
+  {k:"vimeo",name:"Vimeo",re:/(^|\.)vimeo\.com$/,c:"#1ab7ea",g:"V"},
+  {k:"pinterest",name:"Pinterest",re:/(^|\.)(pinterest\.[a-z.]+|pin\.it)$/,c:"#e60023",g:"P"},
+  {k:"bluesky",name:"Bluesky",re:/(^|\.)bsky\.app$/,c:"#1185fe",g:"🦋"},
+  {k:"threads",name:"Threads",re:/(^|\.)threads\.(net|com)$/,c:"#000",g:"@"},
+  {k:"snapchat",name:"Snapchat",re:/(^|\.)snapchat\.com$/,c:"#fffc00",g:"S",light:1},
+  {k:"dailymotion",name:"Dailymotion",re:/(^|\.)(dailymotion\.com|dai\.ly)$/,c:"#0a0a0a",g:"d"},
+  {k:"streamable",name:"Streamable",re:/(^|\.)streamable\.com$/,c:"#0f90fa",g:"S"},
+  {k:"tumblr",name:"Tumblr",re:/(^|\.)tumblr\.com$/,c:"#36465d",g:"t"},
+  {k:"vk",name:"VK",re:/(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$/,c:"#0077ff",g:"VK"},
+  {k:"bilibili",name:"Bilibili",re:/(^|\.)(bilibili\.com|b23\.tv)$/,c:"#00a1d6",g:"B"},
+  {k:"loom",name:"Loom",re:/(^|\.)loom\.com$/,c:"#625df5",g:"L"},
+  {k:"rutube",name:"Rutube",re:/(^|\.)rutube\.ru$/,c:"#1c1c1c",g:"R"},
+  {k:"ok",name:"OK",re:/(^|\.)ok\.ru$/,c:"#ee8208",g:"OK"},
+  {k:"newgrounds",name:"Newgrounds",re:/(^|\.)newgrounds\.com$/,c:"#fda238",g:"N",light:1},
+  {k:"xiaohongshu",name:"Xiaohongshu",re:/(^|\.)(xiaohongshu\.com|xhslink\.com)$/,c:"#ff2442",g:"小"},
+  {k:"medal",name:"Medal",re:/(^|\.)medal\.tv$/,c:"#ffb800",g:"M",light:1}
+];
+var SITE_X={k:"x",name:"X",c:"#000",g:"𝕏"}, SITE_FILE={k:"file",name:"فایل",c:"#3a3a44",g:"⤓"};
+function linkHost(u){ try{ return new URL(u).hostname.replace(/^www\./,"").toLowerCase(); }catch(e){ return ""; } }
+// what a link is: a tweet, a picture or video file, a page of a site a download server reads, or a plain link
+function linkInfo(u){
+  if(TWEET_RE.test(u)) return {url:u,type:"tweet",site:SITE_X};
+  if(classify(u)!=="link") return {url:u,type:"file",site:SITE_FILE};
+  var h=linkHost(u);
+  for(var i=0;i<SITES.length;i++) if(SITES[i].re.test(h)) return {url:u,type:"site",site:SITES[i]};
+  return {url:u,type:"web",site:{k:"web",name:h||"لینک",c:"#2b2b33",g:(h.charAt(0)||"?")}};
+}
+// the links of a text, in order and once (a ")" or "." after one is not part of it)
+function textLinks(text){
+  var out=[], seen={};
+  (text.match(URL_RE)||[]).forEach(function(raw){
+    var u=raw.replace(/[),.;!?]+$/,"");
+    if(!seen[u]){ seen[u]=1; out.push(u); }
+  });
+  return out;
+}
+function loadLinks(){
+  try{ var a=JSON.parse(localStorage.getItem(LINKS_KEY)||"[]"); return Array.isArray(a)? a.filter(function(x){ return typeof x==="string" && /^https?:\/\//i.test(x); }) : []; }
+  catch(e){ return []; }
+}
+var addedLinks=loadLinks();
+function saveLinks(){ try{ localStorage.setItem(LINKS_KEY,JSON.stringify(addedLinks)); }catch(e){} }
+// the caption's links first, then the added ones that are not in it
+function allLinks(){
+  var cap=textLinks(input.value), out=cap.map(function(u){ var i=linkInfo(u); i.from="text"; return i; });
+  addedLinks.forEach(function(u){ if(cap.indexOf(u)<0){ var i=linkInfo(u); i.from="added"; out.push(i); } });
+  return out;
+}
+function dlSetting(){
+  try{ var x=JSON.parse(localStorage.getItem(DL_KEY)||"{}"); return {url:typeof x.url==="string"? x.url : "", key:typeof x.key==="string"? x.key : ""}; }
+  catch(e){ return {url:"",key:""}; }
+}
+function dlServers(){
+  var own=dlSetting().url;
+  return (own? [own] : []).concat(DL_SERVERS.filter(function(x){ return x!==own; }));
+}
+// one request to a cobalt server; every file comes through the server itself (alwaysProxy), so the
+// page may read it (CORS) and count its bytes. Its tunnel lives about 90 seconds, so a file is asked
+// for again on each click
+function cobaltAsk(server,body,key){
+  var ctl=window.AbortController? new AbortController() : null, t=ctl? setTimeout(function(){ ctl.abort(); },30000) : 0;
+  var h={"Accept":"application/json","Content-Type":"application/json"};
+  if(key) h.Authorization="Api-Key "+key;
+  return fetch(server,{method:"POST",headers:h,body:JSON.stringify(body),signal:ctl? ctl.signal : undefined,referrerPolicy:"no-referrer"})
+    .then(function(r){ return r.json(); })
+    .finally(function(){ clearTimeout(t); });
+}
+async function cobalt(url,opts){
+  var set=dlSetting(), last={code:"error.api.unreachable"};
+  var body={url:url,videoQuality:"720",filenameStyle:"pretty",youtubeVideoCodec:"h264",alwaysProxy:true,localProcessing:"disabled"};
+  for(var k in (opts||{})) body[k]=opts[k];
+  var servers=dlServers();
+  for(var i=0;i<servers.length;i++){
+    try{
+      var j=await cobaltAsk(servers[i],body,servers[i]===set.url? set.key : "");
+      if(j && (j.status==="tunnel" || j.status==="redirect" || j.status==="picker")) return j;
+      last=(j && j.error && j.error.code)? j.error : {code:j && j.status==="local-processing"? "error.api.local" : "error.api.unknown"};
+      // what is wrong with the link itself is the same on every server
+      if(/link\.(invalid|unsupported)|content\./.test(last.code)) break;
+    }catch(e){ last={code:"error.api.unreachable"}; }
+  }
+  throw last;
+}
+// what went wrong, in a few words (cobalt's error codes)
+function dlError(code){
+  code=code||"";
+  if(/link\.unsupported|service\.unsupported/.test(code)) return "این سایت پشتیبانی نمی‌شه";
+  if(/link\.invalid/.test(code)) return "لینک درست نیست";
+  if(/content\.(video|post)\.(private|age)|content\.post\.private/.test(code)) return "پست خصوصیه یا محدودیت سنی داره";
+  if(/content\.video\.live/.test(code)) return "پخش زنده دانلود نمی‌شه";
+  if(/content\.video\.region/.test(code)) return "تو کشور سرور در دسترس نیست";
+  if(/content\.too_long|duration/.test(code)) return "ویدیو برای این سرور زیادی بلنده";
+  if(/content\./.test(code)) return "این پست در دسترس نیست";
+  if(/fetch\.empty/.test(code)) return "چیزی برای دانلود پیدا نشد";
+  if(/rate_exceeded/.test(code)) return "سرور شلوغه — یه دقیقه دیگه دوباره بزن";
+  if(/auth\./.test(code)) return "سرور رمز می‌خواد — تو «سرور دانلود» کلید بذار";
+  if(/youtube\./.test(code)) return "یوتیوب الان اجازه نداد — بعداً دوباره بزن";
+  if(/unreachable/.test(code)) return "سرور دانلود جواب نداد";
+  if(/local/.test(code)) return "این سرور این لینک رو آماده نمی‌کنه";
+  return "سایت جواب نداد یا پست حذف شده";
+}
+function ytId(u){
+  var m=/(?:youtu\.be\/|[?&]v=|\/(?:shorts|live|embed)\/)([\w-]{6,})/.exec(u);
+  return m? m[1] : "";
+}
+// cobalt's file name ("Title - Channel (720p, h264, youtube).mp4") without what it adds at the end
+function dlTitle(name){ return (name||"").replace(/\.\w{2,4}$/,"").replace(/\s*\([^()]*\)$/,"").trim(); }
+// what a link of a site gives: one file with its qualities, or the pictures/videos of a post
+function siteItems(page,j,site){
+  if(j.status==="picker") return (j.picker||[]).map(function(p,n){
+    var img=p.type==="photo";
+    return {url:p.url,kind:img? "image" : "video",poster:p.thumb||(img? p.url : ""),site:site,page:page,
+            title:"",variants:[{label:img? "اصلی" : "MP4",url:p.url,h:0}]};
+  });
+  var name=j.filename||"", ext=((name.match(/\.(\w+)$/)||[])[1]||"").toLowerCase();
+  var kind=/^(mp3|ogg|opus|wav|m4a|aac|flac)$/.test(ext)? "audio" : /^(jpe?g|png|webp|gif)$/.test(ext)? "image" : "video";
+  var MP3={label:"فقط صدا · MP3",h:0,q:{downloadMode:"audio",audioFormat:"mp3"},ext:"mp3"};
+  var vars=kind==="audio"? [{label:"MP3",h:0,q:{downloadMode:"audio",audioFormat:"mp3"},ext:"mp3"}]
+         : kind==="image"? [{label:"اصلی",h:0,q:{},ext:ext}]
+         : site.k==="youtube"? [1080,720,480,360].map(function(q){ return {label:q+"p",h:q,q:{videoQuality:String(q)},ext:"mp4"}; }).concat([MP3])
+         : [{label:"بهترین کیفیت",h:720,q:{videoQuality:"max"},ext:ext||"mp4"},MP3];
+  var id=site.k==="youtube"? ytId(page) : "";
+  return [{url:page,kind:kind,site:site,page:page,dl:true,title:dlTitle(name),
+           poster:id? "https://i.ytimg.com/vi/"+id+"/hqdefault.jpg" : "",variants:vars}];
+}
+var siteCache={}, siteBusy={};
+async function resolveSite(l){
+  var u=l.url;
+  if(siteCache[u] || siteBusy[u]) return;
+  siteBusy[u]=true;
+  try{ var j=await cobalt(u); siteCache[u]={ok:true,items:siteItems(u,j,l.site)}; }
+  catch(err){ siteCache[u]={ok:false,err:(err && err.code)||"",items:[]}; }
+  siteBusy[u]=false;
+  detectMedia();
+}
+// a file of a site, asked for at the moment it is wanted: {url, name}
+async function siteFile(m,v,btn){
+  var old=btn.textContent;
+  btn.setAttribute("data-busy","1"); btn.style.minWidth=btn.offsetWidth+"px"; btn.textContent="…";
+  try{
+    var j=await cobalt(m.page,v.q);
+    var f=j.status==="picker"? (j.picker||[])[0] : j;
+    if(!f || !f.url) throw {code:"error.api.fetch.empty"};
+    var name=(j.filename||"").replace(/[\\\/:*?"<>|]+/g," ").trim()||(m.site.k+"."+(v.ext||"mp4"));
+    return {url:f.url,name:name};
+  }finally{ btn.textContent=old; btn.removeAttribute("data-busy"); btn.style.minWidth=""; }
+}
+
 function collectDirect(text){
   var out=[],seen={};
   (text.match(URL_RE)||[]).forEach(function(raw){
@@ -2769,7 +3010,8 @@ function fmtSize(b){
 }
 
 function detectMedia(){
-  var text=input.value, list=collectDirect(text), ids=tweetIds(text), waiting=[], failed=[], texts=[];
+  var links=allLinks(), text=input.value+"\n"+links.filter(function(l){ return l.from==="added"; }).map(function(l){ return l.url; }).join("\n");
+  var list=collectDirect(text), ids=tweetIds(text), waiting=[], failed=[], texts=[];
   ids.forEach(function(id){
     if(!cache[id]&&!busyIds[id]) resolveTweet(id).then(detectMedia,function(){
       // an answer in a shape we don't understand: show the "nothing found" card, not a loader forever
@@ -2780,20 +3022,35 @@ function detectMedia(){
     else if(cache[id]&&!tweetText[id]) failed.push(id);   // a tweet with only words is not a failure
     if(!busyIds[id]&&tweetText[id]) texts.push(tweetText[id]);
   });
+  // YouTube, Instagram, TikTok …: read by the download server
+  links.forEach(function(l){
+    if(l.type!=="site") return;
+    if(!siteCache[l.url] && !siteBusy[l.url]) resolveSite(l);
+    var c=siteCache[l.url];
+    if(siteBusy[l.url]) waiting.push({site:l.site.name});
+    else if(c && c.ok) list=list.concat(c.items);
+    else if(c) failed.push({link:l.url,site:l.site.name,err:c.err});
+  });
   paint(list,waiting,failed,texts);
+  drawLinkBadge(links);
+  var ls=document.getElementById("linkSheet");
+  if(ls && ls.classList.contains("on")) drawLinks();
 }
 // placeholder cards: one per tweet still loading, one per tweet that gave nothing
 function stateCards(waiting,failed){
   var h="";
-  waiting.forEach(function(){
+  waiting.forEach(function(w){
     h+='<div class="mcard mskel" role="status"><div class="mthumb shim"></div><div class="qlist">'
-     + '<div class="mmsg">در حال گرفتن مدیای توییت…</div>'
+     + '<div class="mmsg">'+(w.site? "در حال آماده کردن لینک "+esc(w.site)+"…" : "در حال گرفتن مدیای توییت…")+'</div>'
      + '<div class="qskel shim"></div><div class="qskel shim"></div><div class="qskel shim"></div></div></div>';
   });
   failed.forEach(function(id){
+    var site=typeof id==="object";
     h+='<div class="mcard mfail" role="status"><div class="mthumb"><span class="mfail-ic">!</span></div><div class="qlist">'
-     + '<div class="mmsg"><b>مدیایی از این توییت پیدا نشد</b><br>شاید توییت فقط متن داره، یا سرویس‌ها الان در دسترس نیستن.</div>'
-     + '<button class="mretry" data-retry="'+id+'">دوباره امتحان کن</button></div></div>';
+     + (site? '<div class="mmsg"><b>از لینک '+esc(id.site)+' چیزی نیومد</b><br>'+esc(dlError(id.err))+'</div>'
+            + '<button class="mretry" data-retry-link="'+attr(id.link)+'">دوباره امتحان کن</button></div></div>'
+            : '<div class="mmsg"><b>مدیایی از این توییت پیدا نشد</b><br>شاید توییت فقط متن داره، یا سرویس‌ها الان در دسترس نیستن.</div>'
+            + '<button class="mretry" data-retry="'+id+'">دوباره امتحان کن</button></div></div>');
   });
   return h;
 }
@@ -2839,18 +3096,22 @@ function paint(found,waiting,failed,texts){
     var c=document.createElement("div");
     c.className="mcard"; c.style.animationDelay=(i*.04)+"s";
 
-    var backdrop = m.kind==="image" ? m.url : (m.poster||"");
+    var backdrop = m.dl? (m.poster||"") : m.kind==="image" ? m.url : (m.poster||"");
     var th='<div class="mthumb wait">'
-         + (backdrop? '<div class="mblur" style="background-image:url(\''+backdrop+'\')"></div>' : '')
+         + (backdrop? '<div class="mblur" style="background-image:url(\''+attr(backdrop)+'\')"></div>' : '')
          + '<span class="mnum">'+(i+1)+'</span>';
-    if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
+    // a file a download server prepares has no address of its own yet: its picture, or the site's mark
+    if(m.dl) th+=(m.poster? '<img src="'+attr(m.poster)+'" loading="lazy" referrerpolicy="no-referrer" alt="">'
+                         : '<span class="msite'+(m.site.light? " light" : "")+'" style="--c:'+m.site.c+'">'+esc(m.site.g)+'</span>')
+               +'<span class="mbadge">'+esc(m.site.name)+'</span>';
+    else if(m.kind==="image") th+='<img src="'+m.url+'" loading="lazy" referrerpolicy="no-referrer" alt="">';
     else th+='<video src="'+m.url+'" muted playsinline preload="metadata"'+(m.poster?' poster="'+m.poster+'"':'')+'></video>'
-            +'<span class="mbadge">'+(vars[0]?vars[0].label:"ویدیو")+'</span>';
+            +'<span class="mbadge">'+(m.site? esc(m.site.name)+" · " : "")+(vars[0]?vars[0].label:"ویدیو")+'</span>';
     th+='</div>';
 
     // one row per quality, recommended first, every action on the same row
     var order=[rec].concat(vars.map(function(_,k){return k;}).filter(function(k){return k!==rec;}));
-    var list='<div class="qlist">';
+    var list='<div class="qlist">'+(m.title? '<div class="mtitle" dir="auto" title="'+attr(m.title)+'">'+esc(m.title)+'</div>' : "");
     order.forEach(function(vi){
       var v=vars[vi];
       list+='<div class="qitem'+(vi===rec?' rec':'')+'">'
@@ -2872,7 +3133,8 @@ function paint(found,waiting,failed,texts){
     // the thumbnail shimmers until its picture (or the video poster) has loaded
     var thumb=c.querySelector(".mthumb"), el=thumb.querySelector("img,video");
     var ready=function(){ thumb.classList.remove("wait"); };
-    if(m.kind==="image"){ el.addEventListener("load",ready); el.addEventListener("error",ready); if(el.complete) ready(); }
+    if(!el) ready();
+    else if(el.tagName==="IMG"){ el.addEventListener("load",ready); el.addEventListener("error",ready); if(el.complete) ready(); }
     else{
       el.addEventListener("loadedmetadata",ready); el.addEventListener("error",ready);
       if(m.poster){ var pi=new Image(); pi.onload=pi.onerror=ready; pi.referrerPolicy="no-referrer"; pi.src=m.poster; }
@@ -2886,6 +3148,8 @@ function paint(found,waiting,failed,texts){
       var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
       var v=vars[+b.dataset.v];
       var act=b.dataset.act;
+      if(b.hasAttribute("data-busy")) return;
+      if(m.dl){ siteAct(m,v,act,b,shareFirst); return; }
       if(act==="dl") downloadFile(v.url,b);
       else if(act==="share") shareFile({url:v.url,kind:m.kind},b);
       else if(m.kind==="image") copyImage(v.url,b);
@@ -2896,7 +3160,8 @@ function paint(found,waiting,failed,texts){
 
   u.forEach(function(m,i){
     var vars=(m.variants&&m.variants.length)? m.variants : [];
-    Promise.all(vars.map(function(v){ return fileSize(v.url); })).then(function(sizes){
+    // a file a download server prepares has no size until it is asked for
+    Promise.all(vars.map(function(v){ return v.url? fileSize(v.url) : Promise.resolve(null); })).then(function(sizes){
       var seenSize={};
       sizes.forEach(function(sz,vi){
         var el=mgrid.querySelector('[data-size="'+i+'-'+vi+'"]');
@@ -2920,6 +3185,8 @@ mgrid.addEventListener("click",function(e){
   if(ts){ openShot(paintedTexts[+ts.getAttribute("data-tshot")]); return; }
   var w=e.target.closest && e.target.closest(".mt-text");
   if(w){ w.classList.toggle("open"); return; }
+  var rl=e.target.closest && e.target.closest("[data-retry-link]");
+  if(rl){ retryLink(rl.getAttribute("data-retry-link")); return; }
   var b=e.target.closest && e.target.closest("[data-retry]");
   if(!b) return;
   var id=b.getAttribute("data-retry");
@@ -2972,7 +3239,8 @@ async function fetchBlob(url,btn){
     p.set(0,0);
     var res=await fetch(url,{mode:"cors",referrerPolicy:"no-referrer"});
     if(!res.ok) throw new Error("HTTP "+res.status);
-    var total=+res.headers.get("content-length")||0, type=res.headers.get("content-type")||"", blob;
+    // a download server streams a file it is still making: it only knows about how big it will be
+    var total=+res.headers.get("content-length")||+res.headers.get("estimated-content-length")||0, type=res.headers.get("content-type")||"", blob;
     if(res.body && res.body.getReader){
       var reader=res.body.getReader(), parts=[], got=0, r;
       p.set(0,total);
@@ -3003,10 +3271,10 @@ async function shareFile(m,btn){
   if(!(navigator.canShare&&navigator.share)){ say("این مرورگر ارسال فایل نداره — از «دانلود» استفاده کن","warn"); return; }
   try{
     var blob=await fetchBlob(m.url,btn);
-    var name=(m.url.split("/").pop()||"file").split("?")[0];
+    var name=m.name||(m.url.split("/").pop()||"file").split("?")[0];
     if(m.kind==="video"&&!/\.(mp4|mov|m4v|webm)$/i.test(name)) name+=".mp4";
     if(m.kind==="image"&&!/\.(jpe?g|png|webp|gif)$/i.test(name)) name+=".jpg";
-    var f=new File([blob],name,{type:blob.type||(m.kind==="video"?"video/mp4":"image/jpeg")});
+    var f=new File([blob],name,{type:blob.type||(m.kind==="video"?"video/mp4":m.kind==="audio"?"audio/mpeg":"image/jpeg")});
     if(navigator.canShare&&navigator.canShare({files:[f]})){
       await navigator.share({files:[f]});
       say("تلگرام رو انتخاب کن","ok"); return;
@@ -3017,12 +3285,12 @@ async function shareFile(m,btn){
     say("ارسال نشد — دانلود کن","warn");
   }
 }
-async function downloadFile(url,btn){
+async function downloadFile(url,btn,name){
   try{
     var blob=await fetchBlob(url,btn);
     var a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
-    a.download=(url.split("/").pop()||"video").split("?")[0];
+    a.download=name||(url.split("/").pop()||"video").split("?")[0];
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
     flash(btn,""); say("ذخیره شد — به‌عنوان ویدیو بفرست","ok");
@@ -3030,6 +3298,19 @@ async function downloadFile(url,btn){
     window.open(url,"_blank","noopener");
     say("تو تب جدید باز شد","warn");
   }
+}
+// a file of YouTube and the like: asked for from the download server, then saved, shared or copied
+async function siteAct(m,v,act,b,shareFirst){
+  var f, kind=v.q && v.q.downloadMode==="audio"? "audio" : m.kind;
+  // on a computer «کپی» of a video copies the page's own link: no need to ask the server
+  if(act==="copy" && !shareFirst && kind!=="image"){ copyLink(m.page,b); return; }
+  try{ f=await siteFile(m,v,b); }
+  catch(err){ say(dlError(err && err.code),"warn"); return; }
+  if(act==="dl") downloadFile(f.url,b,f.name);
+  else if(act==="share") shareFile({url:f.url,kind:kind,name:f.name},b);
+  else if(kind==="image") copyImage(f.url,b);
+  else if(shareFirst) shareFile({url:f.url,kind:kind,name:f.name},b);
+  else copyLink(m.page,b);   // the server's link lives a minute: the page's own link is what is worth copying
 }
 function stripLinks(){
   input.value=input.value.split("\n").filter(function(l){ return !isMediaMetaLine(l); })
@@ -3289,7 +3570,7 @@ document.getElementById("bPlain").onclick=async function(){
 };
 document.getElementById("bStrip").onclick=stripLinks;
 document.getElementById("bOpenAll").onclick=function(){
-  currentMedia.forEach(function(m,i){ setTimeout(function(){ window.open(m.url,"_blank","noopener"); },i*220); });
+  currentMedia.forEach(function(m,i){ setTimeout(function(){ window.open(m.page||m.url,"_blank","noopener"); },i*220); });
 };
 
 /* classic / rich switch */
@@ -3970,14 +4251,132 @@ function copyWarning(){
   return out.join("، ");
 }
 
+/* ---------- the links sheet ---------- */
+var lnList=document.getElementById("lnList"), lnInput=document.getElementById("lnInput");
+function drawLinkBadge(links){
+  var n=(links||allLinks()).length, b=document.getElementById("lnBadge");
+  b.textContent=n; b.classList.toggle("show",n>0);
+}
+// what was found for a link, in a few words
+function linkStatus(l){
+  if(l.type==="web") return {cls:"",t:"لینک معمولی"};
+  if(l.type==="site"){
+    var c=siteCache[l.url];
+    if(siteBusy[l.url] || !c) return {cls:"busy",t:"در حال آماده کردن"};
+    if(!c.ok) return {cls:"fail",t:dlError(c.err),retry:1};
+    var n=c.items.length, k=c.items[0] && c.items[0].kind;
+    return {cls:"ok",t:n>1? n+" فایل" : k==="audio"? "صدا آماده‌ست" : k==="image"? "عکس آماده‌ست" : "ویدیو آماده‌ست"};
+  }
+  if(l.type==="tweet"){
+    var id=(TWEET_RE.exec(l.url)||[])[1];
+    if(busyIds[id] || !cache[id]) return {cls:"busy",t:"در حال گرفتن"};
+    if(!cache[id].length) return tweetText[id]? {cls:"ok",t:"فقط متن"} : {cls:"fail",t:"چیزی پیدا نشد",retry:1};
+    return {cls:"ok",t:cache[id].length+" فایل"};
+  }
+  return {cls:"ok",t:classify(l.url)==="image"? "عکس" : "ویدیو"};
+}
+function shortUrl(u){ return u.replace(/^https?:\/\/(www\.)?/i,"").replace(/\/$/,""); }
+function drawLinks(){
+  var links=allLinks();
+  if(!links.length){ lnList.innerHTML='<p class="ln-none">هنوز لینکی نیست — لینک رو بالا بذار یا تو متن پست بنویس.</p>'; return; }
+  lnList.innerHTML=links.map(function(l,i){
+    var st=linkStatus(l), s=l.site;
+    return '<div class="ln-row" data-ln="'+i+'">'
+      + '<span class="ln-ic'+(s.light? " light" : "")+'" style="--c:'+s.c+'">'+esc(s.g)+'</span>'
+      + '<div class="ln-mid"><div class="ln-site">'+esc(s.name)+'<span class="ln-from">'+(l.from==="text"? "تو متن" : "اضافه‌شده")+'</span>'
+      +   '<span class="ln-st '+st.cls+'">'+esc(st.t)+'</span></div>'
+      +   '<div class="ln-url">'+esc(shortUrl(l.url))+'</div></div>'
+      + '<div class="ln-acts">'
+      +   (st.retry? '<button class="act tint" data-lact="retry">دوباره</button>' : "")
+      +   '<button class="act" data-lact="open">باز کن</button>'
+      +   '<button class="act" data-lact="copy">کپی</button>'
+      +   '<button class="act" data-lact="del" title="'+(l.from==="text"? "از متن پست پاک می‌شه" : "از لیست پاک می‌شه")+'">حذف</button>'
+      + '</div></div>';
+  }).join("")+(addedLinks.length>1? '<button class="act" id="lnClear">پاک کردن لینک‌های اضافه‌شده</button>' : "");
+}
+// add every link in a text (one, or many pasted together); the ones already there stay once
+function addLinks(text){
+  var found=textLinks(text||""), have=allLinks().map(function(l){ return l.url; }), added=0;
+  found.forEach(function(u){ if(have.indexOf(u)<0){ addedLinks.push(u); have.push(u); added++; } });
+  if(!found.length){ say("لینکی پیدا نشد — باید با https:// شروع بشه","warn"); return 0; }
+  saveLinks(); detectMedia(); drawLinks();
+  say(added? (added>1? added+" لینک اضافه شد" : "لینک اضافه شد") : "این لینک از قبل هست",added? "ok" : "warn");
+  return added;
+}
+// a link of the caption comes out of the caption (one ↶ brings it back); its "Link:" line goes too
+function removeFromCaption(u){
+  commit();   // what was just typed is its own undo step first
+  var out=[];
+  input.value.split("\n").forEach(function(l){
+    if(l.indexOf(u)<0){ out.push(l); return; }
+    var rest=l.split(u).join("").replace(/\[([^\]]*)\]\(\s*\)/g,"$1").replace(/[ \t]{2,}/g," ").replace(/\s+$/,"");
+    if(rest.replace(/^\s*(Link|Media|Source)\s*:?\s*$/i,"").trim()) out.push(rest);
+  });
+  input.value=out.join("\n"); commit(); render();
+}
+function retryLink(u){
+  delete siteCache[u]; siteBusy[u]=false;
+  var id=(TWEET_RE.exec(u)||[])[1];
+  if(id){ delete cache[id]; delete tweetText[id]; busyIds[id]=false; }
+  paintedKey=null; detectMedia();
+}
+var linkSheet=document.getElementById("linkSheet");
+function openLinks(){
+  var set=dlSetting();
+  document.getElementById("lnServer").value=set.url; document.getElementById("lnKey").value=set.key;
+  drawLinks(); linkSheet.classList.add("on");
+  // on a touch screen the keyboard only comes up when the field is tapped
+  if(!isTouch) setTimeout(function(){ lnInput.focus(); },60);
+}
+document.getElementById("bLinks").onclick=openLinks;
+document.getElementById("bLinks").addEventListener("mousedown",function(e){ e.preventDefault(); });
+document.getElementById("lnAdd").onclick=function(){ if(addLinks(lnInput.value)) lnInput.value=""; };
+lnInput.addEventListener("keydown",function(e){ if(e.key==="Enter"){ e.preventDefault(); if(addLinks(lnInput.value)) lnInput.value=""; } });
+document.getElementById("lnPaste").onclick=async function(){
+  try{ var t=await navigator.clipboard.readText(); if(addLinks(t)) lnInput.value=""; }
+  catch(e){
+    if(!isTouch) lnInput.focus();
+    say(isMobile? "مرورگر اجازه نداد — انگشتت رو روی کادر نگه دار و Paste رو بزن" : "مرورگر اجازه نداد — تو کادر Ctrl+V رو بزن","warn");
+  }
+};
+document.getElementById("lnSave").onclick=function(){
+  var url=document.getElementById("lnServer").value.trim(), key=document.getElementById("lnKey").value.trim();
+  if(url && !/^https:\/\/[^\s\/]+/i.test(url)){ say("آدرس سرور باید با https:// شروع بشه","warn"); return; }
+  if(url && !/\/$/.test(url)) url+="/";
+  try{ localStorage.setItem(DL_KEY,JSON.stringify({url:url,key:key})); }catch(e){}
+  // links that gave nothing get another try with the new server
+  Object.keys(siteCache).forEach(function(u){ if(!siteCache[u].ok) delete siteCache[u]; });
+  paintedKey=null; detectMedia();
+  say(url? "سرور ذخیره شد — اول از این استفاده می‌شه" : "سرور خودت پاک شد — سرور رایگان استفاده می‌شه","ok");
+};
+linkSheet.addEventListener("click",function(e){
+  if(e.target===linkSheet){ linkSheet.classList.remove("on"); return; }
+  var b=e.target.closest && e.target.closest("button");
+  if(!b) return;
+  if(b.id==="bCloseLinks"){ linkSheet.classList.remove("on"); return; }
+  if(b.id==="lnClear"){ addedLinks=[]; saveLinks(); paintedKey=null; detectMedia(); drawLinks(); say("لینک‌های اضافه‌شده پاک شدن","ok"); return; }
+  var row=b.closest(".ln-row"), act=b.getAttribute("data-lact");
+  if(!row || !act) return;
+  var l=allLinks()[+row.getAttribute("data-ln")];
+  if(!l) return;
+  if(act==="open") window.open(l.url,"_blank","noopener");
+  else if(act==="copy") copyLink(l.url,b);
+  else if(act==="retry") retryLink(l.url);
+  else if(act==="del"){
+    if(l.from==="added"){ addedLinks=addedLinks.filter(function(x){ return x!==l.url; }); saveLinks(); say("لینک حذف شد","ok"); }
+    else { removeFromCaption(l.url); say("از متن پست پاک شد — ↶ برش می‌گردونه","ok"); }
+    paintedKey=null; detectMedia(); drawLinks();
+  }
+});
+
 var sheet=document.getElementById("sheet");
 document.getElementById("bHelp").onclick=function(){ sheet.classList.add("on"); };
 document.getElementById("bCloseSheet").onclick=function(){ sheet.classList.remove("on"); };
 sheet.onclick=function(e){ if(e.target===sheet) sheet.classList.remove("on"); };
 
 document.addEventListener("keydown",function(e){
-  if(e.key==="Escape" && (sheet.classList.contains("on") || cutSheet.classList.contains("on") || histSheet.classList.contains("on") || shotSheet.classList.contains("on"))){
-    sheet.classList.remove("on"); cutSheet.classList.remove("on"); histSheet.classList.remove("on"); shotSheet.classList.remove("on"); return;
+  if(e.key==="Escape" && (sheet.classList.contains("on") || cutSheet.classList.contains("on") || histSheet.classList.contains("on") || shotSheet.classList.contains("on") || linkSheet.classList.contains("on"))){
+    sheet.classList.remove("on"); cutSheet.classList.remove("on"); histSheet.classList.remove("on"); shotSheet.classList.remove("on"); linkSheet.classList.remove("on"); return;
   }
   var mod=e.ctrlKey||e.metaKey;
   if(mod&&e.key.toLowerCase()==="z"){ e.preventDefault(); e.shiftKey?redo():undo(); return; }
