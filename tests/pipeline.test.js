@@ -575,19 +575,83 @@ test("rich parse: headings, lists (nested, numbered, tasks), table, divider, pic
   assert.equal(b[7].url, "https://pbs.twimg.com/media/A.jpg");
 });
 
-test("rich HTML: real headings, nested lists, ☑/☐, table, divider, picture; classic stays literal", () => {
+test("rich HTML is what Telegram's rich editor reads: headings, nested lists, checklists, table, divider, picture", () => {
   const html = app.toRichHtml(app.parse(app.autoFix(RICH_SAMPLE), true), ["https://pbs.twimg.com/media/TOP.jpg"]);
-  assert.ok(html.startsWith('<div dir="rtl"><p><img src="https://pbs.twimg.com/media/TOP.jpg"'), "media-panel pictures open the post");
-  for (const part of ['<h1 dir="auto">آپدیت', '<h2 dir="auto">', '<ul><li dir="auto">اسکین', "<ul><li", "</li></ul></li></ul><ol>",
-    "☑ سرورها", "☐ رفع باگ", "<table><thead><tr><th", "<td dir=\"auto\">1,500</td>", "<hr>",
-    '<img src="https://pbs.twimg.com/media/A.jpg" alt="عکس"', "<blockquote", "<b>پررنگ</b>"])
-    assert.ok(html.includes(part), part);
+  // no wrapper (Android would make the whole post one paragraph of it); the media panel's picture opens the post
+  assert.ok(html.startsWith('<figure><img data-tg-src="https://pbs.twimg.com/media/TOP.jpg" src="https://pbs.twimg.com/media/TOP.jpg"'), html.slice(0, 120));
+  for (const part of ["<h1>آپدیت", "<h2>", "<ul><li>اسکین", "<ul><li>بک", "</li></ul></li></ul><ol><li>اول",
+    `<li data-checkbox data-checked><input type="checkbox" checked>سرورها ${R}Online${R}`, '<li data-checkbox><input type="checkbox">رفع باگ',
+    // the blank line between the checklist and the table stays a line of its own
+    `</ul><p>${Z}</p><table border="1"><thead><tr><th>`, "<td>1,500</td>", "<hr>",
+    '<figure><img data-tg-src="https://pbs.twimg.com/media/A.jpg" src="https://pbs.twimg.com/media/A.jpg" alt="عکس"><figcaption>عکس</figcaption></figure>',
+    "<blockquote>نقل", "<b>پررنگ</b>"])
+    assert.ok(html.includes(part), part + " in " + html);
+  assert.ok(!/<div|dir=|☑|☐/.test(html));
   const plain = app.toRichPlain(app.parse(app.autoFix(RICH_SAMPLE), true));
   assert.ok(plain.includes("• اسکین") && plain.includes("1. اول") && plain.includes("☑ سرورها") && plain.includes("———"));
   // the same text in classic mode is an ordinary caption: nothing becomes a heading or a table
   const classic = copyOf(RICH_SAMPLE).html;
   assert.ok(!/<h1|<table|<ul|<hr|<img/.test(classic));
   assert.ok(classic.includes("| آیتم | قیمت |"));
+});
+
+const richHtml = (t, images, data) => app.toRichHtml(app.parse(app.autoFix(t), true), images || [], data);
+
+test("rich HTML keeps blank lines: Telegram drops an empty paragraph, so a blank line is a ZWNJ line inside it", () => {
+  assert.equal(richHtml("خط اول\n\nخط دوم\n> نقل‌قول\nخط سوم"),
+    `<p>خط اول<br>${Z}<br>خط دوم</p><blockquote>نقل‌قول</blockquote><p>خط سوم</p>`);
+  // the signature keeps its blank line above it
+  const html = richHtml(["آخرین خبر", "", ...SIGNATURE_LINES].join("\n"));
+  assert.ok(html.startsWith(`<p>آخرین خبر<br>${Z}<br><b>🛒 USE CODE : FNLS ❤️‍🩹</b><br>`), html);
+  assert.ok(!html.includes("<p></p>") && !html.includes("<p><br>"));
+  // a blank line inside a quote is a line of the quote; spoilers are read by Desktop and Android
+  assert.equal(richHtml("> یک\n>\n> ||دو||"), `<blockquote>یک<br>${Z}<br><span class="tg-spoiler"><spoiler>دو</spoiler></span></blockquote>`);
+});
+
+test("rich HTML: pictures are a grid with their bytes, numbered lists keep their start, tables their alignment, code its language", () => {
+  const two = ["https://pbs.twimg.com/media/P1.jpg", "https://pbs.twimg.com/media/P2.jpg"];
+  const html = richHtml("متن", two, { [two[0]]: "data:image/jpeg;base64,AAA=" });
+  assert.ok(html.startsWith('<tg-collage><img data-tg-src="https://pbs.twimg.com/media/P1.jpg" src="data:image/jpeg;base64,AAA=" alt="">'
+    + '<img data-tg-src="https://pbs.twimg.com/media/P2.jpg" src="https://pbs.twimg.com/media/P2.jpg" alt=""></tg-collage><p>متن</p>'), html);
+  assert.ok(richHtml("3. سه\n4. چهار").startsWith('<ol start="3"><li>سه</li><li>چهار</li></ol>'));
+  const table = richHtml("| الف | ب | ج |\n|:---:|---:|:---|\n| 1 | 2 | 3 |");
+  assert.ok(table.includes('<th align="center">الف</th><th align="right">ب</th><th align="left">ج</th>'), table);
+  assert.ok(table.includes('<td align="center">1</td>'));
+  assert.equal(richHtml("```js\nlet a = 1;\n```"), '<pre language="js"><code class="language-js">let a = 1;</code></pre>');
+  assert.equal(richHtml("###### شش\n#### چهار"), "<h6>شش</h6><h4>چهار</h4>");
+});
+
+test("rich mode: ::: makes a collapsible section, == a highlight; in a normal caption both stay text", () => {
+  const prev = app.setModeForTest("rich");
+  try {
+    const b = plainData(app.parse(app.autoFix("قبل\n::: جزئیات آپدیت\nمتن ==مهم== داخل\n- مورد\n:::\nبعد"), true));
+    assert.deepEqual(b.map((x) => x.t), ["line", "details", "line"]);
+    assert.equal(b[1].title, "جزئیات آپدیت");
+    assert.deepEqual(b[1].inner.map((x) => x.t), ["line", "list"]);
+    const html = richHtml("قبل\n::: جزئیات آپدیت\nمتن ==مهم== داخل\n- مورد\n:::\nبعد");
+    assert.equal(html, "<p>قبل</p><details><summary>جزئیات آپدیت</summary><p>متن <mark>مهم</mark> داخل</p><ul><li>مورد</li></ul></details><p>بعد</p>");
+    // an open ::: without its closing line is just text
+    assert.deepEqual(plainData(app.parse("::: تنها\nمتن", true)).map((x) => x.t), ["line", "line"]);
+  } finally { app.setModeForTest("classic"); }
+  // a normal caption: no highlight, no section
+  const classic = copyOf("متن ==مهم==\n::: جزئیات\nx\n:::").html;
+  assert.ok(classic.includes("==مهم==") && classic.includes("::: جزئیات") && !/<mark|<details/.test(classic), classic);
+  void prev;
+});
+
+test("rich markdown for Telegram iPhone: headings, lists, checklists, table, quote, divider, code; blank lines kept", () => {
+  const prev = app.setModeForTest("rich");
+  try {
+    const md = app.toRichMarkdown(app.parse(app.autoFix(RICH_SAMPLE + "\n\nآخر\n\n**پایان** <u>x</u>"), true));
+    for (const part of [`# آپدیت ${R}v42`, "## آیتم", "- اسکین", "  - بک", "1. اول\n2. دوم", "- [x] سرورها", "- [ ] رفع باگ",
+      "| آیتم | قیمت |\n|---|---|\n| ", "\n---\n", "> نقل", "![عکس](https://pbs.twimg.com/media/A.jpg)", `آخر  \n${Z}  \n**پایان**`])
+      assert.ok(md.includes(part), JSON.stringify(part) + " in " + md);
+    const det = app.toRichMarkdown(app.parse(app.autoFix("::: جزئیات\nمتن ==مهم==\n:::"), true));
+    assert.equal(det, "**جزئیات**\n\nمتن <mark>مهم</mark>");
+    // a nested item under a numbered one sits under its text
+    assert.equal(app.toRichMarkdown(app.parse("1. یک\n  - زیر", true)), "1. یک\n   - زیر");
+  } finally { app.setModeForTest("classic"); }
+  void prev;
 });
 
 test("'# title' is not a hashtag line (it gets direction marks); '#Fortnite' still is", () => {

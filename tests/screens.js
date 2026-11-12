@@ -61,7 +61,7 @@ function audit() {
   // a floating capsule may sit a few px in from the edge, but nothing may be to its right
   const taBox = r(document.getElementById("input"));
   if (r(edrow).right - r(tb).right > 10 || r(tb).left < taBox.right - 1) problems.push("toolbar is not on the right edge");
-  const expected = document.body.classList.contains("rich") ? 31 : 25;
+  const expected = document.body.classList.contains("rich") ? 33 : 25;
   if (tbs.length !== expected) problems.push("toolbar has " + tbs.length + " buttons, expected " + expected);
   if (getComputedStyle(tb).scrollbarWidth !== "none") problems.push("toolbar scrollbar visible");
 
