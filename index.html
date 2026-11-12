@@ -1160,7 +1160,7 @@ body.rich .cutb{display:none;}
     <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
     <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی، با رنگ «تیره» یا «روشن» X؛ دانلود، کپی یا ارسالش کن.</p>
-    <p><b>لینک‌ها 🔗:</b> دکمه‌ی زنجیر بالای صفحه همه‌ی لینک‌های متن رو نشون می‌ده و می‌تونی لینک‌های دیگه هم اضافه کنی (چندتا با هم، یا با «پیست»): توییت، یوتیوب، اینستاگرام، تیک‌تاک، ردیت، ویمئو، ساندکلاد و … — فایل‌هاشون با کیفیت‌های مختلف (یوتیوب: 1080p تا 360p و «فقط صدا») تو پنل مدیا میاد. لینک اضافه‌شده تو متن پست نمیاد؛ «حذف» روی لینک متن، از متن پاکش می‌کنه (↶ برش می‌گردونه). یوتیوب و بقیه از راه یه سرور رایگان دانلود می‌شن که گاهی شلوغه یا قطعه؛ اگه سرور خودت رو داری، تو «سرور دانلود» بذارش.</p>
+    <p><b>لینک‌ها 🔗:</b> دکمه‌ی زنجیر بالای صفحه همه‌ی لینک‌های متن رو نشون می‌ده و می‌تونی لینک‌های دیگه هم اضافه کنی (چندتا با هم، یا با «پیست»): توییت، یوتیوب، اینستاگرام، تیک‌تاک، ردیت، ویمئو، ساندکلاد و … — فایل‌هاشون با کیفیت‌های مختلف (یوتیوب: 1080p تا 360p و «فقط صدا») تو پنل مدیا میاد. لینک اضافه‌شده تو متن پست نمیاد و با پاک کردن متن («پاک») اون هم پاک می‌شه (↶ برش می‌گردونه)؛ «حذف» روی لینک متن، از متن پاکش می‌کنه (↶ برش می‌گردونه). یوتیوب و بقیه از راه یه سرور رایگان دانلود می‌شن که گاهی شلوغه یا قطعه؛ اگه سرور خودت رو داری، تو «سرور دانلود» بذارش.</p>
     <p><b>تاریخچه:</b> دکمه‌ی ساعت بالای صفحه ۱۰ کپشن آخری رو که کپی یا پاک کردی نشون می‌ده؛ «بیار تو ادیتور» برش می‌گردونه و ↶ متن قبلی رو.</p>
     <p><b>موقع کپی:</b> «ي» و «ك» عربی خودکار فارسی می‌شن و فاصله‌های اضافه حذف می‌شن (خود متن ادیتور دست نمی‌خوره). اگه امضا نداشته باشه، لینکی آدرس درست نداشته باشه یا یه <span class="syn">**</span> بسته نشده باشه، کپی انجام می‌شه ولی پیام زرد می‌گه.</p>
     <p><b>ویدیو:</b> رو موبایل دکمه‌ی <b>ارسال</b> فایل رو مستقیم به شیت اشتراک می‌ده و تلگرام رو انتخاب می‌کنی. کلیپ‌بورد فقط تصویر می‌پذیره، ویدیو نه. موقع ارسال حتماً حالت <b>ویدیو</b> رو بزن نه فایل، وگرنه استریم نمیشه.</p>
@@ -3010,7 +3010,22 @@ function fmtSize(b){
   return Math.round(b/1024)+" KB";
 }
 
+// Links added by hand belong to the post being written: when the caption is emptied («پاک», or
+// everything deleted by hand) they go too, and the undo that brings the caption back brings them back
+var lastText=null, clearedLinks=null;
+function followCaption(){
+  var now=input.value, prev=lastText;
+  lastText=now;
+  if(prev && !now && addedLinks.length){
+    clearedLinks={text:prev,links:addedLinks.slice()};
+    addedLinks=[]; saveLinks(); paintedKey=null;
+    say("لینک‌های اضافه‌شده هم پاک شدن — ↶ برشون می‌گردونه","ok");
+  } else if(!prev && now && clearedLinks && now===clearedLinks.text && !addedLinks.length){
+    addedLinks=clearedLinks.links; clearedLinks=null; saveLinks(); paintedKey=null;
+  }
+}
 function detectMedia(){
+  followCaption();
   var links=allLinks(), text=input.value+"\n"+links.filter(function(l){ return l.from==="added"; }).map(function(l){ return l.url; }).join("\n");
   var list=collectDirect(text), ids=tweetIds(text), waiting=[], failed=[], texts=[];
   ids.forEach(function(id){
@@ -3597,8 +3612,10 @@ document.getElementById("bSign").onclick=function(){
   input.value=(v? v+"\n"+ZWNJ+"\n":"")+SIGNATURE; commit(); render(); say("امضا اضافه شد","ok");
 };
 document.getElementById("bClear").onclick=function(){
+  var had=addedLinks.length;
   saveHistory(input.value);
-  input.value=""; commit(); render(); detectMedia(); caretTo(0,0); say("پاک شد");
+  input.value=""; commit(); render(); detectMedia(); caretTo(0,0);
+  say(had? "پاک شد — لینک‌های اضافه‌شده هم (↶ برمی‌گردونه)" : "پاک شد");
 };
 document.getElementById("bCopy").onclick=function(){ copyRich(this); };
 document.getElementById("bPlain").onclick=async function(){

@@ -164,3 +164,37 @@ test("«دانلود همه» saves every file of the media panel at its best qu
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("emptying the caption («پاک» or deleting it all) clears the added links too; one undo brings both back", async () => {
+  const { ctx, page, errors } = await open();
+  await typeCaption(page, "متن پست");
+  await page.click("#bLinks");
+  await page.fill("#lnInput", YT + " https://www.instagram.com/p/XYZ/");
+  await page.click("#lnAdd");
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => document.getElementById("lnBadge").textContent === "2");
+  await page.click("#bClear");
+  assert.equal(await editor(page), "");
+  assert.match(await page.textContent("#toast"), /لینک‌های اضافه‌شده هم/);
+  assert.equal(await page.$eval("#lnBadge", (b) => b.classList.contains("show")), false);
+  assert.equal(await page.evaluate(() => localStorage.getItem("caption-studio-links")), "[]");
+  assert.ok(await page.$eval("#pMedia", (p) => p.classList.contains("hide")), "the media panel is empty again");
+  // one undo: the caption and its links
+  await page.click("#tbUndo");
+  assert.equal(await editor(page), "متن پست");
+  await page.waitForFunction(() => document.getElementById("lnBadge").textContent === "2");
+  // deleting everything by hand does the same
+  await page.click("#input");
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Backspace");
+  await page.waitForFunction(() => !document.getElementById("lnBadge").classList.contains("show"));
+  assert.match(await page.textContent("#toast"), /لینک‌های اضافه‌شده هم پاک شدن/);
+  // links added while the editor is empty stay
+  await page.click("#bLinks");
+  await page.fill("#lnInput", YT);
+  await page.click("#lnAdd");
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => document.getElementById("lnBadge").textContent === "1");
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
