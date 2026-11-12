@@ -296,19 +296,43 @@ textarea::placeholder{color:var(--dim);}
   background:rgba(106,179,243,.08);
   padding:2px 9px;padding-inline-start:9px;margin:5px 0;color:#d2dbe5;
 }
-/* rich blocks: headings, lists, tables, dividers, pictures */
-.tgtext h1,.tgtext h2,.tgtext h3{font-weight:700;line-height:1.35;margin:.35em 0 .2em;color:#fff;}
-.tgtext h1{font-size:1.42em;} .tgtext h2{font-size:1.24em;} .tgtext h3{font-size:1.09em;}
-.tgtext ul,.tgtext ol{margin:.15em 0;padding-inline-start:1.35em;}
-.tgtext li{margin:.08em 0;}
-.tgtext li::marker{color:var(--tg-link);}
-.tgtext hr{border:none;height:1px;margin:.65em 0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);}
+/* rich blocks, the way Telegram shows a rich message (its own sizes, 2026: text 13 px, headings
+   19/18/17/16/15/14 px, list indent 28 px with a small dot, tables with a blue grid and header,
+   a 1 px divider, a framed collapsible section, highlight in the quote colour) */
+.tgtext h1,.tgtext h2,.tgtext h3,.tgtext h4,.tgtext h5,.tgtext h6{font-weight:700;line-height:1.42;margin:0;color:#fff;}
+.tgtext h1{font-size:1.46em;} .tgtext h2{font-size:1.38em;} .tgtext h3{font-size:1.31em;}
+.tgtext h4{font-size:1.23em;} .tgtext h5{font-size:1.15em;} .tgtext h6{font-size:1.08em;}
+.tgtext ul,.tgtext ol{margin:0;padding-inline-start:2.15em;}
+.tgtext ul,.tgtext ul ul,.tgtext ol ul{list-style-type:disc;}
+.tgtext li{margin:0;}
+.tgtext li::marker{color:var(--tg-text);}
+.tgtext ul>li::marker{font-size:.8em;}
+.tgtext li.task{list-style:none;}
+.tgtext hr{border:none;height:1px;margin:.15em 0;background:rgba(255,255,255,.3);}
 .tgtext table{
-  display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:.4em 0;font-size:.92em;
+  display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:0;
 }
-.tgtext th,.tgtext td{border:1px solid rgba(255,255,255,.12);padding:.3em .6em;text-align:start;vertical-align:top;}
+.tgtext th,.tgtext td{border:1px solid rgba(106,179,243,.45);padding:.46em .62em;text-align:start;vertical-align:top;}
 .tgtext th{background:rgba(106,179,243,.12);font-weight:700;}
-.tgtext img{display:block;max-width:100%;border-radius:10px;margin:.35em 0;}
+.tgtext img{display:block;max-width:100%;border-radius:10px;margin:0;}
+.tgtext .tg-cap{color:var(--tg-meta);font-size:.92em;margin-top:.45em;}
+.tgtext mark{background:rgba(106,179,243,.16);color:inherit;border-radius:3px;padding:0 1px;}
+.tgtext .rb-details{border:1px solid rgba(255,255,255,.14);border-radius:8px;overflow:hidden;}
+.tgtext .tg-sum{position:relative;padding:.31em .85em;padding-inline-end:2em;background:rgba(255,255,255,.06);}
+.tgtext .tg-sum::after{
+  content:"";position:absolute;inset-inline-end:.85em;top:50%;width:.42em;height:.42em;margin-top:-.32em;
+  border:solid var(--tg-meta);border-width:0 2px 2px 0;transform:rotate(45deg);pointer-events:none;
+}
+.tgtext .tg-body{padding:.31em .85em .46em;border-top:1px solid rgba(255,255,255,.08);}
+/* rich mode: blocks sit as far apart as in Telegram (at 13 px text: paragraphs and lists 4 px,
+   headings 10 px, quotes, code, tables, pictures, dividers and sections 8 px); the lines of one
+   paragraph (blank lines too) touch */
+body.rich :is(#preview,.tg-body)>[data-t]{margin:0;}
+body.rich :is(#preview,.tg-body)>[data-t]+[data-t]{margin-top:.62em;}
+body.rich :is(#preview,.tg-body)>[data-t]+:is([data-t="line"],[data-t="blank"],[data-t="list"]){margin-top:.31em;}
+body.rich :is(#preview,.tg-body)>:is([data-t="line"],[data-t="blank"])+:is([data-t="line"],[data-t="blank"]){margin-top:0;}
+body.rich :is(#preview,.tg-body)>[data-t]+[data-t="h"]{margin-top:.77em;}
+body.rich .tgtext blockquote,body.rich .tgtext pre{margin:0;}
 /* the page a rich post is copied from: plain and readable wherever it gets pasted */
 .copybox{
   position:fixed;left:-10000px;top:0;width:640px;z-index:-1;
@@ -947,6 +971,8 @@ body.rich .cutb{display:none;}
         <button class="tb rich-only" data-line="- [ ] " title="چک‌لیست" aria-label="چک‌لیست"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="1.6"/><path d="m5.3 7.6 1.4 1.4 2.4-2.6"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.6"/><path d="M14 7.5h6.5M14 17h6.5"/></svg></button>
         <button class="tb rich-only" data-insline="| عنوان | مقدار |&#10;|---|---|&#10;|  |  |" title="جدول" aria-label="جدول"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M3.5 9.5h17M3.5 14.5h17M12 9.5v10"/></svg></button>
         <button class="tb rich-only" data-insline="---" title="خط جداکننده" aria-label="خط جداکننده"><svg viewBox="0 0 24 24"><path d="M4 12h16"/><path d="M8 7.5h8M8 16.5h8" opacity=".4"/></svg></button>
+        <button class="tb rich-only" data-block="details" title="بخش جمع‌شونده" aria-label="بخش جمع‌شونده"><svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="16" rx="2.6"/><path d="M3.5 9.5h17"/><path d="m14.5 6 1.5 1.6L17.5 6"/><path d="M7 13.5h10M7 16.5h6" opacity=".45"/></svg></button>
+        <button class="tb rich-only" data-b="==" data-a="==" title="هایلایت" aria-label="هایلایت"><svg viewBox="0 0 24 24"><path d="m14.5 4.5 5 5-8.2 8.2H6.3v-5z"/><path d="m11.8 7.2 5 5"/><path d="M4 20.5h16" opacity=".45"/></svg></button>
         <div class="tb-sep"></div>
         <button class="tb" data-line="• " title="آیتم اصلی">•</button>
         <button class="tb" data-line="◦ " title="زیرمورد">◦</button>
@@ -1054,7 +1080,7 @@ body.rich .cutb{display:none;}
     <p><b>کپی برای تلگرام:</b> هم‌زمان <span class="syn">text/html</span> و <span class="syn">text/plain</span> رو کپی می‌کنه؛ تلگرام نسخه‌ی HTML رو می‌خونه و فرمت‌ها رو می‌سازه.</p>
     <p><b>ویرایش در پیش‌نمایش:</b> روی پیش‌نمایش بزن و مثل تلگرام بنویس. وسط یه خط بولد تایپ کنی، بولد می‌مونه. نوار ابزار وقتی تو پیش‌نمایش هستی روی همون کار می‌کنه (لبه‌ی سبزش روشن می‌شه). هر تغییری خودش تو ادیتور هم میاد.</p>
     <p><b>اصلاح جهت (خودکار):</b> لازم نیست دکمه‌ای بزنی — پیش‌نمایش و هر چیزی که کپی می‌کنی، خودکار اصلاح شده‌اند. دکمه‌ی «اصلاح متن ادیتور» فقط وقتی لازم است که بخواهی خودِ متن داخل باکس هم بازنویسی شود.</p><p><b>جزئیات:</b> خط انگلیسی‌شروع با ادامه‌ی فارسی <span class="syn">RLM</span> می‌گیره، خط تغییر عددی با <span class="syn">LRM</span> قفل میشه، خط خالی <span class="syn">ZWNJ</span> می‌گیره. خط هشتگ و خط کاملاً انگلیسی دست‌نخورده می‌مونن. عدد بعد از Season / Chapter / Part جزو اسم حساب می‌شه.</p>
-    <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![](لینک عکس)</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن و با «کپی برای تلگرام» همراه متن کپی می‌شن (ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
+    <p><b>حالت ریچ ✦:</b> بالای پیش‌نمایش «ریچ» رو بزن تا پستت مثل ویرایشگر ریچ تلگرام (پریمیوم) ساخته بشه: <span class="syn"># تیتر</span> <span class="syn">- لیست</span> <span class="syn">1. شماره‌دار</span> <span class="syn">- [ ] چک‌لیست</span> <span class="syn">| جدول |</span> <span class="syn">---</span> <span class="syn">![توضیح عکس](لینک عکس)</span> <span class="syn">::: عنوان</span>…<span class="syn">:::</span> (بخش جمع‌شونده) <span class="syn">==هایلایت==</span>. دکمه‌هاشون هم تو نوار ابزار میاد. عکس‌های پنل مدیا خودشون بالای پست قرار می‌گیرن؛ تو تلگرام کامپیوتر با «کپی برای تلگرام» همراه متن کپی می‌شن (تو گوشی و ویدیو رو جدا بفرست). با «معمولی» به کپشن عادی برمی‌گردی.</p>
     <p><b>شمارنده:</b> پایین پیش‌نمایش همون تعدادی رو می‌بینی که تلگرام می‌شمره (ستاره‌ها و آدرس لینک‌ها حساب نمی‌شن). سقف کپشن <span class="syn">1024</span> هست؛ بیشتر از اون بنفش می‌شه یعنی فقط با پریمیوم می‌ره (تا <span class="syn">4096</span>)، و بیشتر از اون قرمز. نوشتن هیچ‌وقت قفل نمی‌شه.</p>
     <p><b>✂ تقسیم پست:</b> کنار شمارنده ✂ رو بزن: پست سر جای درستش (خط خالی، آخر جمله، نه وسط نقل‌قول یا کد) به ۲، ۳ یا چند قسمت تقسیم می‌شه و هر قسمت دکمه‌ی کپی خودش رو داره. قسمت اول امضای کامل رو داره و بقیه امضای کوتاه. اگه جای برش رو دوست نداشتی با ▲ ▼ جابه‌جاش کن.</p>
     <p><b>مدیا:</b> لینک توییت یا لینک مستقیم عکس رو تو متن بذار؛ خودش پیدا و جدا می‌کنه و از کپشن نهایی حذفشون می‌کنه. عکس‌ها با کیفیت <span class="syn">orig</span>. اگه چیزی نیومد، «دوباره امتحان کن» رو بزن. متن خود توییت هم بعد از عکس‌ها میاد با دکمه‌ی «کپی متن» (روش بزنی همه‌ش باز می‌شه). «عکس توییت» از همون توییت یه عکس تمیز مثل X می‌سازه (با واترمارک <span class="syn">@LolSmash</span>): «اصلی» با متن خود توییت، «با متن ما» با کپشنی که نوشتی، با رنگ «تیره» یا «روشن» X؛ دانلود، کپی یا ارسالش کن.</p>
@@ -1266,8 +1292,9 @@ function fixDirection(text){
 // nested and back-to-back formats — ***x***, **a *b***, *a***b**, **x ||y|| z** —
 // always come out well-formed, whether they were typed or made in the preview.
 var TAGS={b:["<b>","</b>"],i:["<i>","</i>"],bi:["<b><i>","</i></b>"],
-          u:["<u>","</u>"],s:["<s>","</s>"],sp:['<span class="tg-spoiler">',"</span>"]};
-var PAIR_TAG={"_":"u","~":"s","|":"sp"};
+          u:["<u>","</u>"],s:["<s>","</s>"],sp:['<span class="tg-spoiler">',"</span>"],m:["<mark>","</mark>"]};
+// "==" (highlight) is a format only in rich mode: a normal caption has no highlight
+var PAIR_TAG={"_":"u","~":"s","|":"sp","=":"m"};
 
 function inline(s,plain){
   var held=[];
@@ -1295,7 +1322,7 @@ function inline(s,plain){
   }
   function tag(k,side){ return plain? "" : TAGS[k][side]; }
   function delimit(str){
-    var toks=[], re=/\*+|_{2,}|~{2,}|\|{2,}/g, last=0, m;
+    var toks=[], re=isRich()? /\*+|_{2,}|~{2,}|\|{2,}|={2,}/g : /\*+|_{2,}|~{2,}|\|{2,}/g, last=0, m;
     while((m=re.exec(str))){
       if(m.index>last) toks.push({text:str.slice(last,m.index)});
       var ch=m[0].charAt(0), len=m[0].length;
@@ -1307,7 +1334,7 @@ function inline(s,plain){
           canOpen:!!next && (!/\s/.test(next) || (len>=2 && sp(prev))),
           canClose:!!prev && (!/\s/.test(prev) || (len>=2 && sp(next)))});
       } else {
-        // __ ~~ || come in pairs; an odd character left over is plain text
+        // __ ~~ || == come in pairs; an odd character left over is plain text
         for(var k=0;k+1<len;k+=2)
           toks.push({pair:ch, canOpen:!!(k+2<len? ch : next), canClose:!!(k? ch : prev)});
         if(len%2) toks.push({text:ch});
@@ -1386,11 +1413,15 @@ function richBlock(lines,i){
   var l=lines[i].replace(MARKS_RE,""), m;
   if((m=IMG_RE.exec(l))) return {t:"img",alt:m[1],url:m[2],from:i,to:i+1};
   if(HR_RE.test(l)) return {t:"hr",from:i,to:i+1};
-  if((m=HEAD_RE.exec(lines[i]))) return {t:"h",level:Math.min(3,m[1].length),text:m[2],from:i,to:i+1};
+  if((m=HEAD_RE.exec(lines[i]))) return {t:"h",level:m[1].length,text:m[2],from:i,to:i+1};
   if(isTableStart(lines,i)){
     var rows=[cells(lines[i])], j=i+2;
+    // ":---" left, ":---:" centre, "---:" right
+    var align=cells(lines[i+1].replace(MARKS_RE,"")).map(function(c){
+      return /^:-+:$/.test(c)? "center" : /^-+:$/.test(c)? "right" : /^:-+$/.test(c)? "left" : "";
+    });
     while(j<lines.length && lines[j].indexOf("|")!==-1 && !isBlank(lines[j])){ rows.push(cells(lines[j])); j++; }
-    return {t:"table",rows:rows,from:i,to:j};
+    return {t:"table",rows:rows,align:align,from:i,to:j};
   }
   if(LIST_RE.test(l)){
     var items=[], k=i;
@@ -1398,6 +1429,7 @@ function richBlock(lines,i){
     // the item text keeps its marks
     while(k<lines.length && (m=LIST_RE.exec(lines[k].replace(MARKS_RE,"")))){
       items.push({level:Math.floor(m[1].replace(/\t/g,"  ").length/2), ordered:/\d/.test(m[2]),
+                  num:/\d/.test(m[2])? parseInt(m[2],10) : 0,
                   task:m[3]===undefined? null : m[3]!==" ",
                   text:afterPrefix(lines[k],lines[k].replace(MARKS_RE,"").length-m[4].length)});
       k++;
@@ -1406,16 +1438,34 @@ function richBlock(lines,i){
   }
   return null;
 }
+// rich mode: "::: title" … ":::" is a collapsible section (Telegram's "details" block)
+var DET_OPEN_RE=/^\s*:::\s*\S/, DET_CLOSE_RE=/^\s*:::\s*$/;
+var DETAILS_TITLE="جزئیات";
+function detailsEnd(lines,i){
+  for(var j=i+1,depth=1;j<lines.length;j++){
+    var t=lines[j].replace(MARKS_RE,"");
+    if(DET_CLOSE_RE.test(t)){ if(!--depth) return j; }
+    else if(DET_OPEN_RE.test(t)) depth++;
+  }
+  return -1;
+}
 function parse(text,rich){
   var lines=text.split("\n"), out=[], i=0;
   while(i<lines.length){
     var l=lines[i], from=i;
+    if(rich && DET_OPEN_RE.test(l.replace(MARKS_RE,""))){
+      var dEnd=detailsEnd(lines,i);
+      if(dEnd>0){
+        out.push({t:"details",title:l.replace(/^\s*:::\s*/,""),inner:parse(lines.slice(i+1,dEnd).join("\n"),true),from:i,to:dEnd+1});
+        i=dEnd+1; continue;
+      }
+    }
     var rb=rich && !/^\s*```/.test(l) && !/^\s*>\s?/.test(l) && richBlock(lines,i);
     if(rb){ out.push(rb); i=rb.to; continue; }
     if(/^\s*```/.test(l)){
-      var buf=[]; i++;
+      var buf=[], lang=l.replace(MARKS_RE,"").replace(/^\s*`+/,"").trim(); i++;
       while(i<lines.length && !/^\s*```/.test(lines[i])){ buf.push(lines[i]); i++; }
-      i++; out.push({t:"pre",lines:buf,from:from,to:Math.min(i,lines.length)}); continue;
+      i++; out.push({t:"pre",lines:buf,lang:lang,from:from,to:Math.min(i,lines.length)}); continue;
     }
     if(/^\s*>\s?/.test(l)){
       var q=[];
@@ -1461,47 +1511,175 @@ function cellsOf(rows){
   var n=rows.reduce(function(m,r){ return Math.max(m,r.length); },0);
   return rows.map(function(r){ while(r.length<n) r.push(""); return r; });
 }
-function listHtml(items){
+// a list as nested <ul>/<ol>; li() writes the start of each item
+function nestList(items,li){
   var html="", stack=[];
   items.forEach(function(it){
     var tag=it.ordered? "ol" : "ul", top=stack[stack.length-1];
+    // a numbered list that starts at 3 keeps its 3
+    var open="<"+tag+(it.ordered && it.num>1? ' start="'+it.num+'"' : "")+">";
     while(top && top.level>it.level){ html+="</li></"+stack.pop().tag+">"; top=stack[stack.length-1]; }
-    if(!top || top.level<it.level){ html+="<"+tag+">"; stack.push({tag:tag,level:it.level}); }
-    else if(top.tag!==tag){ html+="</li></"+stack.pop().tag+"><"+tag+">"; stack.push({tag:tag,level:it.level}); }
+    if(!top || top.level<it.level){ html+=open; stack.push({tag:tag,level:it.level}); }
+    else if(top.tag!==tag){ html+="</li></"+stack.pop().tag+">"+open; stack.push({tag:tag,level:it.level}); }
     else html+="</li>";
-    html+='<li dir="auto">'+(it.task===null? "" : it.task? "☑ " : "☐ ")+inline(it.text);
+    html+=li(it);
   });
   while(stack.length) html+="</li></"+stack.pop().tag+">";
   return html;
 }
+function listHtml(items){
+  return nestList(items,function(it){
+    return '<li dir="auto"'+(it.task===null? "" : ' class="task"')+">"+(it.task===null? "" : it.task? "☑ " : "☐ ")+inline(it.text);
+  });
+}
+function alignAttr(b,n){ var a=(b.align||[])[n]; return a? ' style="text-align:'+a+'"' : ""; }
 function richBlockHtml(b){
   if(b.t==="h") return "<h"+b.level+' dir="auto">'+inline(b.text)+"</h"+b.level+">";
   if(b.t==="hr") return "<hr>";
-  if(b.t==="img") return '<img src="'+attr(b.url)+'" alt="'+attr(b.alt)+'" referrerpolicy="no-referrer">';
+  if(b.t==="img") return '<img src="'+attr(b.url)+'" alt="'+attr(b.alt)+'" referrerpolicy="no-referrer">'
+                       + (b.alt? '<div class="tg-cap" dir="auto">'+esc(b.alt)+"</div>" : "");
   if(b.t==="list") return listHtml(b.items);
   if(b.t==="table"){
     var rows=cellsOf(b.rows);
-    return "<table><thead><tr>"+rows[0].map(function(c){ return '<th dir="auto">'+inline(c)+"</th>"; }).join("")+"</tr></thead><tbody>"
-      + rows.slice(1).map(function(r){ return "<tr>"+r.map(function(c){ return '<td dir="auto">'+inline(c)+"</td>"; }).join("")+"</tr>"; }).join("")
+    return "<table><thead><tr>"+rows[0].map(function(c,n){ return '<th dir="auto"'+alignAttr(b,n)+">"+inline(c)+"</th>"; }).join("")+"</tr></thead><tbody>"
+      + rows.slice(1).map(function(r){ return "<tr>"+r.map(function(c,n){ return '<td dir="auto"'+alignAttr(b,n)+">"+inline(c)+"</td>"; }).join("")+"</tr>"; }).join("")
       + "</tbody></table>";
   }
+  // a collapsible section is shown open, so what is inside it can be read and edited
+  if(b.t==="details") return '<div class="tg-sum" dir="auto">'+inline(b.title)+"</div>"
+    + '<div class="tg-body">'+b.inner.map(function(x){
+        var p=blockInner(x);
+        return '<div dir="auto"'+(p.cls? ' class="'+p.cls+'"' : "")+' data-t="'+x.t+'">'+p.html+"</div>";
+      }).join("")+"</div>";
   return null;
 }
-// rich post: pictures from the media panel first (like a Telegram post), then the text as
-// paragraphs, headings, lists and tables
-function toRichHtml(b,images){
-  var out=images.map(function(u){ return '<p><img src="'+attr(u)+'" alt=""></p>'; }), para=[];
-  function flush(){ if(para.length) out.push('<p dir="auto">'+para.join("<br>")+"</p>"); para=[]; }
-  b.forEach(function(x){
-    if(x.t==="line"){ para.push(inline(x.text)); return; }
-    flush();
-    if(x.t==="blank") return;
-    if(x.t==="pre") out.push("<pre><code>"+esc(x.lines.join("\n"))+"</code></pre>");
-    else if(x.t==="quote") out.push('<blockquote dir="auto">'+x.lines.map(function(y){ return inline(y); }).join("<br>")+"</blockquote>");
-    else out.push(richBlockHtml(x));
+// what a block looks like in the preview
+function blockInner(b){
+  if(b.t==="blank") return {cls:"sp-blank",html:"<br>"};
+  if(b.t==="pre") return {cls:"",html:"<pre><code>"+esc(b.lines.join("\n"))+"</code></pre>"};
+  if(b.t==="quote") return {cls:"",html:("<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>").replace(/tg-spoiler/g,"spoiler")};
+  if(b.t==="line") return {cls:"",html:inline(b.text).replace(/tg-spoiler/g,"spoiler")};
+  return {cls:"rb rb-"+b.t,html:richBlockHtml(b).replace(/tg-spoiler/g,"spoiler")};
+}
+/* --- a rich post, as Telegram's rich text editor reads it ---
+   Checked against the apps' own code (2026-11): Telegram Desktop (lib_ui text_html_tags.cpp
+   BlocksFromHtml, iv_editor_clipboard_import.cpp), Telegram Android (ui/iv/RichHtml.java) and
+   Telegram iPhone (RichTextEditor's paste, BrowserMarkdown.swift).
+   - Desktop and Android read the HTML. Every <p> is a paragraph; Desktop drops an empty one, so a
+     blank line is a ZWNJ line inside the paragraph (as in a normal caption) and shows as one.
+   - No wrapper <div>: Android would make the whole post one paragraph out of it.
+   - Desktop takes a picture only with data-tg-src and the picture's own bytes in src (a data: URL);
+     a web address is dropped. Two or more pictures in a <tg-collage> are one grid.
+   - A checklist item is <input type="checkbox"> for Desktop and data-checkbox/data-checked for Android.
+   - Spoilers: tg-spoiler for Desktop, <spoiler> for Android (as in a normal caption).
+   - iPhone never reads the HTML: it reads the plain text as markdown (toRichMarkdown). */
+function tgInline(s){
+  return inline(s).replace(/<span class="tg-spoiler">/g,'<span class="tg-spoiler"><spoiler>').replace(/<\/span>/g,"</spoiler></span>");
+}
+function tgListHtml(items){
+  return nestList(items,function(it){
+    return (it.task===null? "<li>" : "<li data-checkbox"+(it.task? " data-checked" : "")+'><input type="checkbox"'+(it.task? " checked" : "")+">")+tgInline(it.text);
   });
+}
+function tgTableHtml(b){
+  var rows=cellsOf(b.rows), al=b.align||[];
+  function cell(tag,c,n){ return "<"+tag+(al[n]? ' align="'+al[n]+'"' : "")+">"+tgInline(c)+"</"+tag+">"; }
+  return '<table border="1"><thead><tr>'+rows[0].map(function(c,n){ return cell("th",c,n); }).join("")+"</tr></thead><tbody>"
+    + rows.slice(1).map(function(r){ return "<tr>"+r.map(function(c,n){ return cell("td",c,n); }).join("")+"</tr>"; }).join("")
+    + "</tbody></table>";
+}
+// data: the pictures' own bytes (data: URLs) by address, when they could be fetched
+function tgImg(u,alt,data){
+  return '<img data-tg-src="'+attr(u)+'" src="'+attr((data&&data[u])||u)+'" alt="'+attr(alt||"")+'">';
+}
+// rich post: the media panel's pictures first (one picture, or a grid of them, like a Telegram
+// post), then the text as paragraphs, headings, quotes, lists, tables and collapsible sections
+function toRichHtml(b,images,data){
+  var out=[], para=[];
+  function flush(){ if(para.length) out.push("<p>"+para.join("<br>")+"</p>"); para=[]; }
+  if(images.length===1) out.push("<figure>"+tgImg(images[0],"",data)+"</figure>");
+  else if(images.length) out.push("<tg-collage>"+images.map(function(u){ return tgImg(u,"",data); }).join("")+"</tg-collage>");
+  (function blocks(list){
+    list.forEach(function(x){
+      if(x.t==="line"){ para.push(tgInline(x.text)); return; }
+      if(x.t==="blank"){ para.push(ZWNJ); return; }
+      flush();
+      if(x.t==="pre") out.push("<pre"+(x.lang? ' language="'+attr(x.lang)+'"' : "")+"><code"+(x.lang? ' class="language-'+attr(x.lang)+'"' : "")+">"+esc(x.lines.join("\n"))+"</code></pre>");
+      else if(x.t==="quote") out.push("<blockquote>"+x.lines.map(function(y){ return isBlank(y)? ZWNJ : tgInline(y); }).join("<br>")+"</blockquote>");
+      else if(x.t==="h") out.push("<h"+x.level+">"+tgInline(x.text)+"</h"+x.level+">");
+      else if(x.t==="hr") out.push("<hr>");
+      else if(x.t==="list") out.push(tgListHtml(x.items));
+      else if(x.t==="table") out.push(tgTableHtml(x));
+      else if(x.t==="img") out.push("<figure>"+tgImg(x.url,x.alt,data)+(x.alt? "<figcaption>"+esc(x.alt)+"</figcaption>" : "")+"</figure>");
+      else if(x.t==="details"){ out.push("<details><summary>"+tgInline(x.title)+"</summary>"); blocks(x.inner); flush(); out.push("</details>"); }
+    });
+  })(b);
   flush();
-  return '<div dir="rtl">'+out.join("")+"</div>";
+  return out.join("");
+}
+// one line in the markdown Telegram's iPhone app reads (no spoilers there: they stay text)
+function mdLine(text){
+  var runs=htmlRuns(inline(text)).map(function(r){
+    var f={};
+    for(var k in r.f) if(k!=="sp") f[k]=r.f[k];
+    return {t:r.t,f:f};
+  });
+  mdMode=true;
+  try{ var m=marksFor(edgeSpaces(runs,false),false); }finally{ mdMode=false; }
+  return m.replace(/^([-+])(?=\s)/,"\\$1").replace(/^(\d{1,9})([.)])(?=\s)/,"$1\\$2")
+          .replace(/^(=+)(?=\s*$)/,"\\$1").replace(/^ +/,function(sp){ return sp.replace(/ /g,"\u00A0"); });
+}
+function mdFence(x){
+  var fence="```";
+  x.lines.forEach(function(l){ (l.match(/`{3,}/g)||[]).forEach(function(r){ if(r.length>=fence.length) fence=r+"`"; }); });
+  return fence+(x.lang||"")+"\n"+x.lines.join("\n")+"\n"+fence;
+}
+// a nested item sits under its parent's text: as far in as the parent's marker is wide
+function mdList(items){
+  var out=[], widths=[], count=[], kind=[];
+  items.forEach(function(it){
+    var L=it.level, pad="";
+    for(var k=0;k<L;k++) pad+=new Array((widths[k]||2)+1).join(" ");
+    count.length=kind.length=L+1;
+    if(kind[L]!==it.ordered){ kind[L]=it.ordered; count[L]=it.num||1; } else count[L]++;
+    var marker=it.ordered? count[L]+". " : "- ";
+    widths[L]=marker.length; widths.length=L+1;
+    out.push(pad+marker+(it.task===null? "" : it.task? "[x] " : "[ ] ")+mdLine(it.text));
+  });
+  return out.join("\n");
+}
+function mdTable(x){
+  var rows=cellsOf(x.rows), al=x.align||[];
+  function row(r){ return "| "+r.map(function(c){ return mdLine(c); }).join(" | ")+" |"; }
+  return [row(rows[0]), "|"+rows[0].map(function(c,n){
+    return al[n]==="center"? ":---:" : al[n]==="right"? "---:" : al[n]==="left"? ":---" : "---";
+  }).join("|")+"|"].concat(rows.slice(1).map(row)).join("\n");
+}
+// the rich post as the markdown Telegram's iPhone app reads into its rich text editor
+// (BrowserMarkdown): headings, lists, checklists, quotes, tables, code and dividers come through;
+// lines of a paragraph end with a hard break, a blank line is a ZWNJ line, as in a normal caption
+function toRichMarkdown(b){
+  var groups=[], para=null;
+  (function blocks(list){
+    list.forEach(function(x){
+      if(x.t==="line" || x.t==="blank"){
+        if(!para){ para=[]; groups.push(para); }
+        para.push(x.t==="blank"? ZWNJ : mdLine(x.text));
+        return;
+      }
+      para=null;
+      if(x.t==="pre") groups.push(mdFence(x));
+      else if(x.t==="quote") groups.push(x.lines.map(function(y){ return "> "+(isBlank(y)? ZWNJ : mdLine(y)); }).join("  \n"));
+      else if(x.t==="h") groups.push(new Array(x.level+1).join("#")+" "+mdLine(x.text));
+      else if(x.t==="hr") groups.push("---");
+      else if(x.t==="list") groups.push(mdList(x.items));
+      else if(x.t==="table") groups.push(mdTable(x));
+      else if(x.t==="img") groups.push("!["+mdText(x.alt)+"]("+x.url+")");
+      // the iPhone app has no collapsible section in markdown: its title is a bold line
+      else if(x.t==="details"){ groups.push("**"+mdLine(x.title)+"**"); blocks(x.inner); para=null; }
+    });
+  })(b);
+  return groups.map(function(g){ return typeof g==="string"? g : g.join("  \n"); }).join("\n\n");
 }
 function toRichPlain(b){
   var out=[];
@@ -1512,6 +1690,8 @@ function toRichPlain(b){
     else if(x.t==="quote") out.push(x.lines.map(function(y){ return inline(y,true); }).join("\n"));
     else if(x.t==="h") out.push(inline(x.text,true));
     else if(x.t==="hr") out.push("———");
+    else if(x.t==="img"){ if(x.alt) out.push(x.alt); }
+    else if(x.t==="details"){ out.push(inline(x.title,true)); out.push(toRichPlain(x.inner)); }
     else if(x.t==="list"){
       // numbering restarts for each numbered run at each depth
       var num=[], kind=[];
@@ -1540,7 +1720,8 @@ function outputOf(text){
   var b=parse(autoFix(text),isRich());
   if(!isRich()) return { html: copyHtml(b), plain: toPlain(b), md: isIOS? toTelegramMarkdown(b) : null };
   var images=postImages(b);
-  return { html: toRichHtml(b,images), plain: toRichPlain(b), images: images, rich: true };
+  return { html: toRichHtml(b,images,richData), plain: toRichPlain(b), md: isIOS? toRichMarkdown(b) : null,
+           images: images, blocks: b, rich: true };
 }
 
 /* --- the copy, as each Telegram app reads it ---
@@ -1629,17 +1810,23 @@ function render(){
     var d=document.createElement("div");
     d.setAttribute("dir","auto");
     d.setAttribute("data-k",n);
-    if(b.t==="blank"){ d.className="sp-blank"; d.innerHTML="<br>"; }
-    else if(b.t==="pre") d.innerHTML="<pre><code>"+esc(b.lines.join("\n"))+"</code></pre>";
-    else if(b.t==="quote") d.innerHTML=("<blockquote>"+b.lines.map(function(y){return inline(y);}).join("<br>")+"</blockquote>").replace(/tg-spoiler/g,"spoiler");
-    else if(b.t==="line") d.innerHTML=inline(b.text).replace(/tg-spoiler/g,"spoiler");
-    else { d.className="rb rb-"+b.t; d.innerHTML=richBlockHtml(b).replace(/tg-spoiler/g,"spoiler"); }
+    var p=blockInner(b);
+    if(p.cls) d.className=p.cls;
+    d.innerHTML=p.html;
+    if(isRich()) d.setAttribute("data-t",b.t);
     d._src=rawLines.slice(b.from,b.to);
+    // inside a collapsible section each block remembers its own editor lines too
+    if(b.t==="details") Array.prototype.forEach.call(d.querySelector(".tg-body").children,function(c,n){
+      var x=b.inner[n]; c._src=rawLines.slice(b.from+1+x.from,b.from+1+x.to);
+    });
     frag.appendChild(d);
   });
   preview.textContent="";
   preview.appendChild(frag);
-  Array.prototype.forEach.call(preview.children,function(d){ d._snap=snapshot(d); });
+  Array.prototype.forEach.call(preview.children,function(d){
+    d._snap=snapshot(d);
+    d.querySelectorAll(".tg-body > div").forEach(function(c){ c._snap=snapshot(c); });
+  });
   previewDirty=false;
   if(caret) restoreCaret(caret);
   drawGallery(blocks);
@@ -1731,8 +1918,8 @@ function restoreCaret(c){
 }
 
 /* --- preview → editor --- */
-var FMT_ORDER=["a","b","i","u","s","sp","code"];
-var MARK={b:"**",i:"*",u:"__",s:"~~",sp:"||",code:"`"};
+var FMT_ORDER=["a","b","i","u","s","sp","m","code"];
+var MARK={b:"**",i:"*",u:"__",s:"~~",sp:"||",m:"==",code:"`"};
 
 function previewToLines(){
   var out=[], used={};
@@ -1751,7 +1938,21 @@ function previewToLines(){
   hiddenUpTo(Infinity);
   return out;
 }
+// a collapsible section: "::: title", what is inside it, ":::"
+function detailsToLines(node){
+  var sum=node.querySelector(".tg-sum"), body=node.querySelector(".tg-body");
+  var title=sum? nodeToLines(sum).filter(function(l){ return l.trim(); }).join(" ") : "";
+  var out=["::: "+(title.trim()||DETAILS_TITLE)];
+  if(body) Array.prototype.forEach.call(body.childNodes,function(c){
+    if(c.nodeType===3){ if(c.nodeValue.trim()) out.push(c.nodeValue.trim()); return; }
+    if(c.nodeType!==1) return;
+    out.push.apply(out,(c._src && c._snap===snapshot(c))? c._src : nodeToLines(c));
+  });
+  out.push(":::");
+  return out;
+}
 function nodeToLines(node){
+  if(!pasting && node.classList && node.classList.contains("rb-details")) return detailsToLines(node);
   var items=[];
   walkRuns(node,{},"",items,node);
   var lines=[], cur=[], kind="", open=false, cutAt=null, gap=false;
@@ -1821,6 +2022,8 @@ function liKind(li,root){
   var level=-1, n=0;
   for(var p=li.parentNode;p && p!==root.parentNode;p=p.parentNode) if(p.tagName==="UL"||p.tagName==="OL") level++;
   for(var s=li.previousElementSibling;s;s=s.previousElementSibling) if(s.tagName==="LI") n++;
+  // a numbered list that starts at 3 goes on from 3
+  if(li.parentNode && li.parentNode.tagName==="OL") n+=(parseInt(li.parentNode.getAttribute("start"),10)||1)-1;
   return "li:"+Math.max(0,level)+":"+(li.parentNode && li.parentNode.tagName==="OL"? 1 : 0)+":"+n;
 }
 function tableRows(table){
@@ -1895,12 +2098,14 @@ function walkRuns(node,f,kind,items,root){
   if(tag==="S"||tag==="STRIKE"||tag==="DEL"||/line-through/.test(deco)) g.s=1;
   if(node.classList && (node.classList.contains("spoiler")||node.classList.contains("tg-spoiler"))) g.sp=1;
   if(tag==="CODE") g.code=1;
+  // highlight is a rich-post format; a normal caption has none
+  if(tag==="MARK" && isRich()) g.m=1;
   if(tag==="A" && node.getAttribute("href")) g.a=pasting? linkTarget(node)||f.a : node.getAttribute("href");
   if(pasting) pastedFormats(node,tag,st,g);
   var heading=/^H[1-6]$/.test(tag);
   // a heading pasted into a normal caption is a bold line
   if(heading && pasting && !isRich()){ g.b=1; heading=false; }
-  var k2=tag==="BLOCKQUOTE"? "quote" : heading? "h"+Math.min(3,+tag.charAt(1)) : tag==="LI"? liKind(node,root) : kind;
+  var k2=tag==="BLOCKQUOTE"? "quote" : heading? "h"+tag.charAt(1) : tag==="LI"? liKind(node,root) : kind;
   var block=node!==root && isBlockTag(tag), at0=items.length;
   if(block) items.push({edge:1});
   for(var c=node.firstChild;c;c=c.nextSibling) walkRuns(c,g,k2,items,root);
@@ -2109,11 +2314,11 @@ function readsBack(md,runs){
 // the HTML inline() makes for a line, back into runs of text with their formats
 function htmlRuns(html){
   function unesc(s){ return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&amp;/g,"&"); }
-  var runs=[], stack=[], re=/<(\/?)(b|i|u|s|span|code|a)(\s[^>]*)?>|([^<]+)/g, m;
+  var runs=[], stack=[], re=/<(\/?)(b|i|u|s|span|code|a|mark)(\s[^>]*)?>|([^<]+)/g, m;
   while((m=re.exec(html))){
     if(m[4]===undefined){
       if(m[1]) stack.pop();
-      else stack.push(m[2]==="a"? {k:"a",v:unesc((/href="([^"]*)"/.exec(m[3]||"")||["",""])[1])} : {k:m[2]==="span"? "sp" : m[2],v:1});
+      else stack.push(m[2]==="a"? {k:"a",v:unesc((/href="([^"]*)"/.exec(m[3]||"")||["",""])[1])} : {k:m[2]==="span"? "sp" : m[2]==="mark"? "m" : m[2],v:1});
       continue;
     }
     var f={};
@@ -2123,7 +2328,7 @@ function htmlRuns(html){
   return runs;
 }
 // mdMode: writing the markdown Telegram's iPhone app reads (toTelegramMarkdown): underline is HTML there
-var mdMode=false, MD_MARK={b:["**","**"],i:["*","*"],u:["<u>","</u>"],s:["~~","~~"],code:["`","`"]};
+var mdMode=false, MD_MARK={b:["**","**"],i:["*","*"],u:["<u>","</u>"],s:["~~","~~"],m:["<mark>","</mark>"],code:["`","`"]};
 function openMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "[" : mdMode? MD_MARK[k][0] : MARK[k]; }
 function closeMark(k){ return k.charAt(0)==="a" && k.charAt(1)==="\u0000"? "]("+k.slice(2)+")" : mdMode? MD_MARK[k][1] : MARK[k]; }
 function wantOf(f){
@@ -2248,6 +2453,7 @@ function previewTool(d){
     var cmd={"**":"bold","*":"italic","__":"underline","~~":"strikeThrough"}[d.b];
     if(cmd) document.execCommand(cmd,false,null);
     else if(d.b==="||") previewSpoiler(r);
+    else if(d.b==="==") previewMark(r);
     else if(d.b==="[") previewLink(r);
   } else if(d.ins) document.execCommand("insertText",false,d.ins);
   else if(d.line||d.block||d.insline){ previewLines(d); return; }
@@ -2267,6 +2473,22 @@ function previewSpoiler(r){
     var sp=document.createElement("span"); sp.className="spoiler open";
     while(s.firstChild) sp.appendChild(s.firstChild);
     s.parentNode.replaceChild(sp,s);
+  });
+}
+// highlight, like a spoiler: the browser wraps the selection in <sub>, which becomes <mark>
+function previewMark(r){
+  if(!r) return;
+  var inside=closestIn(r.startContainer,"mark")||closestIn(r.endContainer,"mark");
+  if(inside){
+    preview.querySelectorAll("mark").forEach(function(s){ if(s===inside || r.intersectsNode(s)) unwrap(s); });
+    return;
+  }
+  if(r.collapsed){ say("اول متنی که می‌خوای هایلایت بشه رو انتخاب کن","warn"); return; }
+  document.execCommand("subscript",false,null);
+  preview.querySelectorAll("sub").forEach(function(s){
+    var mk=document.createElement("mark");
+    while(s.firstChild) mk.appendChild(s.firstChild);
+    s.parentNode.replaceChild(mk,s);
   });
 }
 function previewLink(r){
@@ -2297,6 +2519,7 @@ function previewLines(d){
     if(caret){ caret.b=Array.prototype.indexOf.call(preview.childNodes,b)+1; caret.o=0; }
   } else {
     if(d.line) seg=seg.map(function(l){ return l.indexOf(d.line)===0? l : d.line+l; });
+    else if(d.block==="details"){ if(!DET_OPEN_RE.test(seg[0]||"")) seg=["::: "+DETAILS_TITLE].concat(seg,[":::"]); }
     else if(!/^\s*```/.test(seg[0]||"")) seg=["```"].concat(seg,["```"]);
     lines.splice.apply(lines,[from,to-from].concat(seg));
   }
@@ -2850,8 +3073,16 @@ function insertLine(t){
   var end=(empty? a : b+1)+t.length;
   caretTo(end,end); render();
 }
-function insertBlock(){
+function insertBlock(kind){
   var s=input.selectionStart,e=input.selectionEnd,v=input.value;
+  if(kind==="details"){
+    // the selected lines go inside a collapsible section; its title is selected, ready to type over
+    var a=v.lastIndexOf("\n",s-1)+1, z=v.indexOf("\n",Math.max(s,e-1)); if(z===-1) z=v.length;
+    var body=v.slice(a,z)||"متن", head="::: "+DETAILS_TITLE;
+    input.value=v.slice(0,a)+head+"\n"+body+"\n:::"+v.slice(z);
+    caretTo(a+4,a+head.length); render();
+    return;
+  }
   var sel=v.slice(s,e)||"code", t="```\n"+sel+"\n```";
   input.value=v.slice(0,s)+t+v.slice(e);
   caretTo(s+4,s+4+sel.length); render();
@@ -2885,6 +3116,41 @@ function copyAsPage(html){
   if(active===input || active===preview){ try{ active.focus({preventScroll:true}); }catch(e){ active.focus(); } }
   return ok;
 }
+// a picture's own bytes as a data: URL (Telegram Desktop takes a pasted picture only that way);
+// the large size (2048 px) is plenty, Telegram makes it smaller anyway. Kept for the next copy
+var richData={}, richDataP={};
+function pictureData(u){
+  if(richDataP[u]) return richDataP[u];
+  var big=/pbs\.twimg\.com/i.test(u)? imageVariants(u)[1].url : u;
+  var p=fetch(big,{referrerPolicy:"no-referrer"}).then(function(r){
+    if(!r.ok) throw new Error(r.status);
+    return r.blob();
+  }).then(function(bl){
+    if(bl.size>20e6) return null;
+    if(!/^image\//.test(bl.type)) bl=new Blob([bl],{type:/\.png(\?|$)|format=png/i.test(big)? "image/png" : "image/jpeg"});
+    return new Promise(function(res){
+      var fr=new FileReader();
+      fr.onload=function(){ res(String(fr.result)); }; fr.onerror=function(){ res(null); };
+      fr.readAsDataURL(bl);
+    });
+  }).then(function(d){ if(d) richData[u]=d; else delete richDataP[u]; return d; },
+          function(){ delete richDataP[u]; return null; });
+  // a picture that takes too long is left out rather than holding the copy up
+  richDataP[u]=p;
+  return Promise.race([p,new Promise(function(res){ setTimeout(function(){ res(null); },8000); })]);
+}
+function richPictures(blocks,out){
+  blocks.forEach(function(x){
+    if(x.t==="img") out.push(x.url);
+    else if(x.t==="details") richPictures(x.inner,out);
+  });
+  return out;
+}
+function richHtmlWithPictures(o,phone){
+  if(phone) return Promise.resolve(o.html);
+  var urls=o.images.concat(richPictures(o.blocks,[]));
+  return Promise.all(urls.map(pictureData)).then(function(){ return toRichHtml(o.blocks,o.images,richData); });
+}
 // what: the name of a part of a split post ("قسمت ۲"), copied instead of the whole caption
 async function copyRich(btn,o,what){
   o=o||output();
@@ -2895,7 +3161,21 @@ async function copyRich(btn,o,what){
   function ok(msg){ say(warn? msg+" — ولی "+warn : msg, warn? "warn" : "ok"); }
   if(o.rich){
     var vids=currentMedia.filter(function(m){ return m.kind==="video"; }).length;
-    var note=(o.images.length? " · "+o.images.length+" عکس" : "")+(vids? " — ویدیو رو جدا بفرست" : "");
+    // Telegram's phone apps take no picture from a paste: there they are sent separately
+    var phone=isIOS || isAndroid;
+    var note=(o.images.length? (phone? " — عکس‌ها رو جدا بفرست" : " · "+o.images.length+" عکس") : "")+(vids? " — ویدیو رو جدا بفرست" : "");
+    if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      try{
+        // the HTML waits for the pictures' bytes (Telegram Desktop takes a picture only that way)
+        var htmlBlob=richHtmlWithPictures(o,phone).then(function(h){ return new Blob([h],{type:"text/html"}); });
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html":htmlBlob,
+          "text/plain":new Blob([clip],{type:"text/plain"})
+        })]);
+        flash(btn,"کپی شد ✓"); sent(); ok("پست ریچ کپی شد"+note);
+        return;
+      }catch(e){}
+    }
     if(copyAsPage(html)){ flash(btn,"کپی شد ✓"); sent(); ok("پست ریچ کپی شد"+note); return; }
   }
   try{
@@ -2966,7 +3246,7 @@ document.querySelectorAll(".tb").forEach(function(b){
     else if(d.line) prefixLines(d.line);
     else if(d.ins) insertAt(d.ins);
     else if(d.insline) insertLine(d.insline);
-    else insertBlock();
+    else insertBlock(d.block);
     commit();
   });
 });

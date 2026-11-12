@@ -186,3 +186,23 @@ test("in the browser on an iPhone, «کپی برای تلگرام» puts that ma
     await ctx.close();
   } finally { await browser.close(); server.srv.close(); }
 });
+
+/* ---------- rich mode on Telegram iPhone: the plain text is markdown its rich text editor builds the post from ---------- */
+test("rich post on iPhone: the plain text is markdown with real headings, lists, checklists, a table, a quote and a divider", () => {
+  iphone.setModeForTest("rich");
+  try {
+    const text = ["# آپدیت فورتنایت", "متن **پررنگ** و __زیرخط__", "", "## آیتم‌ها", "- اسکین Batman", "  - بک‌بلینگ", "1. اول", "2. دوم",
+      "- [x] سرورها", "", "| آیتم | قیمت |", "|:---|---:|", "| Batman | 1,500 |", "---", "> نقل‌قول", "", "پایان"].join("\n");
+    const o = copy(iphone, text);
+    assert.ok(o.rich && o.md, "rich mode on iPhone has markdown for the clipboard's plain text");
+    const html = new MarkdownIt({ html: true }).render(o.md);
+    for (const part of ["<h1>آپدیت فورتنایت</h1>", "<h2>", "<ul>\n<li>اسکین", "<ul>\n<li>بک", "<ol>\n<li>اول</li>", "[x] سرورها",
+      "<table>", '<th style="text-align:left">آیتم</th>', '<td style="text-align:right">1,500</td>', "<hr>", "<blockquote>", "<strong>پررنگ</strong>", "<u>زیرخط</u>"])
+      assert.ok(html.includes(part), part + " in " + html);
+    // the blank line after the bold line is a line of its own, not just a paragraph break
+    assert.ok(o.md.includes(`زیرخط</u>  \n${Z}`), o.md);
+    // on a computer the plain text stays readable (Telegram Desktop reads the HTML)
+    desktop.setModeForTest("rich");
+    try { assert.equal(copy(desktop, text).md, null); } finally { desktop.setModeForTest("classic"); }
+  } finally { iphone.setModeForTest("classic"); }
+});

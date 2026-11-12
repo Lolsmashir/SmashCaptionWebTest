@@ -34,7 +34,8 @@ test("the switch turns rich mode on and off, shows the rich toolbar buttons, and
   assert.equal(await visibleTb(), 25);
   await toRich(page);
   assert.ok(await page.$eval("body", (b) => b.classList.contains("rich")));
-  assert.equal(await visibleTb(), 31);
+  // six rich buttons from before, and a collapsible section and highlight (Telegram's rich editor has both)
+  assert.equal(await visibleTb(), 33);
   assert.equal(await page.getAttribute(".seg-b[data-mode='rich']", "aria-selected"), "true");
   await page.reload();
   assert.ok(await page.$eval("body", (b) => b.classList.contains("rich")), "rich mode survives a reload");
@@ -96,9 +97,14 @@ test("rich copy puts real HTML on the clipboard: headings, lists, table, and the
   const html = clip["text/html"];
   assert.ok(html, "text/html on the clipboard: " + Object.keys(clip));
   for (const part of ["<h1", "<h2", "<ul", "<ol", "<table", "<th", "<hr", "<blockquote",
-    'src="https://pbs.twimg.com/media/PHOTO1.jpg?name=orig"', 'src="https://pbs.twimg.com/media/PHOTO2.jpg?name=orig"'])
+    'data-tg-src="https://pbs.twimg.com/media/PHOTO1.jpg?name=orig"', 'data-tg-src="https://pbs.twimg.com/media/PHOTO2.jpg?name=orig"'])
     assert.ok(html.includes(part), part + " missing in " + html.slice(0, 400));
   assert.ok(html.indexOf("PHOTO1") < html.indexOf("<h1"), "pictures come first");
+  // Telegram Desktop takes a pasted picture only with its own bytes: both pictures are in a grid, as data
+  assert.ok(/^(<meta[^>]*>)?<tg-collage><img data-tg-src="[^"]+PHOTO1[^"]+" src="data:image\/png;base64,[^"]+" alt=""><img data-tg-src="[^"]+PHOTO2[^"]+" src="data:image\/png;base64,/.test(html), html.slice(0, 300));
+  // no wrapper around the post, and the blank line under the first paragraph stays
+  assert.ok(!/<div/.test(html), "no <div> in " + html.slice(0, 300));
+  assert.ok(html.includes("امروز:</p>") || html.includes("امروز:<br>\u200c</p>"), html.slice(0, 600));
   assert.ok(!html.includes("x.com/FortniteGame"), "the Link: line is not in the post");
   assert.ok(clip["text/plain"].includes("آپدیت"));
   // the editor is untouched, and the clipboard text has the direction marks
@@ -165,6 +171,44 @@ test("editing tables, lists and headings inside the rich preview writes clean ma
   await caretAt(page, "تیتر", 4);
   await page.keyboard.type(" نو");
   assert.ok((await editor(page)).startsWith("## تیتر نو\n"));
+  await ctx.close();
+});
+
+test("collapsible section and highlight: toolbar in the editor and the preview; editing inside the section writes back", async () => {
+  const { ctx, page, errors } = await open();
+  await toRich(page);
+  await typeCaption(page, "اول\nمتن داخل\nآخر");
+  // the editor: the selected line goes into a section, with its title selected to type over
+  await page.locator("#input").evaluate((t) => { t.focus(); const a = t.value.indexOf("متن"); t.setSelectionRange(a, a + 3); });
+  await page.click(".tb[title='بخش جمع‌شونده']");
+  assert.equal(await editor(page), "اول\n::: جزئیات\nمتن داخل\n:::\nآخر");
+  assert.equal(await page.locator("#input").evaluate((t) => t.value.slice(t.selectionStart, t.selectionEnd)), "جزئیات");
+  await page.keyboard.type("باگ‌ها");
+  assert.equal(await editor(page), "اول\n::: باگ‌ها\nمتن داخل\n:::\nآخر");
+  await settle(page);
+  assert.equal(await page.$eval("#preview .rb-details .tg-sum", (e) => e.textContent), "باگ‌ها");
+  assert.equal(await page.$eval("#preview .rb-details .tg-body", (e) => e.textContent), "متن داخل");
+  // highlight in the editor
+  await page.locator("#input").evaluate((t) => { const a = t.value.indexOf("آخر"); t.focus(); t.setSelectionRange(a, a + 3); });
+  await page.click(".tb[title='هایلایت']");
+  assert.ok((await editor(page)).endsWith("==آخر=="));
+  await settle(page);
+  assert.ok(await page.$("#preview mark"));
+  // typing inside the section in the preview keeps the ::: lines around it
+  await caretAt(page, "متن داخل", 8);
+  await page.keyboard.type(" تازه");
+  assert.equal(await editor(page), "اول\n::: باگ‌ها\nمتن داخل تازه\n:::\n==آخر==");
+  // highlight in the preview
+  await caretAt(page, "اول", 0, 3);
+  await page.click(".tb[title='هایلایت']");
+  assert.ok((await editor(page)).startsWith("==اول==\n"), await editor(page));
+  // a normal caption shows them as text and has neither button
+  await page.click(".seg-b[data-mode='classic']");
+  await settle(page);
+  assert.ok((await page.textContent("#preview")).includes("::: باگ‌ها"));
+  assert.equal(await page.$("#preview mark"), null);
+  assert.equal(await page.$eval(".tb[title='هایلایت']", (b) => !!b.offsetParent), false);
+  assert.deepEqual(errors, []);
   await ctx.close();
 });
 
