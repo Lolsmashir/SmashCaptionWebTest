@@ -1085,6 +1085,7 @@ body.rich .cutb{display:none;}
       <div class="scroll"><div class="mgrid" id="mgrid"></div></div>
       <div class="acts">
         <button class="act primary" id="bStrip">حذف لینک‌ها <small>Strip</small></button>
+        <button class="act" id="bDlAll">دانلود همه</button>
         <button class="act" id="bOpenAll">باز کردن همه</button>
       </div>
     </section>
@@ -3285,14 +3286,17 @@ async function shareFile(m,btn){
     say("ارسال نشد — دانلود کن","warn");
   }
 }
+function saveBlob(blob,name){
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+}
 async function downloadFile(url,btn,name){
   try{
     var blob=await fetchBlob(url,btn);
-    var a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download=name||(url.split("/").pop()||"video").split("?")[0];
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+    saveBlob(blob,name||(url.split("/").pop()||"video").split("?")[0]);
     flash(btn,""); say("ذخیره شد — به‌عنوان ویدیو بفرست","ok");
   }catch(e){
     window.open(url,"_blank","noopener");
@@ -3311,6 +3315,41 @@ async function siteAct(m,v,act,b,shareFirst){
   else if(kind==="image") copyImage(f.url,b);
   else if(shareFirst) shareFile({url:f.url,kind:kind,name:f.name},b);
   else copyLink(m.page,b);   // the server's link lives a minute: the page's own link is what is worth copying
+}
+// «دانلود همه»: every file of the media panel at its best quality (the top row: original
+// pictures, the highest video, YouTube 1080p), one after another, each with its row's progress
+// bar. A file that can't be fetched is skipped (no tabs open by themselves); a second click stops
+// after the file being saved
+var dlAllRun=null;
+async function saveMedia(m,v,btn){
+  try{
+    var url=v.url, name="";
+    if(m.dl){ var f=await siteFile(m,v,btn); url=f.url; name=f.name; }
+    var blob=await fetchBlob(url,btn);
+    saveBlob(blob,name||(url.split("/").pop()||"file").split("?")[0]);
+    flash(btn,"");
+    return true;
+  }catch(e){ return false; }
+}
+async function downloadAll(btn){
+  if(dlAllRun){ dlAllRun.stop=true; say("بعد از همین فایل وایمیسه","warn"); return; }
+  var items=currentMedia.slice();
+  if(!items.length){ say("فایلی برای دانلود نیست","warn"); return; }
+  var run=dlAllRun={stop:false}, ok=0, bad=0, old=btn.innerHTML;
+  btn.style.minWidth=btn.offsetWidth+"px";
+  say("دانلود "+items.length+" فایل با بهترین کیفیت، یکی‌یکی — اگه مرورگر پرسید، Allow رو بزن","ok");
+  for(var i=0;i<items.length && !run.stop;i++){
+    btn.textContent=(i+1)+" از "+items.length;
+    var m=items[i], idx=currentMedia.indexOf(m);
+    var vars=(m.variants&&m.variants.length)? m.variants : [{label:"اصلی",url:m.url}];
+    var row=idx>=0? mgrid.querySelector('button[data-act="dl"][data-i="'+idx+'"][data-v="0"]') : null;
+    if(await saveMedia(m,vars[0],row||btn)) ok++; else bad++;
+  }
+  dlAllRun=null; btn.innerHTML=old; btn.style.minWidth="";
+  if(ok) flash(btn,"دانلود شد");
+  if(run.stop) say("متوقف شد — "+ok+" فایل دانلود شد","warn");
+  else if(bad) say(ok+" فایل دانلود شد، "+bad+" تا نشد — اون‌ها رو تکی امتحان کن","warn");
+  else say(ok>1? "همه‌ی "+ok+" فایل دانلود شد" : "فایل دانلود شد","ok");
 }
 function stripLinks(){
   input.value=input.value.split("\n").filter(function(l){ return !isMediaMetaLine(l); })
@@ -3569,6 +3608,7 @@ document.getElementById("bPlain").onclick=async function(){
   catch(e){ say("کپی نشد","warn"); }
 };
 document.getElementById("bStrip").onclick=stripLinks;
+document.getElementById("bDlAll").onclick=function(){ downloadAll(this); };
 document.getElementById("bOpenAll").onclick=function(){
   currentMedia.forEach(function(m,i){ setTimeout(function(){ window.open(m.page||m.url,"_blank","noopener"); },i*220); });
 };

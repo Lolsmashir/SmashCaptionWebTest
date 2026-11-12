@@ -145,3 +145,22 @@ test("on a phone the links sheet and the header fit; the keyboard does not pop u
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test("«دانلود همه» saves every file of the media panel at its best quality, one after another", async () => {
+  const { ctx, page, dlLog, errors } = await open();
+  const { CAPTION } = require("./harness");
+  await typeCaption(page, CAPTION + "\nLink: " + YT);
+  await page.waitForFunction(() => document.querySelectorAll(".mcard .qitem").length >= 9 && document.querySelector(".mcard .mtitle"));
+  const names = [];
+  page.on("download", (d) => names.push(d.suggestedFilename()));
+  await page.click("#bDlAll");
+  await page.waitForFunction(() => /همه‌ی 2 فایل دانلود شد/.test(document.getElementById("toast").textContent), null, { timeout: 15000 });
+  // the tweet's highest video and YouTube's 1080p
+  assert.deepEqual(names, ["clip.mp4", "Fortnite Chapter 7 Trailer - Fortnite (1080p, h264, youtube).mp4"]);
+  assert.equal(dlLog[dlLog.length - 1].body.videoQuality, "1080");
+  // the button says it is done, then has its label back
+  assert.match(await page.textContent("#bDlAll"), /دانلود شد/);
+  await page.waitForFunction(() => document.getElementById("bDlAll").textContent === "دانلود همه", null, { timeout: 4000 });
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
